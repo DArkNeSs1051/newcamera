@@ -121,9 +121,6 @@ const Home = () => {
       if (showGuideLines) {
         drawGuideLines(keypoints, ctx);
       }
-
-      // แสดงข้อความบนหน้าจอ
-      displayInfo(ctx);
     }
 
     requestAnimationFrame(poseDetectionFrame);
@@ -190,8 +187,32 @@ const Home = () => {
 
   // ฟังก์ชันตรวจสอบท่า Push-Up (ปรับจากโค้ดตัวอย่าง)
   const checkPushUpPosition = (keypoints: Keypoint[]) => {
-    // ตรวจสอบท่าขึ้น
-    if (Math.abs(elbowAngle) > 170 && Math.abs(elbowAngle) < 200) {
+    // ดึงจุดสำคัญที่ต้องใช้
+    const nose = keypoints[0];
+    const leftElbow = keypoints[7];
+    const rightElbow = keypoints[8];
+
+    // ตรวจสอบว่าจุดสำคัญมีความเชื่อมั่นเพียงพอ
+    if (
+      (nose.score ?? 0) < 0.3 ||
+      (leftElbow.score ?? 0) < 0.3 ||
+      (rightElbow.score ?? 0) < 0.3
+    ) {
+      return;
+    }
+
+    // คำนวณตำแหน่งเฉลี่ยของข้อศอกทั้งสองข้าง
+    const avgElbowY = (leftElbow.y + rightElbow.y) / 2;
+
+    // ตรวจสอบว่าจมูก (ศีรษะ) อยู่ต่ำกว่าข้อศอกหรือไม่
+    const isHeadBelowElbows = nose.y > avgElbowY;
+
+    // ตรวจสอบท่าขึ้น - ใช้มุมข้อศอกเป็นเกณฑ์เสริม
+    if (
+      Math.abs(elbowAngle) > 150 &&
+      Math.abs(elbowAngle) < 200 &&
+      !isHeadBelowElbows
+    ) {
       if (downPositionRef.current) {
         // นับจำนวน push-up เมื่อเปลี่ยนจากท่าลงเป็นท่าขึ้น
         setPushupCount((prev) => prev + 1);
@@ -208,17 +229,8 @@ const Home = () => {
       setPushupState("up");
     }
 
-    // ตรวจสอบท่าลง
-    const nose = keypoints[0];
-    const leftElbow = keypoints[7];
-    const elbowAboveNose = nose.y > leftElbow.y;
-
-    if (
-      !highlightBack &&
-      elbowAboveNose &&
-      Math.abs(elbowAngle) > 70 &&
-      Math.abs(elbowAngle) < 100
-    ) {
+    // ตรวจสอบท่าลง - ใช้ตำแหน่งของศีรษะเทียบกับข้อศอกเป็นหลัก
+    if (!highlightBack && isHeadBelowElbows) {
       if (upPositionRef.current) {
         // แจ้งเตือนให้ขึ้น
         if ("speechSynthesis" in window) {
@@ -234,52 +246,6 @@ const Home = () => {
 
     // อัปเดตสถานะล่าสุด
     setLastPushupState(pushupState);
-  };
-
-  // ฟังก์ชันแสดงข้อมูลบนหน้าจอ
-  const displayInfo = (ctx: CanvasRenderingContext2D) => {
-    ctx.save();
-    ctx.translate(ctx.canvas.width, 0);
-    ctx.scale(-1, 1);
-
-    // แสดงจำนวน Push-Up
-    const countText = `จำนวน Push-Up: ${pushupCount}`;
-    ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
-    ctx.fillRect(ctx.canvas.width - 300, 50, 250, 40);
-    ctx.fillStyle = "#33A1FF";
-    ctx.font = "bold 24px Arial";
-    ctx.fillText(countText, ctx.canvas.width - 290, 80);
-
-    // แสดงสถานะ Push-Up
-    const statusText = `สถานะ: ${
-      pushupState === "up"
-        ? "ขึ้น"
-        : pushupState === "down"
-        ? "ลง"
-        : "ไม่ใช่ท่า Push-Up"
-    }`;
-    ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
-    ctx.fillRect(ctx.canvas.width - 300, 100, 250, 40);
-    ctx.fillStyle =
-      pushupState === "up"
-        ? "#33FF57"
-        : pushupState === "down"
-        ? "#FF5733"
-        : "#FFFFFF";
-    ctx.font = "bold 24px Arial";
-    ctx.fillText(statusText, ctx.canvas.width - 290, 130);
-
-    // แสดงสถานะหลัง
-    if (highlightBack) {
-      const backText = "คำเตือน: รักษาหลังให้ตรง";
-      ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
-      ctx.fillRect(ctx.canvas.width - 300, 150, 250, 40);
-      ctx.fillStyle = "#FF5733";
-      ctx.font = "bold 20px Arial";
-      ctx.fillText(backText, ctx.canvas.width - 290, 180);
-    }
-
-    ctx.restore();
   };
 
   // เพิ่มฟังก์ชันวาดเส้นแนะนำ
