@@ -165,7 +165,7 @@ const Home = () => {
           Math.atan2(leftShoulder.y - leftHip.y, leftShoulder.x - leftHip.x)) *
         (180 / Math.PI);
 
-      const normalizedAngle = angle % 180;
+      const normalizedAngle = Math.abs(angle % 180);
       setBackAngle(normalizedAngle);
 
       // ตรวจสอบความตรงของหลัง
@@ -215,7 +215,15 @@ const Home = () => {
     ) {
       if (downPositionRef.current) {
         // นับจำนวน push-up เมื่อเปลี่ยนจากท่าลงเป็นท่าขึ้น
-        setPushupCount((prev) => prev + 1);
+        setPushupCount((prev) => {
+          const newCount = prev + 1;
+          if ("speechSynthesis" in window) {
+            const msg = new SpeechSynthesisUtterance(`${newCount}`);
+            window.speechSynthesis.cancel();
+            window.speechSynthesis.speak(msg);
+          }
+          return newCount;
+        });
 
         // แจ้งจำนวนครั้งด้วยเสียง
         if ("speechSynthesis" in window) {
