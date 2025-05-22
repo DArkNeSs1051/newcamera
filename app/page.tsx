@@ -30,6 +30,9 @@ const Home = () => {
   const upPositionRef = useRef(false);
   const downPositionRef = useRef(false);
 
+  // เพิ่ม edges สำหรับการวาด skeleton
+  const edgesRef = useRef<Record<string, string>>({});
+
   useEffect(() => {
     const init = async () => {
       try {
@@ -43,6 +46,22 @@ const Home = () => {
           }
         );
         detectorRef.current = detector;
+
+        // กำหนด edges สำหรับการวาด skeleton
+        edgesRef.current = {
+          "5,7": "m",
+          "7,9": "m",
+          "6,8": "c",
+          "8,10": "c",
+          "5,6": "y",
+          "5,11": "m",
+          "6,12": "c",
+          "11,12": "y",
+          "11,13": "m",
+          "13,15": "m",
+          "12,14": "c",
+          "14,16": "c",
+        };
 
         // เปิดกล้อง
         if (navigator.mediaDevices.getUserMedia) {
@@ -108,16 +127,17 @@ const Home = () => {
       const keypoints = poses[0].keypoints;
 
       drawKeypoints(keypoints, ctx);
-      drawSkeleton(keypoints, ctx);
+      drawSkeleton(keypoints, ctx, poses[0]);
 
       // อัปเดตมุมข้อศอกและมุมหลัง
       updateArmAngle(keypoints);
       updateBackAngle(keypoints);
 
       // ตรวจสอบท่า Push-Up
-      checkPushUpPosition(keypoints);
+      inUpPosition(keypoints);
+      inDownPosition(keypoints);
 
-      // วาดเส้นแนะนำ
+      // วาดเส้นแนำ
       if (showGuideLines) {
         drawGuideLines(keypoints, ctx);
       }
@@ -126,16 +146,16 @@ const Home = () => {
     requestAnimationFrame(poseDetectionFrame);
   };
 
-  // ฟังก์ชันคำนวณมุมข้อศอก (ปรับจากโค้ดตัวอย่าง)
+  // ฟังก์ชันคำนวณมุมข้อศอก (ปรับตามโค้ดตัวอย่าง)
   const updateArmAngle = (keypoints: Keypoint[]) => {
     const leftWrist = keypoints[9];
     const leftShoulder = keypoints[5];
     const leftElbow = keypoints[7];
 
     if (
-      (leftWrist.score ?? 0) > 0.3 &&
-      (leftElbow.score ?? 0) > 0.3 &&
-      (leftShoulder.score ?? 0) > 0.3
+      (leftWrist.score ?? 0) > 0.2 &&
+      (leftElbow.score ?? 0) > 0.2 &&
+      (leftShoulder.score ?? 0) > 0.2
     ) {
       const angle =
         (Math.atan2(leftWrist.y - leftElbow.y, leftWrist.x - leftElbow.x) -
@@ -149,16 +169,16 @@ const Home = () => {
     }
   };
 
-  // ฟังก์ชันคำนวณมุมหลัง (ปรับจากโค้ดตัวอย่าง)
+  // ฟังก์ชันคำนวณมุมหลัง (ปรับตามโค้ดตัวอย่าง)
   const updateBackAngle = (keypoints: Keypoint[]) => {
     const leftShoulder = keypoints[5];
     const leftHip = keypoints[11];
     const leftKnee = keypoints[13];
 
     if (
-      (leftShoulder.score ?? 0) > 0.3 &&
-      (leftHip.score ?? 0) > 0.3 &&
-      (leftKnee.score ?? 0) > 0.3
+      (leftShoulder.score ?? 0) > 0.2 &&
+      (leftHip.score ?? 0) > 0.2 &&
+      (leftKnee.score ?? 0) > 0.2
     ) {
       const angle =
         (Math.atan2(leftKnee.y - leftHip.y, leftKnee.x - leftHip.x) -
@@ -185,34 +205,9 @@ const Home = () => {
     }
   };
 
-  // ฟังก์ชันตรวจสอบท่า Push-Up (ปรับจากโค้ดตัวอย่าง)
-  const checkPushUpPosition = (keypoints: Keypoint[]) => {
-    // ดึงจุดสำคัญที่ต้องใช้
-    const nose = keypoints[0];
-    const leftElbow = keypoints[7];
-    const rightElbow = keypoints[8];
-
-    // ตรวจสอบว่าจุดสำคัญมีความเชื่อมั่นเพียงพอ
-    if (
-      (nose.score ?? 0) < 0.3 ||
-      (leftElbow.score ?? 0) < 0.3 ||
-      (rightElbow.score ?? 0) < 0.3
-    ) {
-      return;
-    }
-
-    // คำนวณตำแหน่งเฉลี่ยของข้อศอกทั้งสองข้าง
-    const avgElbowY = (leftElbow.y + rightElbow.y) / 2;
-
-    // ตรวจสอบว่าจมูก (ศีรษะ) อยู่ต่ำกว่าข้อศอกหรือไม่
-    const isHeadBelowElbows = nose.y > avgElbowY;
-
-    // ตรวจสอบท่าขึ้น - ใช้มุมข้อศอกเป็นเกณฑ์เสริม
-    if (
-      Math.abs(elbowAngle) > 150 &&
-      Math.abs(elbowAngle) < 200 &&
-      !isHeadBelowElbows
-    ) {
+  // ฟังก์ชันตรวจสอบท่าขึ้น (ปรับตามโค้ดตัวอย่าง)
+  const inUpPosition = (keypoints: Keypoint[]) => {
+    if (elbowAngle > 170 && elbowAngle < 200) {
       if (downPositionRef.current) {
         // นับจำนวน push-up เมื่อเปลี่ยนจากท่าลงเป็นท่าขึ้น
         setPushupCount((prev) => {
@@ -224,21 +219,29 @@ const Home = () => {
           }
           return newCount;
         });
-
-        // แจ้งจำนวนครั้งด้วยเสียง
-        if ("speechSynthesis" in window) {
-          const msg = new SpeechSynthesisUtterance(`${pushupCount + 1}`);
-          window.speechSynthesis.speak(msg);
-        }
       }
 
       upPositionRef.current = true;
       downPositionRef.current = false;
       setPushupState("up");
     }
+  };
 
-    // ตรวจสอบท่าลง - ใช้ตำแหน่งของศีรษะเทียบกับข้อศอกเป็นหลัก
-    if (!highlightBack && isHeadBelowElbows) {
+  // ฟังก์ชันตรวจสอบท่าลง (ปรับตามโค้ดตัวอย่าง)
+  const inDownPosition = (keypoints: Keypoint[]) => {
+    // ตรวจสอบว่าข้อศอกอยู่เหนือจมูกหรือไม่
+    let elbowAboveNose = false;
+    if (keypoints[0].y > keypoints[7].y) {
+      elbowAboveNose = true;
+    }
+
+    // ตรวจสอบท่าลง - ใช้ตำแหน่งของศีรษะเทียบกับข้อศอก
+    if (
+      !highlightBack &&
+      elbowAboveNose &&
+      Math.abs(elbowAngle) > 70 &&
+      Math.abs(elbowAngle) < 100
+    ) {
       if (upPositionRef.current) {
         // แจ้งเตือนให้ขึ้น
         if ("speechSynthesis" in window) {
@@ -251,147 +254,77 @@ const Home = () => {
       upPositionRef.current = false;
       setPushupState("down");
     }
-
-    // อัปเดตสถานะล่าสุด
-    setLastPushupState(pushupState);
   };
 
-  // เพิ่มฟังก์ชันวาดเส้นแนะนำ
+  // เพิ่มฟังก์ชันวาดเส้นแนำ
   const drawGuideLines = (
     keypoints: Keypoint[],
     ctx: CanvasRenderingContext2D
   ) => {
-    // ตรวจสอบว่ามีจุดสำคัญครบหรือไม่
-    const nose = keypoints[0];
-    const leftShoulder = keypoints[5];
-    const rightShoulder = keypoints[6];
-    const leftHip = keypoints[11];
-    const rightHip = keypoints[12];
-    const leftAnkle = keypoints[15];
-    const rightAnkle = keypoints[16];
-
-    // ตรวจสอบว่าจุดสำคัญมีความเชื่อมั่นเพียงพอ
-    const keyPointsConfident = [
-      nose,
-      leftShoulder,
-      rightShoulder,
-      leftHip,
-      rightHip,
-      leftAnkle,
-      rightAnkle,
-    ].every((point) => (point.score ?? 0) > 0.2);
-
-    if (!keyPointsConfident) return;
-
-    // คำนวณจุดกึ่งกลางของร่างกาย
-    const shoulderX = (leftShoulder.x + rightShoulder.x) / 2;
-    const hipX = (leftHip.x + rightHip.x) / 2;
-    const ankleX = (leftAnkle.x + rightAnkle.x) / 2;
-
-    // วาดเส้นแนวตรงที่ควรจะเป็นสำหรับท่า Push-Up ที่ถูกต้อง
-    ctx.save();
-
-    // เส้นแนวตรงของลำตัว (จากศีรษะถึงส้นเท้า)
-    ctx.beginPath();
-    ctx.moveTo(nose.x, nose.y);
-    ctx.lineTo(shoulderX, (leftShoulder.y + rightShoulder.y) / 2);
-    ctx.lineTo(hipX, (leftHip.y + rightHip.y) / 2);
-    ctx.lineTo(ankleX, (leftAnkle.y + rightAnkle.y) / 2);
-
-    ctx.strokeStyle = "rgba(255, 255, 0, 0.5)"; // สีเหลืองโปร่งใส
-    ctx.lineWidth = 3;
-    ctx.setLineDash([5, 5]); // เส้นประ
-    ctx.stroke();
-
-    // วาดเส้นแนวนอนที่ควรจะเป็นเมื่อลงต่ำสุด
-    const idealLowPosition = (leftHip.y + rightHip.y) / 2 + 20; // ปรับตามความเหมาะสม
-    ctx.beginPath();
-    ctx.moveTo(0, idealLowPosition);
-    ctx.lineTo(ctx.canvas.width, idealLowPosition);
-
-    ctx.strokeStyle = "rgba(255, 0, 0, 0.5)"; // สีแดงโปร่งใส
-    ctx.lineWidth = 2;
-    ctx.setLineDash([10, 5]); // เส้นประ
-    ctx.stroke();
-
-    ctx.restore();
-
-    // แสดงข้อความแนะนำ
-    ctx.save();
-    ctx.translate(ctx.canvas.width, 0);
-    ctx.scale(-1, 1);
-
-    ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
-    ctx.fillRect(ctx.canvas.width - 300, 230, 250, 30);
-    ctx.fillStyle = "#FFFF33";
-    ctx.font = "bold 16px Arial";
-    ctx.fillText("เส้นเหลือง: แนวลำตัวควรตรง", ctx.canvas.width - 290, 250);
-
-    ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
-    ctx.fillRect(ctx.canvas.width - 300, 270, 250, 30);
-    ctx.fillStyle = "#FF5555";
-    ctx.font = "bold 16px Arial";
-    ctx.fillText("เส้นแดง: ระดับต่ำสุดที่ควรลง", ctx.canvas.width - 290, 290);
-
-    ctx.restore();
+    // ... existing code ...
   };
 
   const drawKeypoints = (
     keypoints: Keypoint[],
     ctx: CanvasRenderingContext2D
   ) => {
+    let count = 0;
     keypoints.forEach((keypoint) => {
       const { x, y, score } = keypoint;
       if (score !== undefined && score > 0.2) {
+        count++;
         ctx.beginPath();
-        ctx.arc(x, y, 5, 0, 2 * Math.PI);
+        ctx.arc(x, y, 8, 0, 2 * Math.PI);
         ctx.fillStyle = "Red";
         ctx.fill();
+        ctx.strokeStyle = "White";
+        ctx.lineWidth = 2;
+        ctx.stroke();
       }
     });
   };
 
   const drawSkeleton = (
     keypoints: Keypoint[],
-    ctx: CanvasRenderingContext2D
+    ctx: CanvasRenderingContext2D,
+    pose: poseDetection.Pose
   ) => {
-    const adjacentPairs = poseDetection.util.getAdjacentPairs(
-      poseDetection.SupportedModels.MoveNet
-    );
+    const confidence_threshold = 0.5;
+    const edges = edgesRef.current;
 
-    adjacentPairs.forEach(([i, j]) => {
-      const kp1 = keypoints[i];
-      const kp2 = keypoints[j];
+    for (const [key, value] of Object.entries(edges)) {
+      const p = key.split(",");
+      const p1 = parseInt(p[0]);
+      const p2 = parseInt(p[1]);
 
-      if (
-        kp1.score !== undefined &&
-        kp2.score !== undefined &&
-        kp1.score > 0.2 &&
-        kp2.score > 0.2
-      ) {
-        ctx.beginPath();
-        ctx.moveTo(kp1.x, kp1.y);
-        ctx.lineTo(kp2.x, kp2.y);
+      const y1 = keypoints[p1].y;
+      const x1 = keypoints[p1].x;
+      const c1 = keypoints[p1].score ?? 0;
+      const y2 = keypoints[p2].y;
+      const x2 = keypoints[p2].x;
+      const c2 = keypoints[p2].score ?? 0;
 
-        // เน้นเส้นหลังถ้าหลังไม่ตรง
+      if (c1 > confidence_threshold && c2 > confidence_threshold) {
         if (
           highlightBack &&
-          ((i === 5 && j === 11) || // leftShoulder to leftHip
-            (i === 6 && j === 12) || // rightShoulder to rightHip
-            (i === 11 && j === 13) || // leftHip to leftKnee
-            (i === 12 && j === 14))
+          (p2 == 11 || (p1 == 6 && p2 == 12) || p2 == 13 || p1 == 12)
         ) {
-          // rightHip to rightKnee
+          ctx.beginPath();
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(x2, y2);
           ctx.strokeStyle = "Red";
           ctx.lineWidth = 3;
+          ctx.stroke();
         } else {
+          ctx.beginPath();
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(x2, y2);
           ctx.strokeStyle = "Green";
           ctx.lineWidth = 2;
+          ctx.stroke();
         }
-
-        ctx.stroke();
       }
-    });
+    }
   };
 
   const calculateAngle = (a: Keypoint, b: Keypoint, c: Keypoint): number => {
