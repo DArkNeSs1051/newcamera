@@ -1,393 +1,396 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import * as poseDetection from "@tensorflow-models/pose-detection";
 import "@tensorflow/tfjs-backend-webgl";
 import * as tf from "@tensorflow/tfjs";
-
-import { useEffect, useRef, useState } from "react";
 import { Keypoint } from "@tensorflow-models/pose-detection";
 
 const Home = () => {
-  const [pushupState, setPushupState] = useState("none"); // สถานะของ push-up
-  const [pushupCount, setPushupCount] = useState(0); // ตัวนับจำนวน push-up
-  const [lastPushupState, setLastPushupState] = useState("none"); // สถานะล่าสุด
-  const [showGuideLines, setShowGuideLines] = useState(true); // สถานะการแสดงเส้นแนะนำ
-  const [backAngle, setBackAngle] = useState(0); // มุมของหลัง
-  const [elbowAngle, setElbowAngle] = useState(999); // มุมของข้อศอก
-  const [highlightBack, setHighlightBack] = useState(false); // สถานะการเน้นหลัง
-  const [backWarningGiven, setBackWarningGiven] = useState(false); // สถานะการแจ้งเตือนเรื่องหลัง
-
-  // refs
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [reps, setReps] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState("กำลังโหลด กรุณารอสักครู่...");
+
+  // สร้างตัวแปรสำหรับเก็บค่าต่างๆ
   const detectorRef = useRef<poseDetection.PoseDetector | null>(null);
-
-  // เพิ่มค่าเฉลี่ย่สำหรับความสูงของลำตัว
-  const bodyHeightHistoryRef = useRef<number[]>([]);
-  const MAX_HISTORY_LENGTH = 10; // จำนวนเฟรมที่เก็บประวัติ
-
-  // เพิ่ม ref สำหรับเก็บสถานะ
-  const upPositionRef = useRef(false);
-  const downPositionRef = useRef(false);
-
-  // เพิ่ม edges สำหรับการวาด skeleton
+  const posesRef = useRef<poseDetection.Pose[] | null>(null);
+  const requestRef = useRef<number | null>(null);
   const edgesRef = useRef<Record<string, string>>({});
 
-  useEffect(() => {
-    const init = async () => {
-      try {
-        await tf.setBackend("webgl");
-        await tf.ready();
-        const detector = await poseDetection.createDetector(
-          poseDetection.SupportedModels.MoveNet,
-          {
-            modelType: poseDetection.movenet.modelType.SINGLEPOSE_THUNDER,
-            enableSmoothing: true,
-          }
-        );
-        detectorRef.current = detector;
+  // ตัวแปรสำหรับการตรวจจับท่า Push Up
+  const elbowAngleRef = useRef<number>(999);
+  const backAngleRef = useRef<number>(0);
+  const upPositionRef = useRef<boolean>(false);
+  const downPositionRef = useRef<boolean>(false);
+  const highlightBackRef = useRef<boolean>(false);
+  const backWarningGivenRef = useRef<boolean>(false);
 
-        // กำหนด edges สำหรับการวาด skeleton
-        edgesRef.current = {
-          "5,7": "m",
-          "7,9": "m",
-          "6,8": "c",
-          "8,10": "c",
-          "5,6": "y",
-          "5,11": "m",
-          "6,12": "c",
-          "11,12": "y",
-          "11,13": "m",
-          "13,15": "m",
-          "12,14": "c",
-          "14,16": "c",
-        };
-
-        // เปิดกล้อง
-        if (navigator.mediaDevices.getUserMedia) {
-          const stream = await navigator.mediaDevices.getUserMedia({
-            video: { width: 640, height: 480 },
-            audio: false,
-          });
-          if (videoRef.current) {
-            videoRef.current.srcObject = stream;
-            await videoRef.current.play();
-          }
-        }
-
-        // แจ้งเตือนด้วยเสียงว่ากำลังโหลด
-        if ("speechSynthesis" in window) {
-          const msg = new SpeechSynthesisUtterance(
-            "กำลังโหลด กรุณารอสักครู่..."
-          );
-          window.speechSynthesis.speak(msg);
-        }
-
-        requestAnimationFrame(poseDetectionFrame);
-      } catch (error) {
-        console.error(error);
-      }
-    };
-
-    init();
-  }, []);
-
-  // ฟังก์ชันวนลูปดึง keypoints และวาด
-  const poseDetectionFrame = async () => {
-    if (
-      !detectorRef.current ||
-      !videoRef.current ||
-      !canvasRef.current ||
-      videoRef.current.readyState < 2
-    ) {
-      requestAnimationFrame(poseDetectionFrame);
-      return;
-    }
-
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    // ตั้งขนาด canvas เท่ากับ video
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-
-    // ตรวจจับท่าทาง
-    const poses = await detectorRef.current.estimatePoses(video);
-
-    // ล้าง canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // วาด video ลง canvas
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    // ถ้ามี keypoints
-    if (poses.length > 0) {
-      const keypoints = poses[0].keypoints;
-
-      drawKeypoints(keypoints, ctx);
-      drawSkeleton(keypoints, ctx, poses[0]);
-
-      // อัปเดตมุมข้อศอกและมุมหลัง
-      updateArmAngle(keypoints);
-      updateBackAngle(keypoints);
-
-      // ตรวจสอบท่า Push-Up
-      inUpPosition(keypoints);
-      inDownPosition(keypoints);
-
-      // วาดเส้นแนำ
-      if (showGuideLines) {
-        drawGuideLines(keypoints, ctx);
-      }
-    }
-
-    requestAnimationFrame(poseDetectionFrame);
+  // ฟังก์ชันสำหรับการพูด
+  const speak = (text: string) => {
+    const msg = new SpeechSynthesisUtterance(text);
+    window.speechSynthesis.speak(msg);
   };
 
-  // ฟังก์ชันคำนวณมุมข้อศอก (ปรับตามโค้ดตัวอย่าง)
-  const updateArmAngle = (keypoints: Keypoint[]) => {
-    const leftWrist = keypoints[9];
-    const leftShoulder = keypoints[5];
-    const leftElbow = keypoints[7];
+  // ฟังก์ชันสำหรับการเริ่มต้นตัวตรวจจับท่าทาง
+  const initDetector = async () => {
+    try {
+      const detectorConfig = {
+        modelType: poseDetection.movenet.modelType.SINGLEPOSE_THUNDER,
+      };
 
-    if (
-      (leftWrist.score ?? 0) > 0.2 &&
-      (leftElbow.score ?? 0) > 0.2 &&
-      (leftShoulder.score ?? 0) > 0.2
-    ) {
-      const angle =
-        (Math.atan2(leftWrist.y - leftElbow.y, leftWrist.x - leftElbow.x) -
-          Math.atan2(
-            leftShoulder.y - leftElbow.y,
-            leftShoulder.x - leftElbow.x
-          )) *
-        (180 / Math.PI);
+      const detector = await poseDetection.createDetector(
+        poseDetection.SupportedModels.MoveNet,
+        detectorConfig
+      );
 
-      setElbowAngle(angle);
+      detectorRef.current = detector;
+
+      edgesRef.current = {
+        "5,7": "m",
+        "7,9": "m",
+        "6,8": "c",
+        "8,10": "c",
+        "5,6": "y",
+        "5,11": "m",
+        "6,12": "c",
+        "11,12": "y",
+        "11,13": "m",
+        "13,15": "m",
+        "12,14": "c",
+        "14,16": "c",
+      };
+
+      setLoading(false);
+      speak("พร้อมสำหรับการตรวจจับท่า Push Up แล้ว");
+    } catch (error) {
+      console.error("ไม่สามารถโหลดโมเดลได้:", error);
+      setMessage("เกิดข้อผิดพลาดในการโหลดโมเดล กรุณาลองใหม่อีกครั้ง");
     }
   };
 
-  // ฟังก์ชันคำนวณมุมหลัง (ปรับตามโค้ดตัวอย่าง)
-  const updateBackAngle = (keypoints: Keypoint[]) => {
-    const leftShoulder = keypoints[5];
-    const leftHip = keypoints[11];
-    const leftKnee = keypoints[13];
+  // ฟังก์ชันสำหรับการประมาณท่าทาง
+  const getPoses = async () => {
+    if (!detectorRef.current || !videoRef.current) return;
 
-    if (
-      (leftShoulder.score ?? 0) > 0.2 &&
-      (leftHip.score ?? 0) > 0.2 &&
-      (leftKnee.score ?? 0) > 0.2
-    ) {
-      const angle =
-        (Math.atan2(leftKnee.y - leftHip.y, leftKnee.x - leftHip.x) -
-          Math.atan2(leftShoulder.y - leftHip.y, leftShoulder.x - leftHip.x)) *
-        (180 / Math.PI);
+    try {
+      posesRef.current = await detectorRef.current.estimatePoses(
+        videoRef.current
+      );
+      requestRef.current = requestAnimationFrame(getPoses);
+    } catch (error) {
+      console.error("เกิดข้อผิดพลาดในการประมาณท่าทาง:", error);
+    }
+  };
 
-      const normalizedAngle = Math.abs(angle % 180);
-      setBackAngle(normalizedAngle);
-
-      // ตรวจสอบความตรงของหลัง
-      const isBackStraight = normalizedAngle < 20 || normalizedAngle > 160;
-      setHighlightBack(!isBackStraight);
-
-      // แจ้งเตือนถ้าหลังไม่ตรง
-      if (!isBackStraight && !backWarningGiven) {
-        if ("speechSynthesis" in window) {
-          const msg = new SpeechSynthesisUtterance("รักษาหลังให้ตรง");
-          window.speechSynthesis.speak(msg);
-          setBackWarningGiven(true);
+  // ฟังก์ชันสำหรับการวาดจุดสำคัญ
+  const drawKeypoints = (ctx: CanvasRenderingContext2D) => {
+    let count = 0;
+    if (posesRef.current && posesRef.current.length > 0) {
+      for (let kp of posesRef.current[0].keypoints) {
+        const { x, y, score } = kp;
+        if (score && score > 0.3) {
+          count = count + 1;
+          ctx.fillStyle = "white";
+          ctx.strokeStyle = "black";
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.arc(x, y, 8, 0, 2 * Math.PI);
+          ctx.fill();
+          ctx.stroke();
         }
-      } else if (isBackStraight) {
-        setBackWarningGiven(false);
+      }
+
+      updateArmAngle();
+      updateBackAngle();
+      inUpPosition();
+      inDownPosition();
+    }
+  };
+
+  // ฟังก์ชันสำหรับการวาดโครงกระดูก
+  const drawSkeleton = (ctx: CanvasRenderingContext2D) => {
+    const confidence_threshold = 0.5;
+
+    if (posesRef.current && posesRef.current.length > 0) {
+      for (const [key, value] of Object.entries(edgesRef.current)) {
+        const p = key.split(",");
+        const p1 = parseInt(p[0]);
+        const p2 = parseInt(p[1]);
+
+        const y1 = posesRef.current[0].keypoints[p1].y;
+        const x1 = posesRef.current[0].keypoints[p1].x;
+        const c1 = posesRef.current[0].keypoints[p1].score;
+        const y2 = posesRef.current[0].keypoints[p2].y;
+        const x2 = posesRef.current[0].keypoints[p2].x;
+        const c2 = posesRef.current[0].keypoints[p2].score;
+
+        if (
+          c1 &&
+          c1 > confidence_threshold &&
+          c2 &&
+          c2 > confidence_threshold
+        ) {
+          if (
+            highlightBackRef.current === true &&
+            (p2 === 11 || (p1 === 6 && p2 === 12) || p2 === 13 || p1 === 12)
+          ) {
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = "red";
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+          } else {
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = "rgb(0, 255, 0)";
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+          }
+        }
       }
     }
   };
 
-  // ฟังก์ชันตรวจสอบท่าขึ้น (ปรับตามโค้ดตัวอย่าง)
-  const inUpPosition = (keypoints: Keypoint[]) => {
-    if (elbowAngle > 170 && elbowAngle < 200) {
-      if (downPositionRef.current) {
-        // นับจำนวน push-up เมื่อเปลี่ยนจากท่าลงเป็นท่าขึ้น
-        setPushupCount((prev) => {
-          const newCount = prev + 1;
-          if ("speechSynthesis" in window) {
-            const msg = new SpeechSynthesisUtterance(`${newCount}`);
-            window.speechSynthesis.cancel();
-            window.speechSynthesis.speak(msg);
-          }
-          return newCount;
-        });
-      }
+  // ฟังก์ชันสำหรับการอัปเดตมุมข้อศอก
+  const updateArmAngle = () => {
+    if (!posesRef.current || posesRef.current.length === 0) return;
 
+    const leftWrist = posesRef.current[0].keypoints[9];
+    const leftShoulder = posesRef.current[0].keypoints[5];
+    const leftElbow = posesRef.current[0].keypoints[7];
+
+    const angle =
+      (Math.atan2(leftWrist.y - leftElbow.y, leftWrist.x - leftElbow.x) -
+        Math.atan2(
+          leftShoulder.y - leftElbow.y,
+          leftShoulder.x - leftElbow.x
+        )) *
+      (180 / Math.PI);
+
+    if (
+      leftWrist.score &&
+      leftElbow.score &&
+      leftShoulder.score &&
+      leftWrist.score > 0.3 &&
+      leftElbow.score > 0.3 &&
+      leftShoulder.score > 0.3
+    ) {
+      elbowAngleRef.current = angle;
+    }
+  };
+
+  // ฟังก์ชันสำหรับการอัปเดตมุมหลัง
+  const updateBackAngle = () => {
+    if (!posesRef.current || posesRef.current.length === 0) return;
+
+    const leftShoulder = posesRef.current[0].keypoints[5];
+    const leftHip = posesRef.current[0].keypoints[11];
+    const leftKnee = posesRef.current[0].keypoints[13];
+
+    const angle =
+      (Math.atan2(leftKnee.y - leftHip.y, leftKnee.x - leftHip.x) -
+        Math.atan2(leftShoulder.y - leftHip.y, leftShoulder.x - leftHip.x)) *
+      (180 / Math.PI);
+
+    const normalizedAngle = angle % 180;
+
+    if (
+      leftKnee.score &&
+      leftHip.score &&
+      leftShoulder.score &&
+      leftKnee.score > 0.3 &&
+      leftHip.score > 0.3 &&
+      leftShoulder.score > 0.3
+    ) {
+      backAngleRef.current = normalizedAngle;
+    }
+
+    if (backAngleRef.current < 20 || backAngleRef.current > 160) {
+      highlightBackRef.current = false;
+    } else {
+      highlightBackRef.current = true;
+      if (backWarningGivenRef.current !== true) {
+        speak("รักษาหลังให้ตรง");
+        backWarningGivenRef.current = true;
+      }
+    }
+  };
+
+  // ฟังก์ชันสำหรับการตรวจสอบท่าขึ้น
+  const inUpPosition = () => {
+    if (elbowAngleRef.current > 170 && elbowAngleRef.current < 200) {
+      if (downPositionRef.current === true) {
+        speak((reps + 1).toString());
+        setReps((prev) => prev + 1);
+      }
       upPositionRef.current = true;
       downPositionRef.current = false;
-      setPushupState("up");
     }
   };
 
-  // ฟังก์ชันตรวจสอบท่าลง (ปรับตามโค้ดตัวอย่าง)
-  const inDownPosition = (keypoints: Keypoint[]) => {
-    // ตรวจสอบว่าข้อศอกอยู่เหนือจมูกหรือไม่
+  // ฟังก์ชันสำหรับการตรวจสอบท่าลง
+  const inDownPosition = () => {
+    if (!posesRef.current || posesRef.current.length === 0) return;
+
     let elbowAboveNose = false;
-    if (keypoints[0].y > keypoints[7].y) {
+    if (
+      posesRef.current[0].keypoints[0].y > posesRef.current[0].keypoints[7].y
+    ) {
       elbowAboveNose = true;
     }
 
-    // ตรวจสอบท่าลง - ใช้ตำแหน่งของศีรษะเทียบกับข้อศอก
     if (
-      !highlightBack &&
+      highlightBackRef.current === false &&
       elbowAboveNose &&
-      Math.abs(elbowAngle) > 70 &&
-      Math.abs(elbowAngle) < 100
+      Math.abs(elbowAngleRef.current) > 70 &&
+      Math.abs(elbowAngleRef.current) < 100
     ) {
-      if (upPositionRef.current) {
-        // แจ้งเตือนให้ขึ้น
-        if ("speechSynthesis" in window) {
-          const msg = new SpeechSynthesisUtterance("ขึ้น");
-          window.speechSynthesis.speak(msg);
-        }
+      if (upPositionRef.current === true) {
+        speak("ขึ้น");
       }
-
       downPositionRef.current = true;
       upPositionRef.current = false;
-      setPushupState("down");
     }
   };
 
-  // เพิ่มฟังก์ชันวาดเส้นแนำ
-  const drawGuideLines = (
-    keypoints: Keypoint[],
-    ctx: CanvasRenderingContext2D
-  ) => {
-    // ... existing code ...
+  // ฟังก์ชันสำหรับการวาดภาพ
+  const draw = () => {
+    if (!canvasRef.current || !videoRef.current) return;
+
+    const ctx = canvasRef.current.getContext("2d");
+    if (!ctx) return;
+
+    // ตั้งค่าขนาดของ canvas ให้ตรงกับวิดีโอ
+    canvasRef.current.width = videoRef.current.videoWidth;
+    canvasRef.current.height = videoRef.current.videoHeight;
+
+    // ล้างพื้นหลัง
+    ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+
+    // กลับภาพเพื่อให้เหมือนกระจก
+    ctx.save();
+    ctx.translate(canvasRef.current.width, 0);
+    ctx.scale(-1, 1);
+    ctx.drawImage(videoRef.current, 0, 0);
+
+    // วาดจุดสำคัญและโครงกระดูก
+    drawKeypoints(ctx);
+    drawSkeleton(ctx);
+
+    ctx.restore();
+
+    // เขียนข้อความ
+    ctx.fillStyle = "white";
+    ctx.strokeStyle = "black";
+    ctx.lineWidth = 2;
+    ctx.font = "30px Arial";
+
+    if (posesRef.current && posesRef.current.length > 0) {
+      const pushupString = `จำนวน Push-up ที่ทำได้: ${reps}`;
+      ctx.fillText(pushupString, 20, 50);
+      ctx.strokeText(pushupString, 20, 50);
+    } else {
+      ctx.fillText(message, 20, 50);
+      ctx.strokeText(message, 20, 50);
+    }
+
+    requestAnimationFrame(draw);
   };
 
-  const drawKeypoints = (
-    keypoints: Keypoint[],
-    ctx: CanvasRenderingContext2D
-  ) => {
-    let count = 0;
-    keypoints.forEach((keypoint) => {
-      const { x, y, score } = keypoint;
-      if (score !== undefined && score > 0.2) {
-        count++;
-        ctx.beginPath();
-        ctx.arc(x, y, 8, 0, 2 * Math.PI);
-        ctx.fillStyle = "Red";
-        ctx.fill();
-        ctx.strokeStyle = "White";
-        ctx.lineWidth = 2;
-        ctx.stroke();
-      }
-    });
-  };
+  // ฟังก์ชันสำหรับการเริ่มต้นกล้อง
+  const setupCamera = async () => {
+    if (!videoRef.current) return;
 
-  const drawSkeleton = (
-    keypoints: Keypoint[],
-    ctx: CanvasRenderingContext2D,
-    pose: poseDetection.Pose
-  ) => {
-    const confidence_threshold = 0.5;
-    const edges = edgesRef.current;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "user" },
+        audio: false,
+      });
 
-    for (const [key, value] of Object.entries(edges)) {
-      const p = key.split(",");
-      const p1 = parseInt(p[0]);
-      const p2 = parseInt(p[1]);
+      videoRef.current.srcObject = stream;
 
-      const y1 = keypoints[p1].y;
-      const x1 = keypoints[p1].x;
-      const c1 = keypoints[p1].score ?? 0;
-      const y2 = keypoints[p2].y;
-      const x2 = keypoints[p2].x;
-      const c2 = keypoints[p2].score ?? 0;
-
-      if (c1 > confidence_threshold && c2 > confidence_threshold) {
-        if (
-          highlightBack &&
-          (p2 == 11 || (p1 == 6 && p2 == 12) || p2 == 13 || p1 == 12)
-        ) {
-          ctx.beginPath();
-          ctx.moveTo(x1, y1);
-          ctx.lineTo(x2, y2);
-          ctx.strokeStyle = "Red";
-          ctx.lineWidth = 3;
-          ctx.stroke();
-        } else {
-          ctx.beginPath();
-          ctx.moveTo(x1, y1);
-          ctx.lineTo(x2, y2);
-          ctx.strokeStyle = "Green";
-          ctx.lineWidth = 2;
-          ctx.stroke();
-        }
-      }
+      return new Promise<void>((resolve) => {
+        if (!videoRef.current) return;
+        videoRef.current.onloadedmetadata = () => {
+          resolve();
+        };
+      });
+    } catch (error) {
+      console.error("ไม่สามารถเข้าถึงกล้องได้:", error);
+      setMessage("ไม่สามารถเข้าถึงกล้องได้ กรุณาอนุญาตการใช้งานกล้อง");
     }
   };
 
-  const calculateAngle = (a: Keypoint, b: Keypoint, c: Keypoint): number => {
-    const ab = { x: b.x - a.x, y: b.y - a.y };
-    const cb = { x: b.x - c.x, y: b.y - c.y };
+  // ใช้ useEffect สำหรับการเริ่มต้นแอปพลิเคชัน
+  useEffect(() => {
+    const init = async () => {
+      speak("กำลังโหลด กรุณารอสักครู่...");
 
-    const dot = ab.x * cb.x + ab.y * cb.y;
-    const magAB = Math.sqrt(ab.x ** 2 + ab.y ** 2);
-    const magCB = Math.sqrt(cb.x ** 2 + cb.y ** 2);
+      // เริ่มต้น TensorFlow.js
+      await tf.ready();
 
-    // ป้องกัน division by zero
-    if (magAB === 0 || magCB === 0) return 0;
+      // ตั้งค่ากล้อง
+      await setupCamera();
 
-    const angleRad = Math.acos(
-      Math.min(Math.max(dot / (magAB * magCB), -1), 1)
-    );
-    return (angleRad * 180) / Math.PI;
-  };
+      // เริ่มต้นตัวตรวจจับท่าทาง
+      await initDetector();
+
+      // เริ่มการประมาณท่าทาง
+      getPoses();
+
+      // เริ่มการวาดภาพ
+      draw();
+    };
+
+    init();
+
+    // ทำความสะอาดเมื่อคอมโพเนนต์ถูกทำลาย
+    return () => {
+      if (requestRef.current) {
+        cancelAnimationFrame(requestRef.current);
+      }
+
+      // หยุดการสตรีมกล้อง
+      if (videoRef.current && videoRef.current.srcObject) {
+        const stream = videoRef.current.srcObject as MediaStream;
+        const tracks = stream.getTracks();
+        tracks.forEach((track) => track.stop());
+      }
+    };
+  }, []);
 
   return (
-    <div className="flex flex-1 p-8 gap-4 bg-gray-100 w-full h-full">
-      <div className="relative flex flex-1 w-screen h-screen ">
-        <video
-          ref={videoRef}
-          className="absolute top-0 left-0 object-contain w-full h-full"
-          style={{ transform: "scaleX(-1)" }} // กล้องกลับภาพเหมือนกระจก
-          muted
-          playsInline
-        />
+    <div className="flex flex-col items-center justify-center p-8 gap-4 bg-gray-100 w-full h-screen">
+      <h1 className="text-3xl font-bold mb-4">ระบบตรวจจับท่า Push Up</h1>
+
+      <div className="relative">
+        <video ref={videoRef} className="hidden" autoPlay playsInline />
         <canvas
           ref={canvasRef}
-          className="absolute top-0 left-0 object-contain w-full h-full"
-          style={{ transform: "scaleX(-1)" }}
+          className="border-4 border-blue-500 rounded-lg shadow-lg"
         />
 
-        {/* เพิ่มส่วนแสดงผลสถานะและจำนวน Push-Up */}
-        <div className="absolute top-4 right-4 bg-black bg-opacity-70 p-4 rounded-lg text-white">
-          <h2 className="text-xl font-bold mb-2">ท่า Push-Up</h2>
-          <p className="text-lg">
-            สถานะ:{" "}
-            {pushupState === "up"
-              ? "ขึ้น"
-              : pushupState === "down"
-              ? "ลง"
-              : "ไม่ใช่ท่า Push-Up"}
-          </p>
-          <p className="text-lg">จำนวน: {pushupCount}</p>
+        {loading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 text-white text-xl">
+            กำลังโหลด กรุณารอสักครู่...
+          </div>
+        )}
+      </div>
 
-          {/* แสดงคำเตือนเรื่องหลัง */}
-          {highlightBack && (
-            <p className="text-lg text-red-500 font-bold">
-              คำเตือน: รักษาหลังให้ตรง
-            </p>
-          )}
-
-          {/* เพิ่มปุ่มเปิด/ปิดเส้นแนำ */}
-          <button
-            className="mt-2 px-3 py-1 bg-blue-500 hover:bg-blue-600 rounded text-white"
-            onClick={() => setShowGuideLines(!showGuideLines)}
-          >
-            {showGuideLines ? "ซ่อนเส้นแนำ" : "แสดงเส้นแนำ"}
-          </button>
-        </div>
+      <div className="mt-4 p-4 bg-white rounded-lg shadow-md">
+        <h2 className="text-2xl font-semibold">
+          จำนวน Push-up ที่ทำได้: {reps}
+        </h2>
+        <p className="mt-2 text-gray-600">
+          ระบบจะนับจำนวนครั้งและตรวจสอบท่าทางของคุณอัตโนมัติ
+        </p>
+        <p className="mt-1 text-gray-600">
+          ให้แน่ใจว่าคุณอยู่ในระยะที่กล้องสามารถมองเห็นร่างกายทั้งหมดได้
+        </p>
       </div>
     </div>
   );
