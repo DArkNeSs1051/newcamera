@@ -29,10 +29,10 @@ const Home = () => {
   const backWarningGivenRef = useRef<boolean>(false);
 
   // ฟังก์ชันสำหรับการพูด
-  const speak = (text: string) => {
-    const msg = new SpeechSynthesisUtterance(text);
-    window.speechSynthesis.speak(msg);
-  };
+  // const speak = (text: string) => {
+  //   const msg = new SpeechSynthesisUtterance(text);
+  //   window.speechSynthesis.speak(msg);
+  // };
 
   // ฟังก์ชันสำหรับการเริ่มต้นตัวตรวจจับท่าทาง
   const initDetector = async () => {
@@ -64,7 +64,7 @@ const Home = () => {
       };
 
       setLoading(false);
-      speak("พร้อมสำหรับการตรวจจับท่า Push Up แล้ว");
+      // speak("พร้อมสำหรับการตรวจจับท่า Push Up แล้ว");
     } catch (error) {
       console.error("ไม่สามารถโหลดโมเดลได้:", error);
       setMessage("เกิดข้อผิดพลาดในการโหลดโมเดล กรุณาลองใหม่อีกครั้ง");
@@ -91,7 +91,7 @@ const Home = () => {
     if (posesRef.current && posesRef.current.length > 0) {
       for (let kp of posesRef.current[0].keypoints) {
         const { x, y, score } = kp;
-        if (score && score > 0.3) {
+        if (score && score > 0.2) {
           count = count + 1;
           ctx.fillStyle = "white";
           ctx.strokeStyle = "black";
@@ -176,9 +176,9 @@ const Home = () => {
       leftWrist.score &&
       leftElbow.score &&
       leftShoulder.score &&
-      leftWrist.score > 0.3 &&
-      leftElbow.score > 0.3 &&
-      leftShoulder.score > 0.3
+      leftWrist.score > 0.2 &&
+      leftElbow.score > 0.2 &&
+      leftShoulder.score > 0.2
     ) {
       elbowAngleRef.current = angle;
     }
@@ -203,9 +203,9 @@ const Home = () => {
       leftKnee.score &&
       leftHip.score &&
       leftShoulder.score &&
-      leftKnee.score > 0.3 &&
-      leftHip.score > 0.3 &&
-      leftShoulder.score > 0.3
+      leftKnee.score > 0.2 &&
+      leftHip.score > 0.2 &&
+      leftShoulder.score > 0.2
     ) {
       backAngleRef.current = normalizedAngle;
     }
