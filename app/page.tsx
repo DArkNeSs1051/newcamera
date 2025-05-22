@@ -12,6 +12,7 @@ const Home = () => {
   const [reps, setReps] = useState(0);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("กำลังโหลด กรุณารอสักครู่...");
+  const [isMobile, setIsMobile] = useState(false);
 
   // สร้างตัวแปรสำหรับเก็บค่าต่างๆ
   const detectorRef = useRef<poseDetection.PoseDetector | null>(null);
@@ -214,7 +215,8 @@ const Home = () => {
     } else {
       highlightBackRef.current = true;
       if (backWarningGivenRef.current !== true) {
-        speak("รักษาหลังให้ตรง");
+        // ตัดระบบเสียงออก
+        // speak("รักษาหลังให้ตรง");
         backWarningGivenRef.current = true;
       }
     }
@@ -224,7 +226,8 @@ const Home = () => {
   const inUpPosition = () => {
     if (elbowAngleRef.current > 170 && elbowAngleRef.current < 200) {
       if (downPositionRef.current === true) {
-        speak((reps + 1).toString());
+        // ตัดระบบเสียงออก
+        // speak((reps + 1).toString());
         setReps((prev) => prev + 1);
       }
       upPositionRef.current = true;
@@ -250,7 +253,8 @@ const Home = () => {
       Math.abs(elbowAngleRef.current) < 100
     ) {
       if (upPositionRef.current === true) {
-        speak("ขึ้น");
+        // ตัดระบบเสียงออก
+        // speak("ขึ้น");
       }
       downPositionRef.current = true;
       upPositionRef.current = false;
@@ -306,16 +310,26 @@ const Home = () => {
     if (!videoRef.current) return;
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user" },
+      // ปรับการตั้งค่ากล้องให้เหมาะกับมือถือ
+      const constraints = {
+        video: {
+          facingMode: "user", // เปลี่ยนจาก isMobile ? "environment" : "user" เป็น "user" เพื่อใช้กล้องหน้าเสมอ
+          width: { ideal: isMobile ? 720 : 1280 },
+          height: { ideal: isMobile ? 1280 : 720 },
+        },
         audio: false,
-      });
+      };
+
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
 
       videoRef.current.srcObject = stream;
 
       return new Promise<void>((resolve) => {
         if (!videoRef.current) return;
         videoRef.current.onloadedmetadata = () => {
+          if (videoRef.current) {
+            videoRef.current.play();
+          }
           resolve();
         };
       });
@@ -325,10 +339,28 @@ const Home = () => {
     }
   };
 
+  // ตรวจสอบว่าเป็นอุปกรณ์มือถือหรือไม่
+  const checkIfMobile = () => {
+    const userAgent =
+      typeof window !== "undefined" ? window.navigator.userAgent : "";
+    const mobileRegex =
+      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
+    setIsMobile(mobileRegex.test(userAgent));
+  };
+
+  // ฟังก์ชันสำหรับการปรับขนาดหน้าจอ
+  const handleResize = () => {
+    checkIfMobile();
+  };
+
   // ใช้ useEffect สำหรับการเริ่มต้นแอปพลิเคชัน
   useEffect(() => {
+    checkIfMobile();
+    window.addEventListener("resize", handleResize);
+
     const init = async () => {
-      speak("กำลังโหลด กรุณารอสักครู่...");
+      // ตัดระบบเสียงออก
+      // speak("กำลังโหลด กรุณารอสักครู่...");
 
       // เริ่มต้น TensorFlow.js
       await tf.ready();
@@ -350,6 +382,8 @@ const Home = () => {
 
     // ทำความสะอาดเมื่อคอมโพเนนต์ถูกทำลาย
     return () => {
+      window.removeEventListener("resize", handleResize);
+
       if (requestRef.current) {
         cancelAnimationFrame(requestRef.current);
       }
@@ -364,33 +398,40 @@ const Home = () => {
   }, []);
 
   return (
-    <div className="flex flex-col items-center justify-center p-8 gap-4 bg-gray-100 w-full h-screen">
-      <h1 className="text-3xl font-bold mb-4">ระบบตรวจจับท่า Push Up</h1>
+    <div className="flex flex-col items-center justify-center p-2 md:p-8 gap-2 md:gap-4 bg-gray-100 w-full min-h-screen">
+      <h1 className="text-xl md:text-3xl font-bold mb-2 md:mb-4">
+        ระบบตรวจจับท่า Push Up
+      </h1>
 
-      <div className="relative">
-        <video ref={videoRef} className="hidden" autoPlay playsInline />
+      <div className="relative w-full max-w-md md:max-w-lg">
+        <video ref={videoRef} className="hidden" autoPlay playsInline muted />
         <canvas
           ref={canvasRef}
-          className="border-4 border-blue-500 rounded-lg shadow-lg"
+          className="w-full h-auto border-2 md:border-4 border-blue-500 rounded-lg shadow-lg"
         />
 
         {loading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 text-white text-xl">
+          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 text-white text-lg md:text-xl">
             กำลังโหลด กรุณารอสักครู่...
           </div>
         )}
       </div>
 
-      <div className="mt-4 p-4 bg-white rounded-lg shadow-md">
-        <h2 className="text-2xl font-semibold">
+      <div className="mt-2 md:mt-4 p-3 md:p-4 bg-white rounded-lg shadow-md w-full max-w-md md:max-w-lg">
+        <h2 className="text-xl md:text-2xl font-semibold">
           จำนวน Push-up ที่ทำได้: {reps}
         </h2>
-        <p className="mt-2 text-gray-600">
+        <p className="mt-1 md:mt-2 text-sm md:text-base text-gray-600">
           ระบบจะนับจำนวนครั้งและตรวจสอบท่าทางของคุณอัตโนมัติ
         </p>
-        <p className="mt-1 text-gray-600">
+        <p className="mt-1 text-sm md:text-base text-gray-600">
           ให้แน่ใจว่าคุณอยู่ในระยะที่กล้องสามารถมองเห็นร่างกายทั้งหมดได้
         </p>
+        {isMobile && (
+          <p className="mt-1 text-sm text-red-600 font-medium">
+            คำแนะนำ: วางโทรศัพท์ในแนวตั้งและถอยห่างจากกล้องประมาณ 2-3 เมตร
+          </p>
+        )}
       </div>
     </div>
   );
