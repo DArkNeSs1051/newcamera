@@ -10,7 +10,9 @@ const Home = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [reps, setReps] = useState(0);
-  const [exerciseType, setExerciseType] = useState<'pushup' | 'burpee-beginner' | 'burpee-expert'>('pushup');
+  const [exerciseType, setExerciseType] = useState<
+    "pushup" | "burpee-beginner" | "burpee-expert"
+  >("pushup");
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("กำลังโหลด กรุณารอสักครู่...");
   const [isMobile, setIsMobile] = useState(false);
@@ -43,6 +45,9 @@ const Home = () => {
   //   const msg = new SpeechSynthesisUtterance(text);
   //   window.speechSynthesis.speak(msg);
   // };
+
+  // เพิ่มตัวแปรสำหรับตรวจจับการกระโดดพร้อมยกแขน
+  const jumpWithArmsUpRef = useRef<boolean>(false);
 
   // ฟังก์ชันสำหรับการเริ่มต้นตัวตรวจจับท่าทาง
   const initDetector = async () => {
@@ -115,14 +120,14 @@ const Home = () => {
 
       updateArmAngle();
       updateBackAngle();
-      
+
       // เลือกฟังก์ชันตรวจจับตามประเภทการออกกำลังกาย
-      if (exerciseType === 'pushup') {
+      if (exerciseType === "pushup") {
         inUpPosition();
         inDownPosition();
-      } else if (exerciseType === 'burpee-beginner') {
+      } else if (exerciseType === "burpee-beginner") {
         detectBeginnerBurpee();
-      } else if (exerciseType === 'burpee-expert') {
+      } else if (exerciseType === "burpee-expert") {
         inUpPosition(); // ยังคงต้องตรวจจับท่า Push Up สำหรับ Burpee แบบผู้เชี่ยวชาญ
         inDownPosition();
         detectExpertBurpee();
@@ -206,18 +211,30 @@ const Home = () => {
     if (!posesRef.current || posesRef.current.length === 0) return;
 
     const leftHip = posesRef.current[0].keypoints[11];
-    
+    const leftWrist = posesRef.current[0].keypoints[9];
+    const leftShoulder = posesRef.current[0].keypoints[5];
+
     if (leftHip.score && leftHip.score > 0.2) {
       prevHipHeightRef.current = hipHeightRef.current;
       hipHeightRef.current = leftHip.y;
-      
+
       // ตรวจจับการกระโดด (สะโพกเคลื่อนที่ขึ้นอย่างรวดเร็ว)
       const hipMovement = prevHipHeightRef.current - hipHeightRef.current;
-      
+
+      // ตรวจสอบว่าแขนยกขึ้นเหนือศีรษะหรือไม่
+      const armsUp =
+        leftWrist.score &&
+        leftShoulder.score &&
+        leftWrist.score > 0.2 &&
+        leftShoulder.score > 0.2 &&
+        leftWrist.y < leftShoulder.y;
+
       if (hipMovement > 30 && standingPositionRef.current) {
         jumpDetectedRef.current = true;
+        jumpWithArmsUpRef.current = !!armsUp;
         setTimeout(() => {
           jumpDetectedRef.current = false;
+          jumpWithArmsUpRef.current = false;
         }, 500); // รีเซ็ตหลังจาก 0.5 วินาที
       }
     }
@@ -237,13 +254,17 @@ const Home = () => {
   // ฟังก์ชันสำหรับการตรวจสอบท่า Burpee แบบผู้เริ่มต้น
   const detectBeginnerBurpee = () => {
     if (!posesRef.current || posesRef.current.length === 0) return;
-    
+
     updateKneeAngle();
     detectJump();
     detectSquatPosition();
-    
-    // ตรวจสอบลำดับท่าทาง: ยืน -> นั่งยอง -> กระโดด -> ยืน
-    if (jumpDetectedRef.current && squatPositionRef.current) {
+
+    // ตรวจสอบลำดับท่าทาง: ยืน -> นั่งยอง -> กระโดดพร้อมยกแขน -> ยืน
+    if (
+      jumpDetectedRef.current &&
+      squatPositionRef.current &&
+      jumpWithArmsUpRef.current
+    ) {
       if (standingPositionRef.current) {
         setReps((prev) => prev + 1);
         squatPositionRef.current = false;
@@ -254,20 +275,25 @@ const Home = () => {
   // ฟังก์ชันสำหรับการตรวจสอบท่า Burpee แบบผู้เชี่ยวชาญ
   const detectExpertBurpee = () => {
     if (!posesRef.current || posesRef.current.length === 0) return;
-    
+
     updateKneeAngle();
     detectJump();
     detectSquatPosition();
-    
+
     // ตรวจสอบว่าอยู่ในท่า Push Up หรือไม่
     if (downPositionRef.current || upPositionRef.current) {
       pushupPositionRef.current = true;
     } else {
       pushupPositionRef.current = false;
     }
-    
-    // ตรวจสอบลำดับท่าทาง: ยืน -> นั่งยอง -> Push Up -> นั่งยอง -> กระโดด -> ยืน
-    if (jumpDetectedRef.current && squatPositionRef.current && pushupPositionRef.current) {
+
+    // ตรวจสอบลำดับท่าทาง: ยืน -> นั่งยอง -> Push Up -> นั่งยอง -> กระโดดพร้อมยกแขน -> ยืน
+    if (
+      jumpDetectedRef.current &&
+      squatPositionRef.current &&
+      pushupPositionRef.current &&
+      jumpWithArmsUpRef.current
+    ) {
       if (standingPositionRef.current) {
         setReps((prev) => prev + 1);
         squatPositionRef.current = false;
@@ -275,6 +301,7 @@ const Home = () => {
       }
     }
   };
+
   // ฟังก์ชันสำหรับการอัปเดตมุมข้อศอก
   const updateArmAngle = () => {
     if (!posesRef.current || posesRef.current.length === 0) return;
@@ -413,22 +440,28 @@ const Home = () => {
     ctx.font = "30px Arial";
 
     if (posesRef.current && posesRef.current.length > 0) {
-      let exerciseText = '';
-      
-      if (exerciseType === 'pushup') {
+      let exerciseText = "";
+
+      if (exerciseType === "pushup") {
         exerciseText = `จำนวน Push-up ที่ทำได้: ${reps}`;
-      } else if (exerciseType === 'burpee-beginner') {
+      } else if (exerciseType === "burpee-beginner") {
         exerciseText = `จำนวน Burpee (ผู้เริ่มต้น) ที่ทำได้: ${reps}`;
-      } else if (exerciseType === 'burpee-expert') {
+      } else if (exerciseType === "burpee-expert") {
         exerciseText = `จำนวน Burpee (ผู้เชี่ยวชาญ) ที่ทำได้: ${reps}`;
       }
-      
+
       ctx.fillText(exerciseText, 20, 50);
       ctx.strokeText(exerciseText, 20, 50);
-      
+
       // แสดงสถานะการตรวจจับ (สำหรับการดีบัก)
-      if (exerciseType.includes('burpee')) {
-        const statusText = `สถานะ: ${standingPositionRef.current ? 'ยืน' : ''} ${squatPositionRef.current ? 'ย่อตัว' : ''} ${jumpDetectedRef.current ? 'กระโดด' : ''} ${pushupPositionRef.current ? 'Push Up' : ''}`;
+      if (exerciseType.includes("burpee")) {
+        const statusText = `สถานะ: ${
+          standingPositionRef.current ? "ยืน" : ""
+        } ${squatPositionRef.current ? "ย่อตัว" : ""} ${
+          jumpDetectedRef.current ? "กระโดด" : ""
+        } ${jumpWithArmsUpRef.current ? "ยกแขน" : ""} ${
+          pushupPositionRef.current ? "Push Up" : ""
+        }`;
         ctx.font = "20px Arial";
         ctx.fillText(statusText, 20, 90);
         ctx.strokeText(statusText, 20, 90);
@@ -540,21 +573,42 @@ const Home = () => {
       </h1>
 
       <div className="flex flex-wrap justify-center gap-2 mb-2 md:mb-4 w-full max-w-md md:max-w-lg">
-        <button 
-          onClick={() => { setExerciseType('pushup'); setReps(0); }}
-          className={`px-3 py-2 rounded-lg ${exerciseType === 'pushup' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-800'}`}
+        <button
+          onClick={() => {
+            setExerciseType("pushup");
+            setReps(0);
+          }}
+          className={`px-3 py-2 rounded-lg ${
+            exerciseType === "pushup"
+              ? "bg-blue-600 text-white"
+              : "bg-gray-200 text-gray-800"
+          }`}
         >
           Push Up
         </button>
-        <button 
-          onClick={() => { setExerciseType('burpee-beginner'); setReps(0); }}
-          className={`px-3 py-2 rounded-lg ${exerciseType === 'burpee-beginner' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-800'}`}
+        <button
+          onClick={() => {
+            setExerciseType("burpee-beginner");
+            setReps(0);
+          }}
+          className={`px-3 py-2 rounded-lg ${
+            exerciseType === "burpee-beginner"
+              ? "bg-blue-600 text-white"
+              : "bg-gray-200 text-gray-800"
+          }`}
         >
           Burpee (ผู้เริ่มต้น)
         </button>
-        <button 
-          onClick={() => { setExerciseType('burpee-expert'); setReps(0); }}
-          className={`px-3 py-2 rounded-lg ${exerciseType === 'burpee-expert' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-800'}`}
+        <button
+          onClick={() => {
+            setExerciseType("burpee-expert");
+            setReps(0);
+          }}
+          className={`px-3 py-2 rounded-lg ${
+            exerciseType === "burpee-expert"
+              ? "bg-blue-600 text-white"
+              : "bg-gray-200 text-gray-800"
+          }`}
         >
           Burpee (ผู้เชี่ยวชาญ)
         </button>
@@ -576,32 +630,36 @@ const Home = () => {
 
       <div className="mt-2 md:mt-4 p-3 md:p-4 bg-white rounded-lg shadow-md w-full max-w-md md:max-w-lg">
         <h2 className="text-xl md:text-2xl font-semibold">
-          {exerciseType === 'pushup' && `จำนวน Push-up ที่ทำได้: ${reps}`}
-          {exerciseType === 'burpee-beginner' && `จำนวน Burpee (ผู้เริ่มต้น) ที่ทำได้: ${reps}`}
-          {exerciseType === 'burpee-expert' && `จำนวน Burpee (ผู้เชี่ยวชาญ) ที่ทำได้: ${reps}`}
+          {exerciseType === "pushup" && `จำนวน Push-up ที่ทำได้: ${reps}`}
+          {exerciseType === "burpee-beginner" &&
+            `จำนวน Burpee (ผู้เริ่มต้น) ที่ทำได้: ${reps}`}
+          {exerciseType === "burpee-expert" &&
+            `จำนวน Burpee (ผู้เชี่ยวชาญ) ที่ทำได้: ${reps}`}
         </h2>
-        <p className="mt-1 md:mt-2 text-sm md:text-base text-gray-600">
+        <p className="mt-1 md:mt-2 text-sm md:text-base text-black">
           ระบบจะนับจำนวนครั้งและตรวจสอบท่าทางของคุณอัตโนมัติ
         </p>
-        
-        {exerciseType === 'pushup' && (
-          <p className="mt-1 text-sm md:text-base text-gray-600">
+
+        {exerciseType === "pushup" && (
+          <p className="mt-1 text-sm md:text-base text-black">
             ให้แน่ใจว่าคุณอยู่ในระยะที่กล้องสามารถมองเห็นร่างกายทั้งหมดได้
           </p>
         )}
-        
-        {exerciseType === 'burpee-beginner' && (
-          <p className="mt-1 text-sm md:text-base text-gray-600">
-            ท่า Burpee สำหรับผู้เริ่มต้น: ยืน → ย่อตัว → กระโดด → ยืน
+
+        {exerciseType === "burpee-beginner" && (
+          <p className="mt-1 text-sm md:text-base text-black">
+            ท่า Burpee สำหรับผู้เริ่มต้น: ยืน → ย่อตัว →
+            กระโดดพร้อมยกแขนเหนือศีรษะ → ยืน
           </p>
         )}
-        
-        {exerciseType === 'burpee-expert' && (
-          <p className="mt-1 text-sm md:text-base text-gray-600">
-            ท่า Burpee สำหรับผู้เชี่ยวชาญ: ยืน → ย่อตัว → Push Up → ย่อตัว → กระโดด → ยืน
+
+        {exerciseType === "burpee-expert" && (
+          <p className="mt-1 text-sm md:text-base text-black">
+            ท่า Burpee สำหรับผู้เชี่ยวชาญ: ยืน → ย่อตัว → Push Up → ย่อตัว →
+            กระโดดพร้อมยกแขนเหนือศีรษะ → ยืน
           </p>
         )}
-        
+
         {isMobile && (
           <p className="mt-1 text-sm text-red-600 font-medium">
             คำแนะนำ: วางโทรศัพท์ในแนวตั้งและถอยห่างจากกล้องประมาณ 2-3 เมตร
