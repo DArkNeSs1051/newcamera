@@ -39,6 +39,8 @@ const Home = () => {
   const kneeAngleRef = useRef<number>(180);
   const hipHeightRef = useRef<number>(0);
   const prevHipHeightRef = useRef<number>(0);
+  const burpeeStep = useRef<number>(0);
+  const resetTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // ฟังก์ชันสำหรับการพูด
   // const speak = (text: string) => {
@@ -280,26 +282,44 @@ const Home = () => {
     detectJump();
     detectSquatPosition();
 
-    // ตรวจสอบว่าอยู่ในท่า Push Up หรือไม่
-    if (downPositionRef.current || upPositionRef.current) {
-      pushupPositionRef.current = true;
-    } else {
-      pushupPositionRef.current = false;
+    // Step 0: เริ่มจากยืน
+    if (burpeeStep.current === 0 && squatPositionRef.current) {
+      burpeeStep.current = 1;
     }
 
-    // ตรวจสอบลำดับท่าทาง: ยืน -> นั่งยอง -> Push Up -> นั่งยอง -> กระโดดพร้อมยกแขน -> ยืน
-    if (
+    // Step 1: squat ไป pushup
+    else if (burpeeStep.current === 1 && pushupPositionRef.current) {
+      burpeeStep.current = 2;
+    }
+
+    // Step 2: pushup กลับขึ้นมานั่งยอง
+    else if (burpeeStep.current === 2 && squatPositionRef.current) {
+      burpeeStep.current = 3;
+    }
+
+    // Step 3: squat → กระโดด + ยกแขน
+    else if (
+      burpeeStep.current === 3 &&
       jumpDetectedRef.current &&
-      squatPositionRef.current &&
-      pushupPositionRef.current &&
       jumpWithArmsUpRef.current
     ) {
-      if (standingPositionRef.current) {
-        setReps((prev) => prev + 1);
-        squatPositionRef.current = false;
-        pushupPositionRef.current = false;
-      }
+      burpeeStep.current = 4;
     }
+
+    // Step 4: landing แล้วกลับมายืน = นับครบ 1 ครั้ง
+    else if (burpeeStep.current === 4 && standingPositionRef.current) {
+      setReps((prev) => prev + 1);
+      burpeeStep.current = 0; // reset เพื่อเริ่มรอบใหม่
+    }
+
+    // Optional: หากไม่ทำต่อใน 3 วินาทีให้รีเซ็ต step
+    if (resetTimeoutRef.current) {
+      clearTimeout(resetTimeoutRef.current);
+    }
+
+    resetTimeoutRef.current = setTimeout(() => {
+      burpeeStep.current = 0;
+    }, 3000);
   };
 
   // ฟังก์ชันสำหรับการอัปเดตมุมข้อศอก
