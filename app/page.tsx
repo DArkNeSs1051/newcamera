@@ -46,28 +46,28 @@ const Home = () => {
   const resetTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // ฟังก์ชันสำหรับการพูด
-    const speak = (text: string) => {
-      if (soundEnabled) {
-        const msg = new SpeechSynthesisUtterance(text);
-        msg.lang = "th-TH"; // ตั้งค่าภาษาเป็นภาษาไทย
-        window.speechSynthesis.speak(msg);
-      }
-    };
+  const speak = (text: string) => {
+    if (soundEnabled) {
+      const msg = new SpeechSynthesisUtterance(text);
+      msg.lang = "th-TH"; // ตั้งค่าภาษาเป็นภาษาไทย
+      window.speechSynthesis.speak(msg);
+    }
+  };
 
-    // ฟังก์ชันสำหรับแสดงข้อความแจ้งเตือน
-    const showFeedback = (message: string) => {
-      setFeedbackMessage(message);
-      speak(message);
+  // ฟังก์ชันสำหรับแสดงข้อความแจ้งเตือน
+  const showFeedback = (message: string) => {
+    setFeedbackMessage(message);
+    speak(message);
 
-      // ล้างข้อความหลังจาก 3 วินาที
-      if (feedbackTimeoutRef.current) {
-        clearTimeout(feedbackTimeoutRef.current);
-      }
+    // ล้างข้อความหลังจาก 3 วินาที
+    if (feedbackTimeoutRef.current) {
+      clearTimeout(feedbackTimeoutRef.current);
+    }
 
-      feedbackTimeoutRef.current = setTimeout(() => {
-        setFeedbackMessage("");
-      }, 3000);
-    };
+    feedbackTimeoutRef.current = setTimeout(() => {
+      setFeedbackMessage("");
+    }, 3000);
+  };
 
   // เพิ่มตัวแปรสำหรับตรวจจับการกระโดดพร้อมยกแขน
   const jumpWithArmsUpRef = useRef<boolean>(false);
@@ -505,26 +505,19 @@ const Home = () => {
     ctx.font = "30px Arial";
 
     if (posesRef.current && posesRef.current.length > 0) {
-      let exerciseText = "";
-
-      if (exerciseType === "pushup") {
-        exerciseText = `จำนวน Push-up ที่ทำได้: ${reps}`;
-      } else if (exerciseType === "burpee-beginner") {
-        exerciseText = `จำนวน Burpee (ผู้เริ่มต้น) ที่ทำได้: ${reps}`;
-      } else if (exerciseType === "burpee-expert") {
-        exerciseText = `จำนวน Burpee (ผู้เชี่ยวชาญ) ที่ทำได้: ${reps}`;
-      }
-
-      ctx.fillText(exerciseText, 20, 50);
-      ctx.strokeText(exerciseText, 20, 50);
-
       // แสดงสถานะการตรวจจับ (สำหรบการดีบัก)
       if (exerciseType.includes("burpee")) {
-        const statusText = `สถานะ: ${standingPositionRef.current ? "ยืน" : ""} ${squatPositionRef.current ? "ย่อตัว" : ""} ${jumpDetectedRef.current ? "กระโดด" : ""} ${jumpWithArmsUpRef.current ? "ยกแขน" : ""} ${pushupPositionRef.current ? "Push Up" : ""}`;
+        const statusText = `สถานะ: ${
+          standingPositionRef.current ? "ยืน" : ""
+        } ${squatPositionRef.current ? "ย่อตัว" : ""} ${
+          jumpDetectedRef.current ? "กระโดด" : ""
+        } ${jumpWithArmsUpRef.current ? "ยกแขน" : ""} ${
+          pushupPositionRef.current ? "Push Up" : ""
+        }`;
         ctx.font = "20px Arial";
         ctx.fillText(statusText, 20, 90);
         ctx.strokeText(statusText, 20, 90);
-        
+
         // แสดงขั้นตอนปัจจุบันสำหรับ burpee แบบผู้เชี่ยวชาญ
         if (exerciseType === "burpee-expert") {
           const stepText = `ขั้นตอน: ${burpeeStep.current}`;
@@ -532,7 +525,7 @@ const Home = () => {
           ctx.strokeText(stepText, 20, 120);
         }
       }
-      
+
       // แสดงข้อความแจ้งเตือน
       if (feedbackMessage) {
         ctx.font = "24px Arial";
@@ -688,10 +681,14 @@ const Home = () => {
         >
           Burpee (ผู้เชี่ยวชาญ)
         </button>
-        
+
         <button
           onClick={() => setSoundEnabled(!soundEnabled)}
-          className={`px-3 py-2 rounded-lg ${soundEnabled ? "bg-green-600 text-white" : "bg-gray-200 text-gray-800"}`}
+          className={`px-3 py-2 rounded-lg ${
+            soundEnabled
+              ? "bg-green-600 text-white"
+              : "bg-gray-200 text-gray-800"
+          }`}
         >
           {soundEnabled ? "ปิดเสียง" : "เปิดเสียง"}
         </button>
