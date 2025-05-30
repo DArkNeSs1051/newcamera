@@ -16,6 +16,9 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("กำลังโหลด กรุณารอสักครู่...");
   const [isMobile, setIsMobile] = useState(false);
+  const [feedbackMessage, setFeedbackMessage] = useState(""); // เพิ่มตัวแปรสำหรับข้อความแจ้งเตือน
+  const [soundEnabled, setSoundEnabled] = useState(false); // เพิ่มตัวแปรสำหรับเปิด/ปิดเสียง
+  const feedbackTimeoutRef = useRef<NodeJS.Timeout | null>(null); // เพิ่มตัวแปรสำหรับจัดการเวลาแสดงข้อความ
 
   // สร้างตัวแปรสำหรับเก็บค่าต่างๆ
   const detectorRef = useRef<poseDetection.PoseDetector | null>(null);
@@ -43,10 +46,28 @@ const Home = () => {
   const resetTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // ฟังก์ชันสำหรับการพูด
-  // const speak = (text: string) => {
-  //   const msg = new SpeechSynthesisUtterance(text);
-  //   window.speechSynthesis.speak(msg);
-  // };
+    const speak = (text: string) => {
+      if (soundEnabled) {
+        const msg = new SpeechSynthesisUtterance(text);
+        msg.lang = "th-TH"; // ตั้งค่าภาษาเป็นภาษาไทย
+        window.speechSynthesis.speak(msg);
+      }
+    };
+
+    // ฟังก์ชันสำหรับแสดงข้อความแจ้งเตือน
+    const showFeedback = (message: string) => {
+      setFeedbackMessage(message);
+      speak(message);
+
+      // ล้างข้อความหลังจาก 3 วินาที
+      if (feedbackTimeoutRef.current) {
+        clearTimeout(feedbackTimeoutRef.current);
+      }
+
+      feedbackTimeoutRef.current = setTimeout(() => {
+        setFeedbackMessage("");
+      }, 3000);
+    };
 
   // เพิ่มตัวแปรสำหรับตรวจจับการกระโดดพร้อมยกแขน
   const jumpWithArmsUpRef = useRef<boolean>(false);
@@ -81,7 +102,6 @@ const Home = () => {
       };
 
       setLoading(false);
-      // speak("พร้อมสำหรับการตรวจจับท่า Push Up แล้ว");
     } catch (error) {
       console.error("ไม่สามารถโหลดโมเดลได้:", error);
       setMessage("เกิดข้อผิดพลาดในการโหลดโมเดล กรุณาลองใหม่อีกครั้ง");
@@ -262,15 +282,24 @@ const Home = () => {
     detectSquatPosition();
 
     // ตรวจสอบลำดับท่าทาง: ยืน -> นั่งยอง -> กระโดดพร้อมยกแขน -> ยืน
-    if (
-      jumpDetectedRef.current &&
-      squatPositionRef.current &&
-      jumpWithArmsUpRef.current
-    ) {
-      if (standingPositionRef.current) {
+    if (jumpDetectedRef.current && squatPositionRef.current) {
+      // ตรวจสอบว่ายกแขนขึ้นเหนือศีรษะหรือไม่
+      if (!jumpWithArmsUpRef.current) {
+        showFeedback("กรุณายกแขนขึ้นเหนือศีรษะเมื่อกระโดด");
+      } else if (standingPositionRef.current) {
         setReps((prev) => prev + 1);
         squatPositionRef.current = false;
+        showFeedback("ดีมาก!");
       }
+    }
+
+    // ตรวจสอบว่าย่อตัวลงต่ำพอหรือไม่
+    if (
+      standingPositionRef.current &&
+      kneeAngleRef.current > 120 &&
+      kneeAngleRef.current < 160
+    ) {
+      showFeedback("ย่อตัวให้ต่ำกว่านี้");
     }
   };
 
@@ -282,34 +311,50 @@ const Home = () => {
     detectJump();
     detectSquatPosition();
 
+    // ตรวจสอบว่าอยู่ในท่า Push Up หรือไม่
+    if (downPositionRef.current || upPositionRef.current) {
+      pushupPositionRef.current = true;
+    } else {
+      pushupPositionRef.current = false;
+    }
+
     // Step 0: เริ่มจากยืน
     if (burpeeStep.current === 0 && squatPositionRef.current) {
       burpeeStep.current = 1;
     }
 
     // Step 1: squat ไป pushup
-    else if (burpeeStep.current === 1 && pushupPositionRef.current) {
-      burpeeStep.current = 2;
+    else if (burpeeStep.current === 1) {
+      if (pushupPositionRef.current) {
+        burpeeStep.current = 2;
+      } else if (!squatPositionRef.current && !pushupPositionRef.current) {
+        showFeedback("ลงไปอยู่ในท่า Push Up");
+      }
     }
 
     // Step 2: pushup กลับขึ้นมานั่งยอง
-    else if (burpeeStep.current === 2 && squatPositionRef.current) {
-      burpeeStep.current = 3;
+    else if (burpeeStep.current === 2) {
+      if (squatPositionRef.current) {
+        burpeeStep.current = 3;
+      } else if (!pushupPositionRef.current && !squatPositionRef.current) {
+        showFeedback("กลับมาอยู่ในท่าย่อตัว");
+      }
     }
 
     // Step 3: squat → กระโดด + ยกแขน
-    else if (
-      burpeeStep.current === 3 &&
-      jumpDetectedRef.current &&
-      jumpWithArmsUpRef.current
-    ) {
-      burpeeStep.current = 4;
+    else if (burpeeStep.current === 3 && jumpDetectedRef.current) {
+      if (!jumpWithArmsUpRef.current) {
+        showFeedback("กรุณายกแขนขึ้นเหนือศีรษะเมื่อกระโดด");
+      } else {
+        burpeeStep.current = 4;
+      }
     }
 
     // Step 4: landing แล้วกลับมายืน = นับครบ 1 ครั้ง
     else if (burpeeStep.current === 4 && standingPositionRef.current) {
       setReps((prev) => prev + 1);
       burpeeStep.current = 0; // reset เพื่อเริ่มรอบใหม่
+      showFeedback("ดีมาก!");
     }
 
     // Optional: หากไม่ทำต่อใน 3 วินาทีให้รีเซ็ต step
@@ -318,7 +363,10 @@ const Home = () => {
     }
 
     resetTimeoutRef.current = setTimeout(() => {
-      burpeeStep.current = 0;
+      if (burpeeStep.current !== 0) {
+        showFeedback("เริ่มใหม่อีกครั้ง");
+        burpeeStep.current = 0;
+      }
     }, 3000);
   };
 
@@ -381,8 +429,7 @@ const Home = () => {
     } else {
       highlightBackRef.current = true;
       if (backWarningGivenRef.current !== true) {
-        // ตัดระบบเสียงออก
-        // speak("รักษาหลังให้ตรง");
+        showFeedback("รักษาหลังให้ตรง");
         backWarningGivenRef.current = true;
       }
     }
@@ -392,9 +439,8 @@ const Home = () => {
   const inUpPosition = () => {
     if (elbowAngleRef.current > 170 && elbowAngleRef.current < 200) {
       if (downPositionRef.current === true) {
-        // ตัดระบบเสียงออก
-        // speak((reps + 1).toString());
         setReps((prev) => prev + 1);
+        showFeedback("ดีมาก!");
       }
       upPositionRef.current = true;
       downPositionRef.current = false;
@@ -419,8 +465,7 @@ const Home = () => {
       Math.abs(elbowAngleRef.current) < 100
     ) {
       if (upPositionRef.current === true) {
-        // ตัดระบบเสียงออก
-        // speak("ขึ้น");
+        showFeedback("ขึ้น");
       }
       downPositionRef.current = true;
       upPositionRef.current = false;
@@ -473,18 +518,29 @@ const Home = () => {
       ctx.fillText(exerciseText, 20, 50);
       ctx.strokeText(exerciseText, 20, 50);
 
-      // แสดงสถานะการตรวจจับ (สำหรับการดีบัก)
+      // แสดงสถานะการตรวจจับ (สำหรบการดีบัก)
       if (exerciseType.includes("burpee")) {
-        const statusText = `สถานะ: ${
-          standingPositionRef.current ? "ยืน" : ""
-        } ${squatPositionRef.current ? "ย่อตัว" : ""} ${
-          jumpDetectedRef.current ? "กระโดด" : ""
-        } ${jumpWithArmsUpRef.current ? "ยกแขน" : ""} ${
-          pushupPositionRef.current ? "Push Up" : ""
-        }`;
+        const statusText = `สถานะ: ${standingPositionRef.current ? "ยืน" : ""} ${squatPositionRef.current ? "ย่อตัว" : ""} ${jumpDetectedRef.current ? "กระโดด" : ""} ${jumpWithArmsUpRef.current ? "ยกแขน" : ""} ${pushupPositionRef.current ? "Push Up" : ""}`;
         ctx.font = "20px Arial";
         ctx.fillText(statusText, 20, 90);
         ctx.strokeText(statusText, 20, 90);
+        
+        // แสดงขั้นตอนปัจจุบันสำหรับ burpee แบบผู้เชี่ยวชาญ
+        if (exerciseType === "burpee-expert") {
+          const stepText = `ขั้นตอน: ${burpeeStep.current}`;
+          ctx.fillText(stepText, 20, 120);
+          ctx.strokeText(stepText, 20, 120);
+        }
+      }
+      
+      // แสดงข้อความแจ้งเตือน
+      if (feedbackMessage) {
+        ctx.font = "24px Arial";
+        ctx.fillStyle = "red";
+        ctx.strokeStyle = "white";
+        ctx.lineWidth = 1;
+        ctx.fillText(feedbackMessage, 20, canvasRef.current.height - 30);
+        ctx.strokeText(feedbackMessage, 20, canvasRef.current.height - 30);
       }
     } else {
       ctx.fillText(message, 20, 50);
@@ -631,6 +687,13 @@ const Home = () => {
           }`}
         >
           Burpee (ผู้เชี่ยวชาญ)
+        </button>
+        
+        <button
+          onClick={() => setSoundEnabled(!soundEnabled)}
+          className={`px-3 py-2 rounded-lg ${soundEnabled ? "bg-green-600 text-white" : "bg-gray-200 text-gray-800"}`}
+        >
+          {soundEnabled ? "ปิดเสียง" : "เปิดเสียง"}
         </button>
       </div>
 
