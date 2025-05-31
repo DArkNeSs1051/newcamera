@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import * as poseDetection from "@tensorflow-models/pose-detection";
 import "@tensorflow/tfjs-backend-webgl";
 import * as tf from "@tensorflow/tfjs";
-import { Keypoint } from "@tensorflow-models/pose-detection";
 
 const Home = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -17,7 +16,7 @@ const Home = () => {
   const [message, setMessage] = useState("กำลังโหลด กรุณารอสักครู่...");
   const [isMobile, setIsMobile] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState(""); // เพิ่มตัวแปรสำหรับข้อความแจ้งเตือน
-  const [soundEnabled, setSoundEnabled] = useState(false); // เพิ่มตัวแปรสำหรับเปิด/ปิดเสียง
+  const [soundEnabled, setSoundEnabled] = useState(true); // เปลี่ยนจาก false เป็น true เพื่อเปิดเสียงอัตโนมัติ
   const feedbackTimeoutRef = useRef<NodeJS.Timeout | null>(null); // เพิ่มตัวแปรสำหรับจัดการเวลาแสดงข้อความ
 
   // สร้างตัวแปรสำหรับเก็บค่าต่างๆ
@@ -319,14 +318,18 @@ const Home = () => {
     }
 
     // Step 0: เริ่มจากยืน
-    if (burpeeStep.current === 0 && squatPositionRef.current) {
-      burpeeStep.current = 1;
+    if (burpeeStep.current === 0 && standingPositionRef.current) {
+      if (squatPositionRef.current) {
+        burpeeStep.current = 1;
+        showFeedback("ลงไปอยู่ในท่า Push Up");
+      }
     }
 
     // Step 1: squat ไป pushup
     else if (burpeeStep.current === 1) {
       if (pushupPositionRef.current) {
         burpeeStep.current = 2;
+        showFeedback("ทำท่า Push Up แล้วกลับมาอยู่ในท่าย่อตัว");
       } else if (!squatPositionRef.current && !pushupPositionRef.current) {
         showFeedback("ลงไปอยู่ในท่า Push Up");
       }
@@ -334,19 +337,23 @@ const Home = () => {
 
     // Step 2: pushup กลับขึ้นมานั่งยอง
     else if (burpeeStep.current === 2) {
-      if (squatPositionRef.current) {
+      if (squatPositionRef.current && !pushupPositionRef.current) {
         burpeeStep.current = 3;
+        showFeedback("กระโดดพร้อมยกแขนขึ้นเหนือศีรษะ");
       } else if (!pushupPositionRef.current && !squatPositionRef.current) {
         showFeedback("กลับมาอยู่ในท่าย่อตัว");
       }
     }
 
     // Step 3: squat → กระโดด + ยกแขน
-    else if (burpeeStep.current === 3 && jumpDetectedRef.current) {
-      if (!jumpWithArmsUpRef.current) {
-        showFeedback("กรุณายกแขนขึ้นเหนือศีรษะเมื่อกระโดด");
-      } else {
-        burpeeStep.current = 4;
+    else if (burpeeStep.current === 3) {
+      if (jumpDetectedRef.current) {
+        if (!jumpWithArmsUpRef.current) {
+          showFeedback("กรุณายกแขนขึ้นเหนือศีรษะเมื่อกระโดด");
+        } else {
+          burpeeStep.current = 4;
+          showFeedback("กลับมายืนตรง");
+        }
       }
     }
 
@@ -354,7 +361,7 @@ const Home = () => {
     else if (burpeeStep.current === 4 && standingPositionRef.current) {
       setReps((prev) => prev + 1);
       burpeeStep.current = 0; // reset เพื่อเริ่มรอบใหม่
-      showFeedback("ดีมาก!");
+      showFeedback("ดีมาก! ทำครบ 1 ครั้ง");
     }
 
     // Optional: หากไม่ทำต่อใน 3 วินาทีให้รีเซ็ต step
@@ -597,8 +604,10 @@ const Home = () => {
     window.addEventListener("resize", handleResize);
 
     const init = async () => {
-      // ตัดระบบเสียงออก
-      // speak("กำลังโหลด กรุณารอสักครู่...");
+      // เพิ่มการแจ้งเตือนเสียงเมื่อเริ่มต้น
+      setTimeout(() => {
+        speak("ระบบเสียงพร้อมใช้งาน");
+      }, 2000); // รอ 2 วินาทีหลังจากโหลดเสร็จ
 
       // เริ่มต้น TensorFlow.js
       await tf.ready();
@@ -680,26 +689,6 @@ const Home = () => {
           }`}
         >
           Burpee (ผู้เชี่ยวชาญ)
-        </button>
-
-        <button
-          onClick={() => setSoundEnabled(!soundEnabled)}
-          className={`px-3 py-2 rounded-lg ${
-            soundEnabled
-              ? "bg-green-600 text-white"
-              : "bg-gray-200 text-gray-800"
-          }`}
-        >
-          {soundEnabled ? "ปิดเสียง" : "เปิดเสียง"}
-        </button>
-        <button
-          onClick={() => {
-            showFeedback(
-              "กรุณาวางโทรศัพท์ในแนวตั้งและถอยห่างจากกล้องประมาณ 2-3 เมตร"
-            );
-          }}
-        >
-          คำแนะนำ
         </button>
       </div>
 
