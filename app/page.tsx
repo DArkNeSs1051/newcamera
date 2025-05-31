@@ -692,6 +692,15 @@ const Home = () => {
         >
           {soundEnabled ? "ปิดเสียง" : "เปิดเสียง"}
         </button>
+        <button
+          onClick={() => {
+            showFeedback(
+              "กรุณาวางโทรศัพท์ในแนวตั้งและถอยห่างจากกล้องประมาณ 2-3 เมตร"
+            );
+          }}
+        >
+          คำแนะนำ
+        </button>
       </div>
 
       <div className="relative w-full max-w-md md:max-w-lg">
