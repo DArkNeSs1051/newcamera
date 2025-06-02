@@ -441,8 +441,10 @@ const Home = () => {
   const inUpPosition = () => {
     if (elbowAngleRef.current > 170 && elbowAngleRef.current < 200) {
       if (downPositionRef.current === true) {
-        setReps((prev) => prev + 1);
-        showFeedback("ดีมาก!");
+        if (exerciseType === "pushup") {
+          setReps((prev) => prev + 1);
+          showFeedback("ดีมาก!");
+        }
       }
       upPositionRef.current = true;
       downPositionRef.current = false;
@@ -648,8 +650,10 @@ const Home = () => {
       <div className="flex flex-wrap justify-center gap-2 mb-2 md:mb-4 w-full max-w-md md:max-w-lg">
         <select
           value={exerciseType}
-          onChange={e => {
-            setExerciseType(e.target.value as "pushup" | "burpee-beginner" | "burpee-expert");
+          onChange={(e) => {
+            setExerciseType(
+              e.target.value as "pushup" | "burpee-beginner" | "burpee-expert"
+            );
             setReps(0);
           }}
           className="px-3 py-2 rounded-lg bg-gray-200 text-gray-800 w-full md:w-auto"
