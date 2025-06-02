@@ -324,7 +324,6 @@ const Home = () => {
         showFeedback("ลงไปอยู่ในท่า Push Up");
       }
     }
-
     // Step 1: squat ไป pushup
     else if (burpeeStep.current === 1) {
       if (pushupPositionRef.current) {
@@ -334,7 +333,6 @@ const Home = () => {
         showFeedback("ลงไปอยู่ในท่า Push Up");
       }
     }
-
     // Step 2: pushup กลับขึ้นมานั่งยอง
     else if (burpeeStep.current === 2) {
       if (squatPositionRef.current && !pushupPositionRef.current) {
@@ -344,7 +342,6 @@ const Home = () => {
         showFeedback("กลับมาอยู่ในท่าย่อตัว");
       }
     }
-
     // Step 3: squat → กระโดด + ยกแขน
     else if (burpeeStep.current === 3) {
       if (jumpDetectedRef.current) {
@@ -356,14 +353,12 @@ const Home = () => {
         }
       }
     }
-
     // Step 4: landing แล้วกลับมายืน = นับครบ 1 ครั้ง
     else if (burpeeStep.current === 4 && standingPositionRef.current) {
       setReps((prev) => prev + 1);
       burpeeStep.current = 0; // reset เพื่อเริ่มรอบใหม่
       showFeedback("ดีมาก! ทำครบ 1 ครั้ง");
     }
-
     // Optional: หากไม่ทำต่อใน 3 วินาทีให้รีเซ็ต step
     if (resetTimeoutRef.current) {
       clearTimeout(resetTimeoutRef.current);
@@ -651,45 +646,18 @@ const Home = () => {
       </h1>
 
       <div className="flex flex-wrap justify-center gap-2 mb-2 md:mb-4 w-full max-w-md md:max-w-lg">
-        <button
-          onClick={() => {
-            setExerciseType("pushup");
+        <select
+          value={exerciseType}
+          onChange={e => {
+            setExerciseType(e.target.value as "pushup" | "burpee-beginner" | "burpee-expert");
             setReps(0);
           }}
-          className={`px-3 py-2 rounded-lg ${
-            exerciseType === "pushup"
-              ? "bg-blue-600 text-white"
-              : "bg-gray-200 text-gray-800"
-          }`}
+          className="px-3 py-2 rounded-lg bg-gray-200 text-gray-800 w-full md:w-auto"
         >
-          Push Up
-        </button>
-        <button
-          onClick={() => {
-            setExerciseType("burpee-beginner");
-            setReps(0);
-          }}
-          className={`px-3 py-2 rounded-lg ${
-            exerciseType === "burpee-beginner"
-              ? "bg-blue-600 text-white"
-              : "bg-gray-200 text-gray-800"
-          }`}
-        >
-          Burpee (ผู้เริ่มต้น)
-        </button>
-        <button
-          onClick={() => {
-            setExerciseType("burpee-expert");
-            setReps(0);
-          }}
-          className={`px-3 py-2 rounded-lg ${
-            exerciseType === "burpee-expert"
-              ? "bg-blue-600 text-white"
-              : "bg-gray-200 text-gray-800"
-          }`}
-        >
-          Burpee (ผู้เชี่ยวชาญ)
-        </button>
+          <option value="pushup">Push Up</option>
+          <option value="burpee-beginner">Burpee (ผู้เริ่มต้น)</option>
+          <option value="burpee-expert">Burpee (ผู้เชี่ยวชาญ)</option>
+        </select>
       </div>
 
       <div className="relative w-full max-w-md md:max-w-lg">
