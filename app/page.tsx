@@ -150,8 +150,6 @@ const Home = () => {
         detectBeginnerBurpee();
         detectJump();
       } else if (exerciseType === "burpee-expert") {
-        inUpPosition();
-        inDownPosition();
         detectExpertBurpee();
         detectJump();
       }
@@ -322,6 +320,8 @@ const Home = () => {
   const detectExpertBurpee = () => {
     if (!posesRef.current || posesRef.current.length === 0) return;
 
+    inUpPosition();
+    inDownPosition();
     updateKneeAngle();
     detectSquatPosition();
 
