@@ -737,6 +737,7 @@ const Home = () => {
           </p>
         )}
       </div>
+      <div className="">version 0.1</div>
     </div>
   );
 };
