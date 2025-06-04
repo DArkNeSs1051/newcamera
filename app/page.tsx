@@ -148,10 +148,12 @@ const Home = () => {
         inDownPosition();
       } else if (exerciseType === "burpee-beginner") {
         detectBeginnerBurpee();
+        detectJump();
       } else if (exerciseType === "burpee-expert") {
-        inUpPosition(); // ยังคงต้องตรวจจับท่า Push Up สำหรับ Burpee แบบผู้เชี่ยวชาญ
+        inUpPosition();
         inDownPosition();
         detectExpertBurpee();
+        detectJump();
       }
     }
   };
@@ -232,32 +234,47 @@ const Home = () => {
     if (!posesRef.current || posesRef.current.length === 0) return;
 
     const leftHip = posesRef.current[0].keypoints[11];
+    const rightHip = posesRef.current[0].keypoints[12];
     const leftWrist = posesRef.current[0].keypoints[9];
+    const rightWrist = posesRef.current[0].keypoints[10];
     const leftShoulder = posesRef.current[0].keypoints[5];
+    const rightShoulder = posesRef.current[0].keypoints[6];
 
-    if (leftHip.score && leftHip.score > 0.2) {
-      prevHipHeightRef.current = hipHeightRef.current;
-      hipHeightRef.current = leftHip.y;
+    if (
+      leftHip.score &&
+      rightHip.score &&
+      leftWrist.score &&
+      rightWrist.score &&
+      leftShoulder.score &&
+      rightShoulder.score &&
+      leftHip.score > 0.2 &&
+      rightHip.score > 0.2 &&
+      leftWrist.score > 0.2 &&
+      rightWrist.score > 0.2 &&
+      leftShoulder.score > 0.2 &&
+      rightShoulder.score > 0.2
+    ) {
+      // คำนวณความสูงเฉลี่ยของสะโพก
+      const currentHipHeight = (leftHip.y + rightHip.y) / 2;
 
-      // ตรวจจับการกระโดด (สะโพกเคลื่อนที่ขึ้นอย่างรวดเร็ว)
-      const hipMovement = prevHipHeightRef.current - hipHeightRef.current;
+      // ตรวจจับว่ากระโดดขึ้น (เมื่อสะโพกสูงขึ้นจากตำแหน่งก่อนหน้า)
+      if (prevHipHeightRef.current - currentHipHeight > 30) {
+        // ตรวจสอบว่ายกแขนขึ้นเหนือหะคะอะคะคะคะคะ → ยกแขน
+        const leftArmUp = leftWrist.y < leftShoulder.y;
+        const rightArmUp = rightWrist.y < rightShoulder.y;
 
-      // ตรวจสอบว่าแขนยกขึ้นเหนือศีรษะหรือไม่
-      const armsUp =
-        leftWrist.score &&
-        leftShoulder.score &&
-        leftWrist.score > 0.2 &&
-        leftShoulder.score > 0.2 &&
-        leftWrist.y < leftShoulder.y;
-
-      if (hipMovement > 30 && standingPositionRef.current) {
-        jumpDetectedRef.current = true;
-        jumpWithArmsUpRef.current = !!armsUp;
-        setTimeout(() => {
-          jumpDetectedRef.current = false;
-          jumpWithArmsUpRef.current = false;
-        }, 500); // รีเซ็ตหลังจาก 0.5 วินาที
+        if (leftArmUp && rightArmUp) {
+          if (!jumpWithArmsUpRef.current) {
+            jumpWithArmsUpRef.current = true;
+            showFeedback("กระโดดพร้อมยกแขน! เยี่ยมมาก");
+            setReps((prev) => prev + 1);
+          }
+        }
+      } else {
+        jumpWithArmsUpRef.current = false;
       }
+
+      prevHipHeightRef.current = currentHipHeight;
     }
   };
 
@@ -277,12 +294,11 @@ const Home = () => {
     if (!posesRef.current || posesRef.current.length === 0) return;
 
     updateKneeAngle();
-    detectJump();
     detectSquatPosition();
 
     // ตรวจสอบลำดับท่าทาง: ยืน -> นั่งยอง -> กระโดดพร้อมยกแขน -> ยืน
     if (jumpDetectedRef.current && squatPositionRef.current) {
-      // ตรวจสอบว่ายกแขนขึ้นเหนือศีรษะหรือไม่
+      // ตรวจสอบว่ายกแขนขึ้นเหนือศีรษะหรือไม่กี่
       if (!jumpWithArmsUpRef.current) {
         showFeedback("กรุณายกแขนขึ้นเหนือศีรษะเมื่อกระโดด");
       } else if (standingPositionRef.current) {
@@ -292,7 +308,7 @@ const Home = () => {
       }
     }
 
-    // ตรวจสอบว่าย่อตัวลงต่ำพอหรือไม่
+    // ตรวจสอบว่าย่อตัวลงต่ำพอหรือไม่กี่
     if (
       standingPositionRef.current &&
       kneeAngleRef.current > 120 &&
@@ -307,7 +323,6 @@ const Home = () => {
     if (!posesRef.current || posesRef.current.length === 0) return;
 
     updateKneeAngle();
-    detectJump();
     detectSquatPosition();
 
     // ตรวจสอบว่าอยู่ในท่า Push Up หรือไม่
@@ -441,9 +456,15 @@ const Home = () => {
   const inUpPosition = () => {
     if (elbowAngleRef.current > 170 && elbowAngleRef.current < 200) {
       if (downPositionRef.current === true) {
+        // แก้ไขเงื่อนความตรงนี้
         if (exerciseType === "pushup") {
           setReps((prev) => prev + 1);
           showFeedback("ดีมาก!");
+        }
+        // เพิ่มเงื่อนความสำหรับ burpee-expert เพื่อไม่ให้นับเมื่อทำเพียงท่า push up
+        else if (exerciseType === "burpee-expert") {
+          // ไม่เพิ่มจำนวนครั้งที่นี่ แต่ให้ไปเพิ่มในฟังก์ชัน detectExpertBurpee เมื่อทำครบทุกขั้นตอน
+          showFeedback("ท่า Push Up ถูกต้อง");
         }
       }
       upPositionRef.current = true;
@@ -656,7 +677,7 @@ const Home = () => {
             );
             setReps(0);
           }}
-          className="px-3 py-2 rounded-lg bg-gray-200 text-gray-800 w-full md:w-auto"
+          className="px-4 py-2 rounded-lg bg-gray-200 text-gray-800 w-full md:w-auto"
         >
           <option value="pushup">Push Up</option>
           <option value="burpee-beginner">Burpee (ผู้เริ่มต้น)</option>
