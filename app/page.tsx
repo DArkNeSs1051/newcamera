@@ -6,12 +6,12 @@ import "@tensorflow/tfjs-backend-webgl";
 import * as tf from "@tensorflow/tfjs";
 
 const Home = () => {
+  const version = "1.0.0"; // กำหนดเวอร์ชันของแอปพลิเคชัน
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [reps, setReps] = useState(0);
-  const [exerciseType, setExerciseType] = useState<
-    "pushup" | "burpee-beginner" | "burpee-expert"
-  >("pushup");
+  const [exerciseType, setExerciseType] = useState("pushup");
+  const exerciseTypeRef = useRef(exerciseType);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("กำลังโหลด กรุณารอสักครู่...");
   const [isMobile, setIsMobile] = useState(false);
@@ -143,13 +143,13 @@ const Home = () => {
       updateBackAngle();
 
       // เลือกฟังก์ชันตรวจจับตามประเภทการออกกำลังกาย
-      if (exerciseType === "pushup") {
+      if (exerciseTypeRef.current === "pushup") {
         inUpPosition();
         inDownPosition();
-      } else if (exerciseType === "burpee-beginner") {
+      } else if (exerciseTypeRef.current === "burpee-beginner") {
         detectBeginnerBurpee();
         detectJump();
-      } else if (exerciseType === "burpee-expert") {
+      } else if (exerciseTypeRef.current === "burpee-expert") {
         detectExpertBurpee();
         detectJump();
       }
@@ -332,6 +332,7 @@ const Home = () => {
       pushupPositionRef.current = false;
     }
 
+    console.log("burpeeStep:", burpeeStep);
     // Step 0: เริ่มจากยืน
     if (burpeeStep.current === 0 && standingPositionRef.current) {
       if (squatPositionRef.current) {
@@ -457,12 +458,12 @@ const Home = () => {
     if (elbowAngleRef.current > 170 && elbowAngleRef.current < 200) {
       if (downPositionRef.current === true) {
         // แก้ไขเงื่อนความตรงนี้
-        if (exerciseType === "pushup") {
+        if (exerciseTypeRef.current === "pushup") {
           setReps((prev) => prev + 1);
           showFeedback("ดีมาก!");
         }
         // เพิ่มเงื่อนความสำหรับ burpee-expert เพื่อไม่ให้นับเมื่อทำเพียงท่า push up
-        else if (exerciseType === "burpee-expert") {
+        else if (exerciseTypeRef.current === "burpee-expert") {
           // ไม่เพิ่มจำนวนครั้งที่นี่ แต่ให้ไปเพิ่มในฟังก์ชัน detectExpertBurpee เมื่อทำครบทุกขั้นตอน
           showFeedback("ท่า Push Up ถูกต้อง");
         }
@@ -531,7 +532,7 @@ const Home = () => {
 
     if (posesRef.current && posesRef.current.length > 0) {
       // แสดงสถานะการตรวจจับ (สำหรบการดีบัก)
-      if (exerciseType.includes("burpee")) {
+      if (exerciseTypeRef.current.includes("burpee")) {
         const statusText = `สถานะ: ${
           standingPositionRef.current ? "ยืน" : ""
         } ${squatPositionRef.current ? "ย่อตัว" : ""} ${
@@ -544,7 +545,7 @@ const Home = () => {
         ctx.strokeText(statusText, 20, 90);
 
         // แสดงขั้นตอนปัจจุบันสำหรับ burpee แบบผู้เชี่ยวชาญ
-        if (exerciseType === "burpee-expert") {
+        if (exerciseTypeRef.current === "burpee-expert") {
           const stepText = `ขั้นตอน: ${burpeeStep.current}`;
           ctx.fillText(stepText, 20, 120);
           ctx.strokeText(stepText, 20, 120);
@@ -662,6 +663,10 @@ const Home = () => {
     };
   }, []);
 
+  useEffect(() => {
+    exerciseTypeRef.current = exerciseType;
+  }, [exerciseType]);
+
   return (
     <div className="flex flex-col items-center justify-center p-2 md:p-8 gap-2 md:gap-4 bg-gray-100 w-full min-h-screen">
       <h1 className="text-xl md:text-3xl font-bold mb-2 md:mb-4">
@@ -672,9 +677,7 @@ const Home = () => {
         <select
           value={exerciseType}
           onChange={(e) => {
-            setExerciseType(
-              e.target.value as "pushup" | "burpee-beginner" | "burpee-expert"
-            );
+            setExerciseType(e.target.value);
             setReps(0);
           }}
           className="px-4 py-2 rounded-lg bg-gray-200 text-gray-800 w-full md:w-auto"
@@ -701,30 +704,31 @@ const Home = () => {
 
       <div className="mt-2 md:mt-4 p-3 md:p-4 bg-white rounded-lg shadow-md w-full max-w-md md:max-w-lg">
         <h2 className="text-xl md:text-2xl font-semibold">
-          {exerciseType === "pushup" && `จำนวน Push-up ที่ทำได้: ${reps}`}
-          {exerciseType === "burpee-beginner" &&
+          {exerciseTypeRef.current === "pushup" &&
+            `จำนวน Push-up ที่ทำได้: ${reps}`}
+          {exerciseTypeRef.current === "burpee-beginner" &&
             `จำนวน Burpee (ผู้เริ่มต้น) ที่ทำได้: ${reps}`}
-          {exerciseType === "burpee-expert" &&
+          {exerciseTypeRef.current === "burpee-expert" &&
             `จำนวน Burpee (ผู้เชี่ยวชาญ) ที่ทำได้: ${reps}`}
         </h2>
         <p className="mt-1 md:mt-2 text-sm md:text-base text-black">
           ระบบจะนับจำนวนครั้งและตรวจสอบท่าทางของคุณอัตโนมัติ
         </p>
 
-        {exerciseType === "pushup" && (
+        {exerciseTypeRef.current === "pushup" && (
           <p className="mt-1 text-sm md:text-base text-black">
             ให้แน่ใจว่าคุณอยู่ในระยะที่กล้องสามารถมองเห็นร่างกายทั้งหมดได้
           </p>
         )}
 
-        {exerciseType === "burpee-beginner" && (
+        {exerciseTypeRef.current === "burpee-beginner" && (
           <p className="mt-1 text-sm md:text-base text-black">
             ท่า Burpee สำหรับผู้เริ่มต้น: ยืน → ย่อตัว →
             กระโดดพร้อมยกแขนเหนือศีรษะ → ยืน
           </p>
         )}
 
-        {exerciseType === "burpee-expert" && (
+        {exerciseTypeRef.current === "burpee-expert" && (
           <p className="mt-1 text-sm md:text-base text-black">
             ท่า Burpee สำหรับผู้เชี่ยวชาญ: ยืน → ย่อตัว → Push Up → ย่อตัว →
             กระโดดพร้อมยกแขนเหนือศีรษะ → ยืน
@@ -737,7 +741,7 @@ const Home = () => {
           </p>
         )}
       </div>
-      <div className="">version 0.1</div>
+      <div className="text-sm">Version {version}</div>
     </div>
   );
 };
