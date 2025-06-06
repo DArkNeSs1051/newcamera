@@ -291,29 +291,67 @@ const Home = () => {
   const detectBeginnerBurpee = () => {
     if (!posesRef.current || posesRef.current.length === 0) return;
 
+    inUpPosition();
+    inDownPosition();
     updateKneeAngle();
     detectSquatPosition();
 
-    // ตรวจสอบลำดับท่าทาง: ยืน -> นั่งยอง -> กระโดดพร้อมยกแขน -> ยืน
-    if (jumpDetectedRef.current && squatPositionRef.current) {
-      // ตรวจสอบว่ายกแขนขึ้นเหนือศีรษะหรือไม่กี่
-      if (!jumpWithArmsUpRef.current) {
-        showFeedback("กรุณายกแขนขึ้นเหนือศีรษะเมื่อกระโดด");
-      } else if (standingPositionRef.current) {
-        setReps((prev) => prev + 1);
-        squatPositionRef.current = false;
-        showFeedback("ดีมาก!");
+    // ตรวจสอบว่าอยู่ในท่า Push Up หรือไม่
+    if (downPositionRef.current || upPositionRef.current) {
+      pushupPositionRef.current = true;
+    } else {
+      pushupPositionRef.current = false;
+    }
+
+    // Step 0: เริ่มจากยืน
+    if (burpeeStep.current === 0 && standingPositionRef.current) {
+      if (squatPositionRef.current) {
+        burpeeStep.current = 1;
+        showFeedback("ย่อตัวลงแล้วเตรียมตั้งท่า Push Up");
+      }
+    }
+    // Step 1: ย่อตัวไปตั้งท่า Push Up
+    else if (burpeeStep.current === 1) {
+      if (pushupPositionRef.current) {
+        burpeeStep.current = 2;
+        showFeedback("ตั้งท่า Push Up แล้วกลับมาอยู่ในท่าย่อตัว");
+      } else if (!squatPositionRef.current && !pushupPositionRef.current) {
+        showFeedback("ตั้งท่า Push Up");
+      }
+    }
+    // Step 2: จากท่า Push Up กลับขึ้นมานั่งยอง
+    else if (burpeeStep.current === 2) {
+      if (squatPositionRef.current && !pushupPositionRef.current) {
+        burpeeStep.current = 3;
+        showFeedback("กระโดดพร้อมยกแขนขึ้นเหนือศีรษะ");
+      } else if (!pushupPositionRef.current && !squatPositionRef.current) {
+        showFeedback("กลับมาอยู่ในท่าย่อตัว");
+      }
+    }
+    // Step 3: จากท่าย่อตัว → กระโดด + ยกแขน
+    else if (burpeeStep.current === 3) {
+      if (jumpDetectedRef.current) {
+        if (!jumpWithArmsUpRef.current) {
+          showFeedback("กรุณายกแขนขึ้นเหนือศีรษะเมื่อกระโดด");
+        } else {
+          burpeeStep.current = 0;
+          setReps((prev) => prev + 1);
+          showFeedback("ดีมาก! ทำครบ 1 ครั้ง");
+        }
       }
     }
 
-    // ตรวจสอบว่าย่อตัวลงต่ำพอหรือไม่กี่
-    if (
-      standingPositionRef.current &&
-      kneeAngleRef.current > 120 &&
-      kneeAngleRef.current < 160
-    ) {
-      showFeedback("ย่อตัวให้ต่ำกว่านี้");
+    // Optional: หากไม่ทำต่อใน 3 วินาทีให้รีเซ็ต step
+    if (resetTimeoutRef.current) {
+      clearTimeout(resetTimeoutRef.current);
     }
+
+    resetTimeoutRef.current = setTimeout(() => {
+      if (burpeeStep.current !== 0) {
+        showFeedback("เริ่มใหม่อีกครั้ง");
+        burpeeStep.current = 0;
+      }
+    }, 3000);
   };
 
   // ฟังก์ชันสำหรับการตรวจสอบท่า Burpee แบบผู้เชี่ยวชาญ
@@ -332,7 +370,6 @@ const Home = () => {
       pushupPositionRef.current = false;
     }
 
-    console.log("burpeeStep:", burpeeStep);
     // Step 0: เริ่มจากยืน
     if (burpeeStep.current === 0 && standingPositionRef.current) {
       if (squatPositionRef.current) {
