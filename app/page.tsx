@@ -6,7 +6,7 @@ import "@tensorflow/tfjs-backend-webgl";
 import * as tf from "@tensorflow/tfjs";
 
 const Home = () => {
-  const version = "1.0.0"; // กำหนดเวอร์ชันของแอปพลิเคชัน
+  const version = "1.0.1"; // กำหนดเวอร์ชันของแอปพลิเคชัน
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [reps, setReps] = useState(0);
