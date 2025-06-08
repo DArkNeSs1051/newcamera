@@ -49,6 +49,13 @@ const Home = () => {
   const squatUpPositionRef = useRef<boolean>(true);
   const kneeAngleThresholdRef = useRef<number>(120); //
 
+  // ตัวแปรสำหรับการตรวจจับท่า Lunges
+  const lungeDownPositionRef = useRef<boolean>(false);
+  const lungeUpPositionRef = useRef<boolean>(true);
+  const frontKneeAngleRef = useRef<number>(180);
+  const backKneeAngleRef = useRef<number>(180);
+  const kneeAlignmentWarningRef = useRef<boolean>(false);
+
   // ฟังก์ชันสำหรับการพูด
   const speak = (text: string) => {
     if (soundEnabled) {
@@ -159,6 +166,8 @@ const Home = () => {
         detectJump();
       } else if (exerciseTypeRef.current === "squat") {
         detectSquat();
+      } else if (exerciseTypeRef.current === "lunges") {
+        detectLunges();
       }
     }
   };
@@ -264,7 +273,7 @@ const Home = () => {
 
       // ตรวจจับว่ากระโดดขึ้น (เมื่อสะโพกสูงขึ้นจากตำแหน่งก่อนหน้า)
       if (prevHipHeightRef.current - currentHipHeight > 30) {
-        // ตรวจสอบว่ายกแขนขึ้นเหนือหะคะอะคะคะคะคะคะ → ยกแขน
+        // ตรวจสอบว่ายกแขนขึ้นเหนือหะคะอะคะคะคะคะคะคะคะคะ → ยกแขน
         const leftArmUp = leftWrist.y < leftShoulder.y;
         const rightArmUp = rightWrist.y < rightShoulder.y;
 
@@ -321,9 +330,9 @@ const Home = () => {
     else if (burpeeStep.current === 1) {
       if (pushupPositionRef.current) {
         burpeeStep.current = 2;
-        showFeedback("ตั้งท่า Push Up แล้วกลับมาอยู่ในท่าย่อตัว");
+        showFeedback("ทำท่า Push Up แล้วกลับมาอยู่ในท่าย่อตัว");
       } else if (!squatPositionRef.current && !pushupPositionRef.current) {
-        showFeedback("ตั้งท่า Push Up");
+        showFeedback("ทำท่า Push Up");
       }
     }
     // Step 2: จากท่า Push Up กลับขึ้นมานั่งยอง
@@ -470,6 +479,61 @@ const Home = () => {
           // เข่าเลยปลายเท้ามากเกินไป
           showFeedback("ระวัง! เข่าไม่ควรเลยปลายเท้ามากเกินไป");
         }
+      }
+    }
+  };
+
+  // ฟังก์ชันสำหรับการตรวจสอบท่า Lunges
+  const detectLunges = () => {
+    if (!posesRef.current || posesRef.current.length === 0) return;
+
+    // ตรวจสอบมุมเข่าหน้า
+    const leftHip = posesRef.current[0].keypoints[11];
+    const leftKnee = posesRef.current[0].keypoints[13];
+    const leftAnkle = posesRef.current[0].keypoints[15];
+
+    if (
+      leftHip.score &&
+      leftKnee.score &&
+      leftAnkle.score &&
+      leftHip.score > 0.2 &&
+      leftKnee.score > 0.2 &&
+      leftAnkle.score > 0.2
+    ) {
+      const frontAngle =
+        (Math.atan2(leftHip.y - leftKnee.y, leftHip.x - leftKnee.x) -
+          Math.atan2(leftAnkle.y - leftKnee.y, leftAnkle.x - leftKnee.x)) *
+        (180 / Math.PI);
+
+      frontKneeAngleRef.current = Math.abs(frontAngle);
+
+      // ตรวจสอบว่าอยู่ในท่า Lunge ลง (ย่อตัว)
+      if (frontKneeAngleRef.current < 110 && lungeUpPositionRef.current) {
+        lungeDownPositionRef.current = true;
+        lungeUpPositionRef.current = false;
+        showFeedback("ย่อตัวลงแล้ว รักษาหลังให้ตรง");
+
+        // ตรวจสอบการวางตำแหน่งเข่า
+        if (leftKnee.x > leftAnkle.x + 50) {
+          // เข่าเลยปลายเท้ามากเกินไป
+          if (!kneeAlignmentWarningRef.current) {
+            showFeedback("ระวัง! เข่าหน้าไม่ควรเลยปลายเท้ามากเกินไป");
+            kneeAlignmentWarningRef.current = true;
+          }
+        } else {
+          kneeAlignmentWarningRef.current = false;
+        }
+      }
+      // ตรวจสอบว่ากลับมายืนตรง
+      else if (
+        frontKneeAngleRef.current > 160 &&
+        lungeDownPositionRef.current
+      ) {
+        lungeUpPositionRef.current = true;
+        lungeDownPositionRef.current = false;
+        setReps((prev) => prev + 1);
+        showFeedback("ดีมาก! ทำครบ 1 ครั้ง");
+        kneeAlignmentWarningRef.current = false;
       }
     }
   };
@@ -772,6 +836,7 @@ const Home = () => {
           <option value="burpee-beginner">Burpee (ผู้เริ่มต้น)</option>
           <option value="burpee-expert">Burpee (ผู้เชี่ยวชาญ)</option>
           <option value="squat">Squat</option>
+          <option value="lunges">Leg Lunges</option>
         </select>
       </div>
 
@@ -827,6 +892,12 @@ const Home = () => {
         {exerciseTypeRef.current === "squat" && (
           <p className="mt-1 text-sm md:text-base text-black">
             ท่า Squat: ยืนตรง → ย่อตัวลงโดยดันสะโพกไปด้านหลังพร้อมงอเข่า → กลับมายืนตรง (ระวังไม่ให้เข่าเลยปลายเท้ามากเกินไป)
+          </p>
+        )}
+
+        {exerciseTypeRef.current === "lunges" && (
+          <p className="mt-1 text-sm md:text-base text-black">
+            ท่า Leg Lunges: ยืนตรง → ก้าวขาข้างหนึ่งไปข้างหน้า → ย่อตัวลงให้เข่าหน้างอประมาณ 90 องศา → กลับมายืนตรง (ระวังไม่ให้เข่าหน้าเลยปลายเท้ามากเกินไป)
           </p>
         )}
 
