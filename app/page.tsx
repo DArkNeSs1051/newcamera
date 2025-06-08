@@ -6,7 +6,7 @@ import "@tensorflow/tfjs-backend-webgl";
 import * as tf from "@tensorflow/tfjs";
 
 const Home = () => {
-  const version = "1.0.1"; // กำหนดเวอร์ชันของแอปพลิเคชัน
+  const version = "1.0.1d"; // กำหนดเวอร์ชันของแอปพลิเคชัน
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [reps, setReps] = useState(0);
@@ -43,6 +43,11 @@ const Home = () => {
   const prevHipHeightRef = useRef<number>(0);
   const burpeeStep = useRef<number>(0);
   const resetTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // ตัวแปรสำหรับการตรวจจับท่า Squat
+  const squatDownPositionRef = useRef<boolean>(false);
+  const squatUpPositionRef = useRef<boolean>(true);
+  const kneeAngleThresholdRef = useRef<number>(120); //
 
   // ฟังก์ชันสำหรับการพูด
   const speak = (text: string) => {
@@ -152,6 +157,8 @@ const Home = () => {
       } else if (exerciseTypeRef.current === "burpee-expert") {
         detectExpertBurpee();
         detectJump();
+      } else if (exerciseTypeRef.current === "squat") {
+        detectSquat();
       }
     }
   };
@@ -257,7 +264,7 @@ const Home = () => {
 
       // ตรวจจับว่ากระโดดขึ้น (เมื่อสะโพกสูงขึ้นจากตำแหน่งก่อนหน้า)
       if (prevHipHeightRef.current - currentHipHeight > 30) {
-        // ตรวจสอบว่ายกแขนขึ้นเหนือหะคะอะคะคะคะคะ → ยกแขน
+        // ตรวจสอบว่ายกแขนขึ้นเหนือหะคะอะคะคะคะคะคะ → ยกแขน
         const leftArmUp = leftWrist.y < leftShoulder.y;
         const rightArmUp = rightWrist.y < rightShoulder.y;
 
@@ -423,6 +430,48 @@ const Home = () => {
         burpeeStep.current = 0;
       }
     }, 3000);
+  };
+
+  // ฟังก์ชันสำหรับการตรวจสอบท่า Squat
+  const detectSquat = () => {
+    if (!posesRef.current || posesRef.current.length === 0) return;
+
+    updateKneeAngle();
+
+    // ตรวจสอบว่าอยู่ในท่า Squat ลง (ย่อตัว)
+    if (
+      kneeAngleRef.current < kneeAngleThresholdRef.current &&
+      squatUpPositionRef.current
+    ) {
+      squatDownPositionRef.current = true;
+      squatUpPositionRef.current = false;
+      showFeedback("ย่อตัวลงแล้ว ดันสะโพกไปด้านหลังพร้อมงอเข่า");
+    }
+    // ตรวจสอบว่ากลับมายืนตรง
+    else if (kneeAngleRef.current > 160 && squatDownPositionRef.current) {
+      squatUpPositionRef.current = true;
+      squatDownPositionRef.current = false;
+      setReps((prev) => prev + 1);
+      showFeedback("ดีมาก! ทำครบ 1 ครั้ง");
+    }
+
+    // ตรวจสอบว่าเข่าไม่เลยปลายเท้ามากเกินไป
+    if (squatDownPositionRef.current) {
+      const leftKnee = posesRef.current[0].keypoints[13];
+      const leftAnkle = posesRef.current[0].keypoints[15];
+
+      if (
+        leftKnee.score &&
+        leftAnkle.score &&
+        leftKnee.score > 0.2 &&
+        leftAnkle.score > 0.2
+      ) {
+        if (leftKnee.x > leftAnkle.x + 50) {
+          // เข่าเลยปลายเท้ามากเกินไป
+          showFeedback("ระวัง! เข่าไม่ควรเลยปลายเท้ามากเกินไป");
+        }
+      }
+    }
   };
 
   // ฟังก์ชันสำหรับการอัปเดตมุมข้อศอก
@@ -722,6 +771,7 @@ const Home = () => {
           <option value="pushup">Push Up</option>
           <option value="burpee-beginner">Burpee (ผู้เริ่มต้น)</option>
           <option value="burpee-expert">Burpee (ผู้เชี่ยวชาญ)</option>
+          <option value="squat">Squat</option>
         </select>
       </div>
 
@@ -747,6 +797,8 @@ const Home = () => {
             `จำนวน Burpee (ผู้เริ่มต้น) ที่ทำได้: ${reps}`}
           {exerciseTypeRef.current === "burpee-expert" &&
             `จำนวน Burpee (ผู้เชี่ยวชาญ) ที่ทำได้: ${reps}`}
+          {exerciseTypeRef.current === "squat" &&
+            `จำนวน Squat ที่ทำได้: ${reps}`}
         </h2>
         <p className="mt-1 md:mt-2 text-sm md:text-base text-black">
           ระบบจะนับจำนวนครั้งและตรวจสอบท่าทางของคุณอัตโนมัติ
@@ -769,6 +821,12 @@ const Home = () => {
           <p className="mt-1 text-sm md:text-base text-black">
             ท่า Burpee สำหรับผู้เชี่ยวชาญ: ยืน → ย่อตัว → Push Up → ย่อตัว →
             กระโดดพร้อมยกแขนเหนือศีรษะ → ยืน
+          </p>
+        )}
+
+        {exerciseTypeRef.current === "squat" && (
+          <p className="mt-1 text-sm md:text-base text-black">
+            ท่า Squat: ยืนตรง → ย่อตัวลงโดยดันสะโพกไปด้านหลังพร้อมงอเข่า → กลับมายืนตรง (ระวังไม่ให้เข่าเลยปลายเท้ามากเกินไป)
           </p>
         )}
 
