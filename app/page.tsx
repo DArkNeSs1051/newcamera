@@ -6,7 +6,7 @@ import "@tensorflow/tfjs-backend-webgl";
 import * as tf from "@tensorflow/tfjs";
 
 const Home = () => {
-  const version = "1.0.1d"; // กำหนดเวอร์ชันของแอปพลิเคชัน
+  const version = "1.0.2"; // กำหนดเวอร์ชันของแอปพลิเคชัน
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [reps, setReps] = useState(0);
@@ -47,7 +47,7 @@ const Home = () => {
   // ตัวแปรสำหรับการตรวจจับท่า Squat
   const squatDownPositionRef = useRef<boolean>(false);
   const squatUpPositionRef = useRef<boolean>(true);
-  const kneeAngleThresholdRef = useRef<number>(120); //
+  const kneeAngleThresholdRef = useRef<number>(120);
 
   // ตัวแปรสำหรับการตรวจจับท่า Lunges
   const lungeDownPositionRef = useRef<boolean>(false);
@@ -55,6 +55,34 @@ const Home = () => {
   const frontKneeAngleRef = useRef<number>(180);
   const backKneeAngleRef = useRef<number>(180);
   const kneeAlignmentWarningRef = useRef<boolean>(false);
+
+  // ตัวแปรสำหรับการตรวจจับท่า Leg Raise
+  const legRaiseUpPositionRef = useRef<boolean>(false);
+  const legRaiseDownPositionRef = useRef<boolean>(true);
+  const legAngleRef = useRef<number>(180);
+  const lowerBackWarningRef = useRef<boolean>(false);
+
+  // ตัวแปรสำหรับการตรวจจับท่า Russian Twists
+  const twistLeftPositionRef = useRef<boolean>(false);
+  const twistRightPositionRef = useRef<boolean>(false);
+  const twistCenterPositionRef = useRef<boolean>(true);
+  const torsoAngleRef = useRef<number>(0);
+  const properFormWarningRef = useRef<boolean>(false);
+
+  // เพิ่มตัวแปรสำหรับการจับเวลา Plank
+  const [plankTime, setPlankTime] = useState(0);
+  const plankTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const plankStartedRef = useRef<boolean>(false);
+  const plankProperFormRef = useRef<boolean>(false);
+  const plankWarningGivenRef = useRef<boolean>(false);
+
+  // เพิ่มตัวแปรสำหรับการจับเวลา Side Plank
+  const [sidePlankTime, setSidePlankTime] = useState(0);
+  const sidePlankTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const sidePlankStartedRef = useRef<boolean>(false);
+  const sidePlankProperFormRef = useRef<boolean>(false);
+  const sidePlankWarningGivenRef = useRef<boolean>(false);
+  const sidePlankSideRef = useRef<string>("left");
 
   // ฟังก์ชันสำหรับการพูด
   const speak = (text: string) => {
@@ -168,6 +196,14 @@ const Home = () => {
         detectSquat();
       } else if (exerciseTypeRef.current === "lunges") {
         detectLunges();
+      } else if (exerciseTypeRef.current === "legraise") {
+        detectLegRaise();
+      } else if (exerciseTypeRef.current === "russiantwist") {
+        detectRussianTwist();
+      } else if (exerciseTypeRef.current === "plank") {
+        detectPlank();
+      } else if (exerciseTypeRef.current === "sideplank") {
+        detectSidePlank();
       }
     }
   };
@@ -273,7 +309,7 @@ const Home = () => {
 
       // ตรวจจับว่ากระโดดขึ้น (เมื่อสะโพกสูงขึ้นจากตำแหน่งก่อนหน้า)
       if (prevHipHeightRef.current - currentHipHeight > 30) {
-        // ตรวจสอบว่ายกแขนขึ้นเหนือหะคะอะคะคะคะคะคะคะคะคะ → ยกแขน
+        // ตรวจสอบว่ายกแขนขึ้นเหนือหะคะอะคะคะคะคะคะคะคะคะคะคะคะ → ยกแขน
         const leftArmUp = leftWrist.y < leftShoulder.y;
         const rightArmUp = rightWrist.y < rightShoulder.y;
 
@@ -536,6 +572,406 @@ const Home = () => {
         kneeAlignmentWarningRef.current = false;
       }
     }
+  };
+
+  // ฟังก์ชันสำหรับการตรวจสอบท่า Leg Raise
+  const detectLegRaise = () => {
+    if (!posesRef.current || posesRef.current.length === 0) return;
+
+    // ตรวจสอบมุมขาและสะโพก
+    const leftHip = posesRef.current[0].keypoints[11];
+    const leftKnee = posesRef.current[0].keypoints[13];
+    const leftAnkle = posesRef.current[0].keypoints[15];
+    const leftShoulder = posesRef.current[0].keypoints[5];
+
+    if (
+      leftHip.score &&
+      leftKnee.score &&
+      leftAnkle.score &&
+      leftShoulder.score &&
+      leftHip.score > 0.2 &&
+      leftKnee.score > 0.2 &&
+      leftAnkle.score > 0.2 &&
+      leftShoulder.score > 0.2
+    ) {
+      // คำนวณมุมระหว่างลำตัวและขา
+      const legAngle =
+        (Math.atan2(leftKnee.y - leftHip.y, leftKnee.x - leftHip.x) -
+          Math.atan2(leftShoulder.y - leftHip.y, leftShoulder.x - leftHip.x)) *
+        (180 / Math.PI);
+
+      legAngleRef.current = Math.abs(legAngle);
+
+      // ตรวจสอบว่าขายกขึ้น (ท่า Leg Raise ขึ้น)
+      if (legAngleRef.current < 45 && legRaiseDownPositionRef.current) {
+        legRaiseUpPositionRef.current = true;
+        legRaiseDownPositionRef.current = false;
+        showFeedback("ยกขาขึ้นแล้ว เกร็งท้องไว้");
+
+        // ตรวจสอบหลังส่วนล่าง
+        const backAngle = Math.abs(backAngleRef.current);
+        if (backAngle > 20 && backAngle < 160) {
+          if (!lowerBackWarningRef.current) {
+            showFeedback("ระวัง! อย่าแอ่นหลังส่วนล่างมากเกินไป");
+            lowerBackWarningRef.current = true;
+          }
+        } else {
+          lowerBackWarningRef.current = false;
+        }
+      }
+      // ตรวจสอบว่าขาลดลงกลับสู่พื้น (ท่า Leg Raise ลง)
+      else if (legAngleRef.current > 160 && legRaiseUpPositionRef.current) {
+        legRaiseDownPositionRef.current = true;
+        legRaiseUpPositionRef.current = false;
+        setReps((prev) => prev + 1);
+        showFeedback("ดีมาก! ทำครบ 1 ครั้ง");
+        lowerBackWarningRef.current = false;
+      }
+    }
+  };
+
+  // ฟังก์ชันสำหรับการตรวจสอบท่า Russian Twist
+  const detectRussianTwist = () => {
+    if (!posesRef.current || posesRef.current.length === 0) return;
+
+    // ตรวจสอบตำแหน่งของร่างกาย
+    const leftShoulder = posesRef.current[0].keypoints[5];
+    const rightShoulder = posesRef.current[0].keypoints[6];
+    const leftHip = posesRef.current[0].keypoints[11];
+    const rightHip = posesRef.current[0].keypoints[12];
+    const leftWrist = posesRef.current[0].keypoints[9];
+    const rightWrist = posesRef.current[0].keypoints[10];
+
+    if (
+      leftShoulder.score &&
+      rightShoulder.score &&
+      leftHip.score &&
+      rightHip.score &&
+      leftWrist.score &&
+      rightWrist.score &&
+      leftShoulder.score > 0.2 &&
+      rightShoulder.score > 0.2 &&
+      leftHip.score > 0.2 &&
+      rightHip.score > 0.2 &&
+      leftWrist.score > 0.2 &&
+      rightWrist.score > 0.2
+    ) {
+      // คำนวณจุดกึ่งกลางของไหล่และสะโพก
+      const shoulderMidX = (leftShoulder.x + rightShoulder.x) / 2;
+      const shoulderMidY = (leftShoulder.y + rightShoulder.y) / 2;
+      const hipMidX = (leftHip.x + rightHip.x) / 2;
+      const hipMidY = (leftHip.y + rightHip.y) / 2;
+
+      // คำนวณจุดกึ่งกลางของข้อมือ
+      const wristMidX = (leftWrist.x + rightWrist.x) / 2;
+
+      // คำนวณมุมของลำตัว (torso) เทียบกับแนวดิ่ง
+      const torsoAngle =
+        Math.atan2(shoulderMidX - hipMidX, shoulderMidY - hipMidY) *
+        (180 / Math.PI);
+      torsoAngleRef.current = Math.abs(torsoAngle);
+
+      // ตรวจสอบว่าลำตัวเอียงไปทางซ้าย (หมายเหตุ: เนื่องจากภาพกลับด้าน ซ้าย/ขวาอาจสลับกัน)
+      if (
+        shoulderMidX < hipMidX - 30 &&
+        !twistLeftPositionRef.current &&
+        (twistCenterPositionRef.current || twistRightPositionRef.current)
+      ) {
+        twistLeftPositionRef.current = true;
+        twistRightPositionRef.current = false;
+        twistCenterPositionRef.current = false;
+        showFeedback("บิดไปทางซ้าย ดีมาก!");
+      }
+      // ตรวจสอบว่าลำตัวเอียงไปทางขวา
+      else if (
+        shoulderMidX > hipMidX + 30 &&
+        !twistRightPositionRef.current &&
+        (twistCenterPositionRef.current || twistLeftPositionRef.current)
+      ) {
+        twistRightPositionRef.current = true;
+        twistLeftPositionRef.current = false;
+        twistCenterPositionRef.current = false;
+        showFeedback("บิดไปทางขวา ดีมาก!");
+
+        // นับจำนวนครั้งเมื่อบิดครบทั้งซ้ายและขวา (1 รอบ)
+        if (twistLeftPositionRef.current) {
+          setReps((prev) => prev + 1);
+          showFeedback("ดีมาก! ทำครบ 1 ครั้ง");
+        }
+      }
+      // ตรวจสอบว่ากลับมาอยู่ตรงกลาง
+      else if (
+        Math.abs(shoulderMidX - hipMidX) < 15 &&
+        !twistCenterPositionRef.current
+      ) {
+        twistCenterPositionRef.current = true;
+        twistLeftPositionRef.current = false;
+        twistRightPositionRef.current = false;
+      }
+
+      // ตรวจสอบท่าทางที่ถูกต้อง
+      // 1. ตรวจสอบว่าลำตัวเอียงประมาณ 45 องศา
+      if (torsoAngleRef.current < 30 || torsoAngleRef.current > 60) {
+        if (!properFormWarningRef.current) {
+          showFeedback("พยายามเอียงลำตัวประมาณ 45 องศา");
+          properFormWarningRef.current = true;
+        }
+      } else {
+        properFormWarningRef.current = false;
+      }
+    }
+  };
+
+  // ฟังก์ชันสำหรับการตรวจสอบท่า Plank
+  const detectPlank = () => {
+    if (!posesRef.current || posesRef.current.length === 0) return;
+
+    // ตรวจสอบตำแหน่งของร่างกาย
+    const leftShoulder = posesRef.current[0].keypoints[5];
+    const rightShoulder = posesRef.current[0].keypoints[6];
+    const leftElbow = posesRef.current[0].keypoints[7];
+    const rightElbow = posesRef.current[0].keypoints[8];
+    const leftHip = posesRef.current[0].keypoints[11];
+    const rightHip = posesRef.current[0].keypoints[12];
+    const leftKnee = posesRef.current[0].keypoints[13];
+    const rightKnee = posesRef.current[0].keypoints[14];
+    const leftAnkle = posesRef.current[0].keypoints[15];
+    const rightAnkle = posesRef.current[0].keypoints[16];
+
+    if (
+      leftShoulder.score &&
+      rightShoulder.score &&
+      leftElbow.score &&
+      rightElbow.score &&
+      leftHip.score &&
+      rightHip.score &&
+      leftKnee.score &&
+      rightKnee.score &&
+      leftAnkle.score &&
+      rightAnkle.score &&
+      leftShoulder.score > 0.2 &&
+      rightShoulder.score > 0.2 &&
+      leftElbow.score > 0.2 &&
+      rightElbow.score > 0.2 &&
+      leftHip.score > 0.2 &&
+      rightHip.score > 0.2 &&
+      leftKnee.score > 0.2 &&
+      rightKnee.score > 0.2 &&
+      leftAnkle.score > 0.2 &&
+      rightAnkle.score > 0.2
+    ) {
+      // คำนวณมุมของลำตัว (torso) เทียบกับแนวราบ
+      const shoulderMidX = (leftShoulder.x + rightShoulder.x) / 2;
+      const shoulderMidY = (leftShoulder.y + rightShoulder.y) / 2;
+      const hipMidX = (leftHip.x + rightHip.x) / 2;
+      const hipMidY = (leftHip.y + rightHip.y) / 2;
+      const kneeMidX = (leftKnee.x + rightKnee.x) / 2;
+      const kneeMidY = (leftKnee.y + rightKnee.y) / 2;
+
+      // คำนวณมุมของลำตัวเทียบกับแนวราบ
+      const torsoAngle =
+        Math.atan2(shoulderMidY - hipMidY, shoulderMidX - hipMidX) *
+        (180 / Math.PI);
+      const legAngle =
+        Math.atan2(hipMidY - kneeMidY, hipMidX - kneeMidX) * (180 / Math.PI);
+
+      const isTorsoStraight =
+        Math.abs(torsoAngle) > 170 || Math.abs(torsoAngle) < 10;
+      const isLegStraight = Math.abs(legAngle) > 170 || Math.abs(legAngle) < 10;
+
+      // ตรวจสอบว่าอยู่ในท่า Plank ที่ถูกต้อง
+      if (isTorsoStraight && isLegStraight) {
+        // ตรวจสอบว่าหลังไม่แอ่น
+        if (
+          Math.abs(backAngleRef.current) < 20 ||
+          Math.abs(backAngleRef.current) > 160
+        ) {
+          if (!plankStartedRef.current) {
+            plankStartedRef.current = true;
+            plankProperFormRef.current = true;
+            showFeedback("เริ่มท่า Plank แล้ว เกร็งท้อง ก้นและขาตลอดเวลา");
+
+            // เริ่มจับเวลา
+            if (plankTimerRef.current) {
+              clearInterval(plankTimerRef.current);
+            }
+
+            setPlankTime(0);
+            plankTimerRef.current = setInterval(() => {
+              setPlankTime((prev) => prev + 1);
+            }, 1000);
+          }
+
+          // รีเซ็ตการแจ้งเตือน
+          plankWarningGivenRef.current = false;
+        } else {
+          // หลังแอ่น
+          plankProperFormRef.current = false;
+          if (!plankWarningGivenRef.current) {
+            showFeedback(
+              "อย่าห่อสะบักและยื่นคอลงพื้น อย่าหลังแอ่น หรือกระดกก้น"
+            );
+            plankWarningGivenRef.current = true;
+          }
+        }
+      } else {
+        // ไม่ได้อยู่ในท่า Plank แล้ว
+        if (plankStartedRef.current) {
+          plankStartedRef.current = false;
+          plankProperFormRef.current = false;
+
+          // หยุดจับเวลา
+          if (plankTimerRef.current) {
+            clearInterval(plankTimerRef.current);
+            plankTimerRef.current = null;
+          }
+
+          showFeedback(`จบท่า Plank แล้ว คุณทำได้ ${plankTime} วินาที`);
+        }
+      }
+    }
+  };
+
+  // ฟังก์ชันสำหรับการตรวจสอบท่า Side Plank
+  const detectSidePlank = () => {
+    if (!posesRef.current || posesRef.current.length === 0) return;
+
+    // ตรวจสอบตำแหน่งของร่างกาย
+    const leftShoulder = posesRef.current[0].keypoints[5];
+    const rightShoulder = posesRef.current[0].keypoints[6];
+    const leftElbow = posesRef.current[0].keypoints[7];
+    const rightElbow = posesRef.current[0].keypoints[8];
+    const leftWrist = posesRef.current[0].keypoints[9];
+    const rightWrist = posesRef.current[0].keypoints[10];
+    const leftHip = posesRef.current[0].keypoints[11];
+    const rightHip = posesRef.current[0].keypoints[12];
+    const leftKnee = posesRef.current[0].keypoints[13];
+    const rightKnee = posesRef.current[0].keypoints[14];
+    const leftAnkle = posesRef.current[0].keypoints[15];
+    const rightAnkle = posesRef.current[0].keypoints[16];
+
+    if (
+      leftShoulder.score &&
+      rightShoulder.score &&
+      leftElbow.score &&
+      rightElbow.score &&
+      leftHip.score &&
+      rightHip.score &&
+      leftKnee.score &&
+      rightKnee.score &&
+      leftAnkle.score &&
+      rightAnkle.score &&
+      leftShoulder.score > 0.2 &&
+      rightShoulder.score > 0.2 &&
+      leftElbow.score > 0.2 &&
+      rightElbow.score > 0.2 &&
+      leftHip.score > 0.2 &&
+      rightHip.score > 0.2 &&
+      leftKnee.score > 0.2 &&
+      rightKnee.score > 0.2 &&
+      leftAnkle.score > 0.2 &&
+      rightAnkle.score > 0.2
+    ) {
+      // ตรวจสอบว่าเป็น Side Plank ด้านซ้ายหรือขวา
+      // Side Plank ด้านซ้าย: ข้อศอกซ้ายอยู่ใต้ไหล่ซ้าย และลำตัวตั้งฉากกับพื้น
+      // Side Plank ด้านขวา: ข้อศอกขวาอยู่ใต้ไหล่ขวา และลำตัวตั้งฉากกับพื้น
+
+      // คำนวณมุมของลำตัวเทียบกับแนวดิ่ง
+      const shoulderDiffX = Math.abs(leftShoulder.x - rightShoulder.x);
+      const shoulderDiffY = Math.abs(leftShoulder.y - rightShoulder.y);
+      const hipDiffX = Math.abs(leftHip.x - rightHip.x);
+      const hipDiffY = Math.abs(leftHip.y - rightHip.y);
+
+      // ตรวจสอบว่าลำตัวตั้งฉากกับพื้น (ไหล่และสะโพกอยู่ในแนวดิ่ง)
+      const isVerticalTorso =
+        shoulderDiffY > shoulderDiffX * 1.5 && hipDiffY > hipDiffX * 1.5;
+
+      // ตรวจสอบว่าขาเหยียดตรง
+      const leftLegAngle = calculateAngle(leftHip, leftKnee, leftAnkle);
+      const rightLegAngle = calculateAngle(rightHip, rightKnee, rightAnkle);
+      const isStraightLegs =
+        (leftLegAngle > 160 || leftLegAngle < 20) &&
+        (rightLegAngle > 160 || rightLegAngle < 20);
+
+      // ตรวจสอบว่าเป็น Side Plank ด้านซ้าย
+      const isLeftSidePlank =
+        leftElbow.y > leftShoulder.y &&
+        Math.abs(leftElbow.x - leftShoulder.x) < 30 &&
+        leftWrist.y > leftElbow.y;
+
+      // ตรวจสอบว่าเป็น Side Plank ด้านขวา
+      const isRightSidePlank =
+        rightElbow.y > rightShoulder.y &&
+        Math.abs(rightElbow.x - rightShoulder.x) < 30 &&
+        rightWrist.y > rightElbow.y;
+
+      // ตรวจสอบว่าอยู่ในท่า Side Plank ที่ถูกต้อง
+      if (
+        (isLeftSidePlank || isRightSidePlank) &&
+        isVerticalTorso &&
+        isStraightLegs
+      ) {
+        // บันทึกด้านที่กำลังทำ Side Plank
+        sidePlankSideRef.current = isLeftSidePlank ? "left" : "right";
+
+        if (!sidePlankStartedRef.current) {
+          sidePlankStartedRef.current = true;
+          sidePlankProperFormRef.current = true;
+          showFeedback(
+            `เริ่มท่า Side Plank ด้าน${
+              isLeftSidePlank ? "ซ้าย" : "ขวา"
+            } แล้ว เกร็งท้อง ก้นและขาตลอดเวลา`
+          );
+
+          // เริ่มจับเวลา
+          if (sidePlankTimerRef.current) {
+            clearInterval(sidePlankTimerRef.current);
+          }
+
+          setSidePlankTime(0);
+          sidePlankTimerRef.current = setInterval(() => {
+            setSidePlankTime((prev) => prev + 1);
+          }, 1000);
+        }
+
+        // รีเซ็ตการแจ้งเตือน
+        sidePlankWarningGivenRef.current = false;
+      } else {
+        // ไม่ได้อยู่ในท่า Side Plank แล้ว
+        if (sidePlankStartedRef.current) {
+          sidePlankStartedRef.current = false;
+          sidePlankProperFormRef.current = false;
+
+          // หยุดจับเวลา
+          if (sidePlankTimerRef.current) {
+            clearInterval(sidePlankTimerRef.current);
+            sidePlankTimerRef.current = null;
+          }
+
+          showFeedback(
+            `จบท่า Side Plank ด้าน${
+              sidePlankSideRef.current === "left" ? "ซ้าย" : "ขวา"
+            } แล้ว คุณทำได้ ${sidePlankTime} วินาที`
+          );
+        }
+      }
+    }
+  };
+
+  // ฟังก์ชันคำนวณมุมระหว่างจุด 3 จุด
+  const calculateAngle = (pointA: any, pointB: any, pointC: any) => {
+    if (!pointA || !pointB || !pointC) return 0;
+
+    const angleRadians =
+      Math.atan2(pointC.y - pointB.y, pointC.x - pointB.x) -
+      Math.atan2(pointA.y - pointB.y, pointA.x - pointB.x);
+
+    let angleDegrees = Math.abs(angleRadians * (180 / Math.PI));
+    if (angleDegrees > 180) {
+      angleDegrees = 360 - angleDegrees;
+    }
+
+    return angleDegrees;
   };
 
   // ฟังก์ชันสำหรับการอัปเดตมุมข้อศอก
@@ -804,6 +1240,16 @@ const Home = () => {
         cancelAnimationFrame(requestRef.current);
       }
 
+      // หยุดตัวจับเวลา Plank
+      if (plankTimerRef.current) {
+        clearInterval(plankTimerRef.current);
+      }
+
+      // หยุดตัวจับเวลา Side Plank
+      if (sidePlankTimerRef.current) {
+        clearInterval(sidePlankTimerRef.current);
+      }
+
       // หยุดการสตรีมกล้อง
       if (videoRef.current && videoRef.current.srcObject) {
         const stream = videoRef.current.srcObject as MediaStream;
@@ -817,6 +1263,18 @@ const Home = () => {
     exerciseTypeRef.current = exerciseType;
   }, [exerciseType]);
 
+  const poseOption = [
+    { value: "pushup", label: "Push Up" },
+    { value: "burpee-beginner", label: "Burpee (ผู้เริ่มต้น)" },
+    { value: "burpee-expert", label: "Burpee (ผู้เชี่ยวชาญ)" },
+    { value: "squat", label: "Squat" },
+    { value: "lunge", label: "Lunge" },
+    { value: "legraise", label: "Leg Raise" },
+    { value: "russiantwist", label: "Russian Twist" },
+    { value: "plank", label: "Plank" },
+    { value: "sideplank", label: "Side Plank" },
+  ];
+
   return (
     <div className="flex flex-col items-center justify-center p-2 md:p-8 gap-2 md:gap-4 bg-gray-100 w-full min-h-screen">
       <h1 className="text-xl md:text-3xl font-bold mb-2 md:mb-4">
@@ -829,14 +1287,24 @@ const Home = () => {
           onChange={(e) => {
             setExerciseType(e.target.value);
             setReps(0);
+            setPlankTime(0);
+            setSidePlankTime(0);
+            if (plankTimerRef.current) {
+              clearInterval(plankTimerRef.current);
+              plankTimerRef.current = null;
+            }
+            if (sidePlankTimerRef.current) {
+              clearInterval(sidePlankTimerRef.current);
+              sidePlankTimerRef.current = null;
+            }
+            plankStartedRef.current = false;
+            sidePlankStartedRef.current = false;
           }}
-          className="px-4 py-2 rounded-lg bg-gray-200 text-gray-800 w-full md:w-auto"
+          className="px-4 py-2 rounded-lg bg-gray-200 text-black w-full md:w-auto"
         >
-          <option value="pushup">Push Up</option>
-          <option value="burpee-beginner">Burpee (ผู้เริ่มต้น)</option>
-          <option value="burpee-expert">Burpee (ผู้เชี่ยวชาญ)</option>
-          <option value="squat">Squat</option>
-          <option value="lunges">Leg Lunges</option>
+          {poseOption.map((v) => (
+            <option value={v.value}>{v.label}</option>
+          ))}
         </select>
       </div>
 
@@ -855,49 +1323,86 @@ const Home = () => {
       </div>
 
       <div className="mt-2 md:mt-4 p-3 md:p-4 bg-white rounded-lg shadow-md w-full max-w-md md:max-w-lg">
-        <h2 className="text-xl md:text-2xl font-semibold">
-          {exerciseTypeRef.current === "pushup" &&
-            `จำนวน Push-up ที่ทำได้: ${reps}`}
-          {exerciseTypeRef.current === "burpee-beginner" &&
-            `จำนวน Burpee (ผู้เริ่มต้น) ที่ทำได้: ${reps}`}
-          {exerciseTypeRef.current === "burpee-expert" &&
-            `จำนวน Burpee (ผู้เชี่ยวชาญ) ที่ทำได้: ${reps}`}
-          {exerciseTypeRef.current === "squat" &&
-            `จำนวน Squat ที่ทำได้: ${reps}`}
+        <h2 className="text-xl md:text-2xl font-semibold text-black">
+          {exerciseType === "plank"
+            ? `เวลา Plank: ${plankTime} วินาที`
+            : exerciseType === "sideplank"
+            ? `เวลา Side Plank: ${sidePlankTime} วินาที (ด้าน${
+                sidePlankSideRef.current === "left" ? "ซ้าย" : "ขวา"
+              })`
+            : `จำนวน ${exerciseType} ที่ทำได้: ${reps}`}
         </h2>
         <p className="mt-1 md:mt-2 text-sm md:text-base text-black">
-          ระบบจะนับจำนวนครั้งและตรวจสอบท่าทางของคุณอัตโนมัติ
+          {exerciseType === "plank" || exerciseType === "sideplank"
+            ? "ระบบจะจับเวลาและตรวจสอบท่าทางของคุณอัตโนมัติ"
+            : "ระบบจะนับจำนวนครั้งและตรวจสอบท่าทางของคุณอัตโนมัติ"}
         </p>
 
-        {exerciseTypeRef.current === "pushup" && (
+        {exerciseType === "pushup" && (
           <p className="mt-1 text-sm md:text-base text-black">
             ให้แน่ใจว่าคุณอยู่ในระยะที่กล้องสามารถมองเห็นร่างกายทั้งหมดได้
           </p>
         )}
 
-        {exerciseTypeRef.current === "burpee-beginner" && (
+        {exerciseType === "burpee-beginner" && (
           <p className="mt-1 text-sm md:text-base text-black">
             ท่า Burpee สำหรับผู้เริ่มต้น: ยืน → ย่อตัว →
             กระโดดพร้อมยกแขนเหนือศีรษะ → ยืน
           </p>
         )}
 
-        {exerciseTypeRef.current === "burpee-expert" && (
+        {exerciseType === "burpee-expert" && (
           <p className="mt-1 text-sm md:text-base text-black">
             ท่า Burpee สำหรับผู้เชี่ยวชาญ: ยืน → ย่อตัว → Push Up → ย่อตัว →
             กระโดดพร้อมยกแขนเหนือศีรษะ → ยืน
           </p>
         )}
 
-        {exerciseTypeRef.current === "squat" && (
+        {exerciseType === "squat" && (
           <p className="mt-1 text-sm md:text-base text-black">
-            ท่า Squat: ยืนตรง → ย่อตัวลงโดยดันสะโพกไปด้านหลังพร้อมงอเข่า → กลับมายืนตรง (ระวังไม่ให้เข่าเลยปลายเท้ามากเกินไป)
+            ท่า Squat: ยืนตรง → ย่อตัวลงโดยดันสะโพกไปด้านหลังพร้อมงอเข่า →
+            กลับมายืนตรง (ระวังไม่ให้เข่าเลยปลายเท้ามากเกินไป)
           </p>
         )}
 
-        {exerciseTypeRef.current === "lunges" && (
+        {exerciseType === "lunges" && (
           <p className="mt-1 text-sm md:text-base text-black">
-            ท่า Leg Lunges: ยืนตรง → ก้าวขาข้างหนึ่งไปข้างหน้า → ย่อตัวลงให้เข่าหน้างอประมาณ 90 องศา → กลับมายืนตรง (ระวังไม่ให้เข่าหน้าเลยปลายเท้ามากเกินไป)
+            ท่า Leg Lunges: ยืนตรง → ก้าวขาข้างหนึ่งไปข้างหน้า →
+            ย่อตัวลงให้เข่าหน้างอประมาณ 90 องศา → กลับมายืนตรง
+            (ระวังไม่ให้เข่าหน้าเลยปลายเท้ามากเกินไป)
+          </p>
+        )}
+
+        {exerciseType === "legraise" && (
+          <p className="mt-1 text-sm md:text-base text-black">
+            ท่า Leg Raise: นอนหงาย → เกร็งท้องค่อยๆม้วนก้นและยกขาขึ้น →
+            ค่อยๆลดขาลงสู่พื้น (ระวังอย่าแอ่นหลังส่วนล่างมากเกินไป)
+          </p>
+        )}
+
+        {exerciseType === "russiantwist" && (
+          <p className="mt-1 text-sm md:text-base text-black">
+            ท่า Russian Twist: นั่งเอียงลำตัวประมาณ 45 องศา → บิดลำตัวไปทางซ้าย
+            → กลับมาตรงกลาง → บิดลำตัวไปทางขวา → กลับมาตรงกลาง
+            (เกร็งกล้ามเนื้อหน้าท้องตลอดการทำท่า)
+          </p>
+        )}
+
+        {exerciseType === "plank" && (
+          <p className="mt-1 text-sm md:text-base text-black">
+            ท่า Plank: คว่ำหน้าลงพื้น
+            ยกลำตัวขึ้นโดยใช้ปลายเท้าและข้อศอกรับน้ำหนัก → เกร็งท้อง
+            ก้นและขาตลอดเวลา → รักษาลำตัวให้เป็นเส้นตรง
+            (ระวังอย่าห่อสะบักและยื่นคอลงพื้น อย่าหลังแอ่น หรือกระดกก้น)
+          </p>
+        )}
+
+        {exerciseType === "sideplank" && (
+          <p className="mt-1 text-sm md:text-base text-black">
+            ท่า Side Plank: นอนตะแคงข้าง →
+            ยกลำตัวขึ้นโดยใช้ข้อศอกและปลายเท้าด้านเดียวกันรับน้ำหนัก → เกร็งท้อง
+            ก้นและขาตลอดเวลา → รักษาลำตัวให้ตรงและตั้งฉากกับพื้น →
+            เปลี่ยนข้างเพื่อทำอีกด้านหนึ่ง
           </p>
         )}
 
