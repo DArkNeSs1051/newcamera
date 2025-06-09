@@ -661,50 +661,59 @@ const Home = () => {
   const detectRussianTwist = () => {
     if (!posesRef.current || posesRef.current.length === 0) return;
 
-    const keypoints = posesRef.current[0].keypoints;
+    const pose = posesRef.current[0].keypoints;
+    const leftShoulder = pose[5];
+    const rightShoulder = pose[6];
+    const leftHip = pose[11];
+    const rightHip = pose[12];
+    const leftWrist = pose[9];
+    const rightWrist = pose[10];
 
-    const leftShoulder = keypoints[5];
-    const rightShoulder = keypoints[6];
-    const leftHip = keypoints[11];
-    const rightHip = keypoints[12];
-    const leftElbow = keypoints[7];
-    const rightElbow = keypoints[8];
-
-    // ตรวจสอบว่าทุก keypoint ที่จำเป็นมีความมั่นใจพอ
-    const points = [
+    const allKeypoints = [
       leftShoulder,
       rightShoulder,
       leftHip,
       rightHip,
-      leftElbow,
-      rightElbow,
+      leftWrist,
+      rightWrist,
     ];
-    if (!points.every((p) => p.score && p.score > 0.3)) return;
+    const allVisible = allKeypoints.every((k) => k.score && k.score > 0.3);
 
-    // จุดกึ่งกลางลำตัว
+    if (!allVisible) return;
+
     const shoulderMidX = (leftShoulder.x + rightShoulder.x) / 2;
     const shoulderMidY = (leftShoulder.y + rightShoulder.y) / 2;
     const hipMidX = (leftHip.x + rightHip.x) / 2;
     const hipMidY = (leftHip.y + rightHip.y) / 2;
+    const wristMidX = (leftWrist.x + rightWrist.x) / 2;
+    const wristMidY = (leftWrist.y + rightWrist.y) / 2;
 
-    // มุมของลำตัว
     const torsoAngle =
       Math.atan2(shoulderMidX - hipMidX, shoulderMidY - hipMidY) *
       (180 / Math.PI);
     torsoAngleRef.current = Math.abs(torsoAngle);
 
-    // จุดกึ่งกลางข้อศอก (ใช้แทนข้อมือเพื่อความแม่นยำในการบิด)
-    const elbowMidX = (leftElbow.x + rightElbow.x) / 2;
+    const isTorsoInProperAngle =
+      torsoAngleRef.current >= 35 && torsoAngleRef.current <= 55;
+    const isWristNearHipY = Math.abs(wristMidY - hipMidY) < 50;
 
-    // ค่าความเบี่ยงเบนจากกึ่งกลางลำตัว
-    const offset = elbowMidX - hipMidX;
-
-    // เงื่อนไขการตรวจจับ
-    if (
-      offset < -20 &&
+    const isLeftTwist =
+      shoulderMidX < hipMidX - 30 &&
+      wristMidX < hipMidX - 30 &&
       !twistLeftPositionRef.current &&
-      (twistCenterPositionRef.current || twistRightPositionRef.current)
-    ) {
+      (twistCenterPositionRef.current || twistRightPositionRef.current) &&
+      isWristNearHipY &&
+      isTorsoInProperAngle;
+
+    const isRightTwist =
+      shoulderMidX > hipMidX + 30 &&
+      wristMidX > hipMidX + 30 &&
+      !twistRightPositionRef.current &&
+      (twistCenterPositionRef.current || twistLeftPositionRef.current) &&
+      isWristNearHipY &&
+      isTorsoInProperAngle;
+
+    if (isLeftTwist) {
       twistLeftPositionRef.current = true;
       twistRightPositionRef.current = false;
       twistCenterPositionRef.current = false;
@@ -716,11 +725,7 @@ const Home = () => {
         showFeedback("ดีมาก! ทำครบ 1 ครั้ง");
         hasCompletedRightTwist.current = false;
       }
-    } else if (
-      offset > 20 &&
-      !twistRightPositionRef.current &&
-      (twistCenterPositionRef.current || twistLeftPositionRef.current)
-    ) {
+    } else if (isRightTwist) {
       twistRightPositionRef.current = true;
       twistLeftPositionRef.current = false;
       twistCenterPositionRef.current = false;
@@ -732,14 +737,17 @@ const Home = () => {
         showFeedback("ดีมาก! ทำครบ 1 ครั้ง");
         hasCompletedLeftTwist.current = false;
       }
-    } else if (Math.abs(offset) < 20 && !twistCenterPositionRef.current) {
+    } else if (
+      Math.abs(shoulderMidX - hipMidX) < 20 &&
+      !twistCenterPositionRef.current
+    ) {
       twistCenterPositionRef.current = true;
       twistLeftPositionRef.current = false;
       twistRightPositionRef.current = false;
     }
 
-    // ตรวจสอบลำตัวเอียงผิด
-    if (torsoAngleRef.current < 25 || torsoAngleRef.current > 65) {
+    // เตือนหากไม่ได้อยู่ในมุมที่เหมาะสม
+    if (!isTorsoInProperAngle) {
       if (!properFormWarningRef.current) {
         showFeedback("พยายามเอียงลำตัวประมาณ 45 องศา");
         properFormWarningRef.current = true;
