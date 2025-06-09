@@ -68,6 +68,8 @@ const Home = () => {
   const twistCenterPositionRef = useRef<boolean>(true);
   const torsoAngleRef = useRef<number>(0);
   const properFormWarningRef = useRef<boolean>(false);
+  const hasCompletedLeftTwist = useRef<boolean>(false);
+  const hasCompletedRightTwist = useRef<boolean>(false);
 
   // เพิ่มตัวแปรสำหรับการจับเวลา Plank
   const [plankTime, setPlankTime] = useState(0);
@@ -523,28 +525,52 @@ const Home = () => {
   const detectLunges = () => {
     if (!posesRef.current || posesRef.current.length === 0) return;
 
-    // ตรวจสอบมุมเข่าหน้า
+    // ตรวจสอบมุมเข่าหน้าและเข่าหลัง
     const leftHip = posesRef.current[0].keypoints[11];
     const leftKnee = posesRef.current[0].keypoints[13];
     const leftAnkle = posesRef.current[0].keypoints[15];
+    const rightHip = posesRef.current[0].keypoints[12];
+    const rightKnee = posesRef.current[0].keypoints[14];
+    const rightAnkle = posesRef.current[0].keypoints[16];
 
-    if (
+    // ตรวจสอบว่าจุดสำคัญทั้งหมดถูกตรวจจับได้
+    const allPointsDetected =
       leftHip.score &&
       leftKnee.score &&
       leftAnkle.score &&
+      rightHip.score &&
+      rightKnee.score &&
+      rightAnkle.score &&
       leftHip.score > 0.2 &&
       leftKnee.score > 0.2 &&
-      leftAnkle.score > 0.2
-    ) {
+      leftAnkle.score > 0.2 &&
+      rightHip.score > 0.2 &&
+      rightKnee.score > 0.2 &&
+      rightAnkle.score > 0.2;
+
+    if (allPointsDetected) {
+      // คำนวณมุมเข่าหน้า (สมมติว่าเข่าซ้ายเป็นเข่าหน้า)
       const frontAngle =
         (Math.atan2(leftHip.y - leftKnee.y, leftHip.x - leftKnee.x) -
           Math.atan2(leftAnkle.y - leftKnee.y, leftAnkle.x - leftKnee.x)) *
         (180 / Math.PI);
 
+      // คำนวณมุมเข่าหลัง (สมมติว่าเข่าขวาเป็นเข่าหลัง)
+      const backAngle =
+        (Math.atan2(rightHip.y - rightKnee.y, rightHip.x - rightKnee.x) -
+          Math.atan2(rightAnkle.y - rightKnee.y, rightAnkle.x - rightKnee.x)) *
+        (180 / Math.PI);
+
       frontKneeAngleRef.current = Math.abs(frontAngle);
+      backKneeAngleRef.current = Math.abs(backAngle);
 
       // ตรวจสอบว่าอยู่ในท่า Lunge ลง (ย่อตัว)
-      if (frontKneeAngleRef.current < 110 && lungeUpPositionRef.current) {
+      // ต้องมีทั้งเข่าหน้างอและเข่าหลังงอในระดับที่เหมาะสม
+      if (
+        frontKneeAngleRef.current < 110 &&
+        backKneeAngleRef.current < 130 &&
+        lungeUpPositionRef.current
+      ) {
         lungeDownPositionRef.current = true;
         lungeUpPositionRef.current = false;
         showFeedback("ย่อตัวลงแล้ว รักษาหลังให้ตรง");
@@ -563,6 +589,7 @@ const Home = () => {
       // ตรวจสอบว่ากลับมายืนตรง
       else if (
         frontKneeAngleRef.current > 160 &&
+        backKneeAngleRef.current > 160 &&
         lungeDownPositionRef.current
       ) {
         lungeUpPositionRef.current = true;
@@ -680,7 +707,16 @@ const Home = () => {
         twistLeftPositionRef.current = true;
         twistRightPositionRef.current = false;
         twistCenterPositionRef.current = false;
+        hasCompletedLeftTwist.current = true;
         showFeedback("บิดไปทางซ้าย ดีมาก!");
+
+        // นับจำนวนครั้งเมื่อบิดครบทั้งซ้ายและขวา
+        if (hasCompletedRightTwist.current) {
+          setReps((prev) => prev + 1);
+          showFeedback("ดีมาก! ทำครบ 1 ครั้ง");
+          // รีเซ็ตเฉพาะ hasCompletedRightTwist เพื่อให้ต้องบิดไปทางขวาอีกครั้งก่อนนับครั้งต่อไป
+          hasCompletedRightTwist.current = false;
+        }
       }
       // ตรวจสอบว่าลำตัวเอียงไปทางขวา
       else if (
@@ -691,12 +727,15 @@ const Home = () => {
         twistRightPositionRef.current = true;
         twistLeftPositionRef.current = false;
         twistCenterPositionRef.current = false;
+        hasCompletedRightTwist.current = true;
         showFeedback("บิดไปทางขวา ดีมาก!");
 
-        // นับจำนวนครั้งเมื่อบิดครบทั้งซ้ายและขวา (1 รอบ)
-        if (twistLeftPositionRef.current) {
+        // นับจำนวนครั้งเมื่อบิดครบทั้งซ้ายและขวา
+        if (hasCompletedLeftTwist.current) {
           setReps((prev) => prev + 1);
           showFeedback("ดีมาก! ทำครบ 1 ครั้ง");
+          // รีเซ็ตเฉพาะ hasCompletedLeftTwist เพื่อให้ต้องบิดไปทางซ้ายอีกครั้งก่อนนับครั้งต่อไป
+          hasCompletedLeftTwist.current = false;
         }
       }
       // ตรวจสอบว่ากลับมาอยู่ตรงกลาง
