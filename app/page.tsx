@@ -698,9 +698,9 @@ const Home = () => {
         (180 / Math.PI);
       torsoAngleRef.current = Math.abs(torsoAngle);
 
-      // ตรวจสอบว่าลำตัวเอียงไปทางซ้าย (หมายเหตุ: เนื่องจากภาพกลับด้าน ซ้าย/ขวาอาจสลับกัน)
+      // ตรวจสอบว่าลำตัวเอียงไปทางซ้าย
       if (
-        shoulderMidX < hipMidX - 30 &&
+        shoulderMidX < hipMidX - 20 &&
         !twistLeftPositionRef.current &&
         (twistCenterPositionRef.current || twistRightPositionRef.current)
       ) {
@@ -720,7 +720,7 @@ const Home = () => {
       }
       // ตรวจสอบว่าลำตัวเอียงไปทางขวา
       else if (
-        shoulderMidX > hipMidX + 30 &&
+        shoulderMidX > hipMidX + 20 &&
         !twistRightPositionRef.current &&
         (twistCenterPositionRef.current || twistLeftPositionRef.current)
       ) {
@@ -730,8 +730,8 @@ const Home = () => {
         hasCompletedRightTwist.current = true;
         showFeedback("บิดไปทางขวา ดีมาก!");
 
-        // นับจำนวนครั้งเมื่อบิดครบทั้งซ้ายและขวา
-        if (hasCompletedLeftTwist.current) {
+        // นับจำนวนครั้งเมื่อบิดครบทั้งซ้ายและขวา - แก้ไขเพื่อไม่ให้นับซ้ำ
+        if (hasCompletedLeftTwist.current && !hasCompletedRightTwist.current) {
           setReps((prev) => prev + 1);
           showFeedback("ดีมาก! ทำครบ 1 ครั้ง");
           // รีเซ็ตเฉพาะ hasCompletedLeftTwist เพื่อให้ต้องบิดไปทางซ้ายอีกครั้งก่อนนับครั้งต่อไป
@@ -740,7 +740,7 @@ const Home = () => {
       }
       // ตรวจสอบว่ากลับมาอยู่ตรงกลาง
       else if (
-        Math.abs(shoulderMidX - hipMidX) < 15 &&
+        Math.abs(shoulderMidX - hipMidX) < 20 &&
         !twistCenterPositionRef.current
       ) {
         twistCenterPositionRef.current = true;
@@ -749,8 +749,7 @@ const Home = () => {
       }
 
       // ตรวจสอบท่าทางที่ถูกต้อง
-      // 1. ตรวจสอบว่าลำตัวเอียงประมาณ 45 องศา
-      if (torsoAngleRef.current < 30 || torsoAngleRef.current > 60) {
+      if (torsoAngleRef.current < 25 || torsoAngleRef.current > 65) {
         if (!properFormWarningRef.current) {
           showFeedback("พยายามเอียงลำตัวประมาณ 45 องศา");
           properFormWarningRef.current = true;
