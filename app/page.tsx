@@ -715,11 +715,6 @@ const Home = () => {
         rightAnkle.score > 0.2 &&
         (leftKnee.y < leftAnkle.y - 5 || rightKnee.y < rightAnkle.y - 5);
 
-      // ตรวจสอบว่าแขนยื่นไปข้างหน้า (ตามท่า Russian twist ที่ถูกต้อง)
-      const armsExtended =
-        wristMidY < shoulderMidY + 30 && // เพิ่มค่าจาก 20 เป็น 30
-        Math.abs(wristMidX - shoulderMidX) < 200; // เพิ่มค่าจาก 150 เป็น 200
-
       // ตรวจสอบมุมลำตัวที่เหมาะสม (ประมาณ 45 องศา) - ทำให้ช่วงกว้างขึ้น
       const properTorsoAngle =
         torsoAngleRef.current >= 15 && torsoAngleRef.current <= 75; // ปรับช่วงให้กว้างขึ้น
@@ -742,7 +737,7 @@ const Home = () => {
         properFormWarningRef.current = true;
       }
 
-      const twistThreshold = 8; // ลดค่าลงจาก 10 เป็น 8 เพื่อให้ตรวจจับง่ายขึ้น
+      const twistThreshold = 11; // ลดค่าลงจาก 10 เป็น 8 เพื่อให้ตรวจจับง่ายขึ้น
 
       // ตรวจสอบว่าลำตัวบิดไปทางซ้าย - ลดเงื่อนไขลง
       if (
