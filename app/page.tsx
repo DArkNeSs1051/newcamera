@@ -63,13 +63,14 @@ const Home = () => {
   const lowerBackWarningRef = useRef<boolean>(false);
 
   // ตัวแปรสำหรับการตรวจจับท่า Russian Twists
-  const twistLeftPositionRef = useRef<boolean>(false);
-  const twistRightPositionRef = useRef<boolean>(false);
-  const twistCenterPositionRef = useRef<boolean>(true);
-  const torsoAngleRef = useRef<number>(0);
-  const properFormWarningRef = useRef<boolean>(false);
-  const hasCompletedLeftTwist = useRef<boolean>(false);
-  const hasCompletedRightTwist = useRef<boolean>(false);
+  const twistLeftPositionRef = useRef(false);
+  const twistRightPositionRef = useRef(false);
+  const twistCenterPositionRef = useRef(false);
+  const hasCompletedLeftTwist = useRef(false);
+  const hasCompletedRightTwist = useRef(false);
+  const lastCountTimeRef = useRef<number | null>(null);
+  const properFormWarningRef = useRef(false);
+  const torsoAngleRef = useRef(0);
 
   // เพิ่มตัวแปรสำหรับการจับเวลา Plank
   const [plankTime, setPlankTime] = useState(0);
@@ -661,135 +662,123 @@ const Home = () => {
   const detectRussianTwist = () => {
     if (!posesRef.current || posesRef.current.length === 0) return;
 
-    // ตรวจสอบตำแหน่งของร่างกาย
-    const leftShoulder = posesRef.current[0].keypoints[5];
-    const rightShoulder = posesRef.current[0].keypoints[6];
-    const leftHip = posesRef.current[0].keypoints[11];
-    const rightHip = posesRef.current[0].keypoints[12];
-    const leftWrist = posesRef.current[0].keypoints[9];
-    const rightWrist = posesRef.current[0].keypoints[10];
-    const leftKnee = posesRef.current[0].keypoints[13];
-    const rightKnee = posesRef.current[0].keypoints[14];
-    const leftAnkle = posesRef.current[0].keypoints[15];
-    const rightAnkle = posesRef.current[0].keypoints[16];
+    const pose = posesRef.current[0];
+    const get = (index: number) => pose.keypoints[index];
+    const minScore = 0.2;
 
+    const leftShoulder = get(5);
+    const rightShoulder = get(6);
+    const leftHip = get(11);
+    const rightHip = get(12);
+    const leftWrist = get(9);
+    const rightWrist = get(10);
+    const leftKnee = get(13);
+    const rightKnee = get(14);
+    const leftAnkle = get(15);
+    const rightAnkle = get(16);
+
+    // Check score valid
+    const requiredPoints = [
+      leftShoulder,
+      rightShoulder,
+      leftHip,
+      rightHip,
+      leftWrist,
+      rightWrist,
+    ];
+    if (requiredPoints.some((p) => !p || !p.score || p.score < minScore))
+      return;
+    const shoulderMidX = (leftShoulder.x + rightShoulder.x) / 2;
+    const shoulderMidY = (leftShoulder.y + rightShoulder.y) / 2;
+    const hipMidX = (leftHip.x + rightHip.x) / 2;
+    const hipMidY = (leftHip.y + rightHip.y) / 2;
+
+    const torsoAngle =
+      Math.atan2(shoulderMidX - hipMidX, shoulderMidY - hipMidY) *
+      (180 / Math.PI);
+    torsoAngleRef.current = Math.abs(torsoAngle);
+
+    const feetLifted =
+      leftKnee?.score &&
+      rightKnee?.score &&
+      leftAnkle?.score &&
+      rightAnkle?.score &&
+      leftKnee.score > minScore &&
+      rightKnee.score > minScore &&
+      leftAnkle.score > minScore &&
+      rightAnkle.score > minScore &&
+      (leftKnee.y < leftAnkle.y - 5 || rightKnee.y < rightAnkle.y - 5);
+
+    const properTorsoAngle =
+      torsoAngleRef.current >= 15 && torsoAngleRef.current <= 75;
+
+    if (!properTorsoAngle && !properFormWarningRef.current) {
+      if (torsoAngleRef.current < 15) {
+        showFeedback("เอียงตัวอีกเล็กน้อย ประมาณ 45 องศา");
+      } else if (torsoAngleRef.current > 75) {
+        showFeedback("อย่าเอียงตัวมากเกินไป");
+      }
+      properFormWarningRef.current = true;
+    } else if (properTorsoAngle) {
+      properFormWarningRef.current = false;
+    }
+
+    if (!feetLifted && !properFormWarningRef.current) {
+      showFeedback("ลองยกเท้าขึ้นจากพื้นเล็กน้อยเพื่อเพิ่มความท้าทาย");
+      properFormWarningRef.current = true;
+    }
+
+    const twistThreshold = 11;
+    const now = Date.now();
+    const cooldown = 1000; // 1 วินาที ป้องกันการนับเบิ้ล
+
+    // ตรวจจับว่าอยู่ตรงกลาง
+    const isCentered = Math.abs(shoulderMidX - hipMidX) < twistThreshold;
+    if (isCentered) {
+      twistCenterPositionRef.current = true;
+    }
+
+    // ตรวจจับบิดซ้าย
     if (
-      leftShoulder.score &&
-      rightShoulder.score &&
-      leftHip.score &&
-      rightHip.score &&
-      leftWrist.score &&
-      rightWrist.score &&
-      leftShoulder.score > 0.2 &&
-      rightShoulder.score > 0.2 &&
-      leftHip.score > 0.2 &&
-      rightHip.score > 0.2 &&
-      leftWrist.score > 0.2 &&
-      rightWrist.score > 0.2
+      shoulderMidX < hipMidX - twistThreshold &&
+      twistCenterPositionRef.current &&
+      !twistLeftPositionRef.current
     ) {
-      // คำนวณจุดกึ่งกลางของไหล่และสะโพก
-      const shoulderMidX = (leftShoulder.x + rightShoulder.x) / 2;
-      const shoulderMidY = (leftShoulder.y + rightShoulder.y) / 2;
-      const hipMidX = (leftHip.x + rightHip.x) / 2;
-      const hipMidY = (leftHip.y + rightHip.y) / 2;
+      twistLeftPositionRef.current = true;
+      twistRightPositionRef.current = false;
+      twistCenterPositionRef.current = false;
+      hasCompletedLeftTwist.current = true;
+      showFeedback("บิดไปทางซ้าย ดีมาก!");
+    }
 
-      // คำนวณจุดกึ่งกลางของข้อมือ
-      const wristMidX = (leftWrist.x + rightWrist.x) / 2;
-      const wristMidY = (leftWrist.y + rightWrist.y) / 2;
+    // ตรวจจับบิดขวา
+    if (
+      shoulderMidX > hipMidX + twistThreshold &&
+      twistCenterPositionRef.current &&
+      !twistRightPositionRef.current
+    ) {
+      twistRightPositionRef.current = true;
+      twistLeftPositionRef.current = false;
+      twistCenterPositionRef.current = false;
+      hasCompletedRightTwist.current = true;
+      showFeedback("บิดไปทางขวา ดีมาก!");
+    }
 
-      // คำนวณมุมของลำตัว (torso) เทียบกับแนวดิ่ง
-      const torsoAngle =
-        Math.atan2(shoulderMidX - hipMidX, shoulderMidY - hipMidY) *
-        (180 / Math.PI);
-      torsoAngleRef.current = Math.abs(torsoAngle);
+    // เช็คว่าครบซ้าย-ขวา และไม่อยู่ในช่วง cooldown
+    if (
+      hasCompletedLeftTwist.current &&
+      hasCompletedRightTwist.current &&
+      (!lastCountTimeRef.current || now - lastCountTimeRef.current > cooldown)
+    ) {
+      setReps((prev) => prev + 1);
+      showFeedback("ดีมาก! ทำครบ 1 ครั้ง");
 
-      // ตรวจสอบว่าเท้ายกขึ้นจากพื้น (ตามท่า Russian twist ที่ถูกต้อง) - ทำให้เงื่อนไขง่ายขึ้น
-      const feetLifted =
-        leftKnee.score &&
-        rightKnee.score &&
-        leftAnkle.score &&
-        rightAnkle.score &&
-        leftKnee.score > 0.2 &&
-        rightKnee.score > 0.2 &&
-        leftAnkle.score > 0.2 &&
-        rightAnkle.score > 0.2 &&
-        (leftKnee.y < leftAnkle.y - 5 || rightKnee.y < rightAnkle.y - 5);
+      lastCountTimeRef.current = now;
 
-      // ตรวจสอบมุมลำตัวที่เหมาะสม (ประมาณ 45 องศา) - ทำให้ช่วงกว้างขึ้น
-      const properTorsoAngle =
-        torsoAngleRef.current >= 15 && torsoAngleRef.current <= 75; // ปรับช่วงให้กว้างขึ้น
-
-      // ให้คำแนะนำเกี่ยวกับท่าทางที่ถูกต้อง
-      if (!properTorsoAngle && !properFormWarningRef.current) {
-        if (torsoAngleRef.current < 15) {
-          showFeedback("เอียงตัวอีกเล็กน้อย ประมาณ 45 องศา");
-        } else if (torsoAngleRef.current > 75) {
-          showFeedback("อย่าเอียงตัวมากเกินไป");
-        }
-        properFormWarningRef.current = true;
-      } else if (properTorsoAngle) {
-        properFormWarningRef.current = false;
-      }
-
-      // แนะนำเรื่องการยกเท้า แต่ไม่บังคับ
-      if (!feetLifted && !properFormWarningRef.current) {
-        showFeedback("ลองยกเท้าขึ้นจากพื้นเล็กน้อยเพื่อเพิ่มความท้าทาย");
-        properFormWarningRef.current = true;
-      }
-
-      const twistThreshold = 11; // ลดค่าลงจาก 10 เป็น 8 เพื่อให้ตรวจจับง่ายขึ้น
-
-      // ตรวจสอบว่าลำตัวบิดไปทางซ้าย - ลดเงื่อนไขลง
-      if (
-        shoulderMidX < hipMidX - twistThreshold &&
-        !twistLeftPositionRef.current
-      ) {
-        twistLeftPositionRef.current = true;
-        twistRightPositionRef.current = false;
-        twistCenterPositionRef.current = false;
-
-        // ถ้ายังไม่ได้บิดซ้าย ให้นับว่าบิดซ้ายแล้ว
-        if (!hasCompletedLeftTwist.current) {
-          hasCompletedLeftTwist.current = true;
-          showFeedback("บิดไปทางซ้าย ดีมาก!");
-        }
-      }
-      // ตรวจสอบว่าลำตัวบิดไปทางขวา - ลดเงื่อนไขลง
-      else if (
-        shoulderMidX > hipMidX + twistThreshold &&
-        !twistRightPositionRef.current
-      ) {
-        twistRightPositionRef.current = true;
-        twistLeftPositionRef.current = false;
-        twistCenterPositionRef.current = false;
-
-        // ถ้ายังไม่ได้บิดขวา ให้นับว่าบิดขวาแล้ว
-        if (!hasCompletedRightTwist.current) {
-          hasCompletedRightTwist.current = true;
-          showFeedback("บิดไปทางขวา ดีมาก!");
-        }
-      }
-      // ตรวจสอบว่ากลับมาอยู่ตรงกลาง
-      else if (
-        Math.abs(shoulderMidX - hipMidX) < twistThreshold &&
-        !twistCenterPositionRef.current
-      ) {
-        twistCenterPositionRef.current = true;
-        twistLeftPositionRef.current = false;
-        twistRightPositionRef.current = false;
-      }
-
-      // นับจำนวนครั้งเมื่อบิดครบทั้งซ้ายและขวา
-      if (hasCompletedLeftTwist.current && hasCompletedRightTwist.current) {
-        setReps((prev) => prev + 1);
-        showFeedback("ดีมาก! ทำครบ 1 ครั้ง");
-        // รีเซ็ตทั้งสองค่าเพื่อเริ่มนับใหม่
-        hasCompletedLeftTwist.current = false;
-        hasCompletedRightTwist.current = false;
-      }
+      hasCompletedLeftTwist.current = false;
+      hasCompletedRightTwist.current = false;
     }
   };
-
   // ฟังก์ชันสำหรับการตรวจสอบท่า Plank
   const detectPlank = () => {
     if (!posesRef.current || posesRef.current.length === 0) return;
