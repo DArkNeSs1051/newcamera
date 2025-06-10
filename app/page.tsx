@@ -315,7 +315,10 @@ const Home = () => {
 
       // ตรวจจับว่ากระโดดขึ้น (เมื่อสะโพกสูงขึ้นจากตำแหน่งก่อนหน้า)
       if (prevHipHeightRef.current - currentHipHeight > 30) {
-        // ตรวจสอบว่ายกแขนขึ้นเหนือหะคะอะคะคะคะคะคะคะคะคะคะคะคะ → ยกแขน
+        // กำหนดค่า jumpDetectedRef.current เป็น true เมื่อตรวจพบการกระโดด
+        jumpDetectedRef.current = true;
+
+        // ตรวจสอบว่ายกแขนขึ้นเหนือไหล่
         const leftArmUp = leftWrist.y < leftShoulder.y;
         const rightArmUp = rightWrist.y < rightShoulder.y;
 
@@ -328,6 +331,8 @@ const Home = () => {
         }
       } else {
         jumpWithArmsUpRef.current = false;
+        // รีเซ็ต jumpDetectedRef.current เป็น false เมื่อไม่ได้กระโดด
+        jumpDetectedRef.current = false;
       }
 
       prevHipHeightRef.current = currentHipHeight;
@@ -669,16 +674,14 @@ const Home = () => {
     const get = (index: number) => pose.keypoints[index];
     const minScore = 0.2;
 
-    const leftShoulder = get(5);
-    const rightShoulder = get(6);
-    const leftHip = get(11);
-    const rightHip = get(12);
-    const leftWrist = get(9);
-    const rightWrist = get(10);
-    const leftKnee = get(13);
-    const rightKnee = get(14);
-    const leftAnkle = get(15);
-    const rightAnkle = get(16);
+    const leftShoulder = get(6);
+    const rightShoulder = get(5);
+    const leftHip = get(12);
+    const rightHip = get(11);
+    const leftKnee = get(14);
+    const rightKnee = get(13);
+    const leftAnkle = get(16);
+    const rightAnkle = get(15);
 
     if (
       [
@@ -700,10 +703,10 @@ const Home = () => {
     const hipMidY = (leftHip.y + rightHip.y) / 2;
 
     const torsoAngle = Math.abs(
-      Math.atan2(shoulderMidX - hipMidX, shoulderMidY - hipMidY) *
+      Math.atan2(shoulderMidY - hipMidY, shoulderMidX - hipMidX) *
         (180 / Math.PI)
     );
-    const properTorsoAngle = torsoAngle >= 30 && torsoAngle <= 60;
+    const properTorsoAngle = torsoAngle >= 70 && torsoAngle <= 100;
 
     const feetLifted =
       leftKnee.y < leftAnkle.y - 5 && rightKnee.y < rightAnkle.y - 5;
@@ -719,41 +722,34 @@ const Home = () => {
     stateRef.current.readyToTwist = true;
 
     const now = Date.now();
-    const twistThreshold = 11;
-    const cooldown = 1200;
+    const twistThreshold = 15;
+    const cooldown = 1000;
 
-    // ต้องผ่าน center ก่อนถึง twist ได้
-    if (Math.abs(shoulderMidX - hipMidX) < twistThreshold) {
-      stateRef.current.twistState = "center";
-    }
+    const prevTwist = stateRef.current.lastTwist;
 
+    // ตรวจจับการ twist
     if (
-      shoulderMidX < hipMidX - twistThreshold && // บิดซ้าย
-      stateRef.current.twistState === "center" &&
-      stateRef.current.readyToTwist
+      shoulderMidX > hipMidX + twistThreshold &&
+      stateRef.current.readyToTwist &&
+      prevTwist !== "left"
     ) {
-      stateRef.current.twistState = "left";
       stateRef.current.lastTwist = "left";
       showFeedback("บิดซ้าย");
     }
 
     if (
-      shoulderMidX > hipMidX + twistThreshold && // บิดขวา
-      stateRef.current.twistState === "center" &&
-      stateRef.current.readyToTwist
+      shoulderMidX < hipMidX - twistThreshold &&
+      stateRef.current.readyToTwist &&
+      prevTwist !== "right"
     ) {
-      stateRef.current.twistState = "right";
       stateRef.current.lastTwist = "right";
       showFeedback("บิดขวา");
     }
 
-    // เมื่อทำครบซ้าย-ขวา (หรือขวา-ซ้าย) ถือว่า 1 rep
+    // ตรวจจับเมื่อสลับซ้าย <-> ขวา เพื่อเพิ่ม rep
     if (
-      ((stateRef.current.lastTwist === "left" &&
-        stateRef.current.twistState === "right") ||
-        (stateRef.current.lastTwist === "right" &&
-          stateRef.current.twistState === "left")) &&
-      stateRef.current.readyToTwist
+      (prevTwist === "left" && stateRef.current.lastTwist === "right") ||
+      (prevTwist === "right" && stateRef.current.lastTwist === "left")
     ) {
       if (
         !stateRef.current.lastCountTime ||
@@ -761,7 +757,6 @@ const Home = () => {
       ) {
         setReps((prev) => prev + 1);
         stateRef.current.lastCountTime = now;
-        stateRef.current.twistState = "center";
         showFeedback("เยี่ยม! ทำครบ 1 ครั้ง");
       }
     }
