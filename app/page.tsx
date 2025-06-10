@@ -715,6 +715,9 @@ const Home = () => {
       return;
     }
 
+    // เมื่ออยู่ในท่าที่เหมาะสม ตั้งค่า readyToTwist เป็น true
+    stateRef.current.readyToTwist = true;
+
     const now = Date.now();
     const twistThreshold = 11;
     const cooldown = 1200;
@@ -726,26 +729,31 @@ const Home = () => {
 
     if (
       shoulderMidX < hipMidX - twistThreshold && // บิดซ้าย
-      stateRef.current.twistState === "center"
+      stateRef.current.twistState === "center" &&
+      stateRef.current.readyToTwist
     ) {
       stateRef.current.twistState = "left";
       stateRef.current.lastTwist = "left";
+      showFeedback("บิดซ้าย");
     }
 
     if (
       shoulderMidX > hipMidX + twistThreshold && // บิดขวา
-      stateRef.current.twistState === "center"
+      stateRef.current.twistState === "center" &&
+      stateRef.current.readyToTwist
     ) {
       stateRef.current.twistState = "right";
       stateRef.current.lastTwist = "right";
+      showFeedback("บิดขวา");
     }
 
     // เมื่อทำครบซ้าย-ขวา (หรือขวา-ซ้าย) ถือว่า 1 rep
     if (
-      (stateRef.current.lastTwist === "left" &&
+      ((stateRef.current.lastTwist === "left" &&
         stateRef.current.twistState === "right") ||
-      (stateRef.current.lastTwist === "right" &&
-        stateRef.current.twistState === "left")
+        (stateRef.current.lastTwist === "right" &&
+          stateRef.current.twistState === "left")) &&
+      stateRef.current.readyToTwist
     ) {
       if (
         !stateRef.current.lastCountTime ||
