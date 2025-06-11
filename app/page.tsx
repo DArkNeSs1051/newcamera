@@ -6,7 +6,7 @@ import "@tensorflow/tfjs-backend-webgl";
 import * as tf from "@tensorflow/tfjs";
 
 const Home = () => {
-  const version = "1.0.2"; // กำหนดเวอร์ชันของแอปพลิเคชัน
+  const version = "1.0.3"; // กำหนดเวอร์ชันของแอปพลิเคชัน
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [reps, setReps] = useState(0);
@@ -674,10 +674,9 @@ const Home = () => {
     const get = (index: number) => pose.keypoints[index];
     const minScore = 0.2;
 
+    // ดึง keypoints
     const leftShoulder = get(6);
     const rightShoulder = get(5);
-    const leftElbow = get(8);
-    const rightElbow = get(7);
     const leftWrist = get(10);
     const rightWrist = get(9);
     const leftKnee = get(14);
@@ -685,12 +684,11 @@ const Home = () => {
     const leftAnkle = get(16);
     const rightAnkle = get(15);
 
+    // ตรวจสอบความแม่นยำ
     if (
       [
         leftShoulder,
         rightShoulder,
-        leftElbow,
-        rightElbow,
         leftWrist,
         rightWrist,
         leftKnee,
@@ -698,15 +696,40 @@ const Home = () => {
         leftAnkle,
         rightAnkle,
       ].some((p) => !p || typeof p.score === "undefined" || p.score < minScore)
-    ) {
+    )
       return;
+
+    // ปรับสำหรับกล้องหน้าแบบ mirror
+    const isMirror = true;
+
+    let actualLeftShoulder = leftShoulder;
+    let actualRightShoulder = rightShoulder;
+    let actualLeftWrist = leftWrist;
+    let actualRightWrist = rightWrist;
+    let actualLeftKnee = leftKnee;
+    let actualRightKnee = rightKnee;
+    let actualLeftAnkle = leftAnkle;
+    let actualRightAnkle = rightAnkle;
+
+    if (isMirror) {
+      actualLeftShoulder = rightShoulder;
+      actualRightShoulder = leftShoulder;
+      actualLeftWrist = rightWrist;
+      actualRightWrist = leftWrist;
+      actualLeftKnee = rightKnee;
+      actualRightKnee = leftKnee;
+      actualLeftAnkle = rightAnkle;
+      actualRightAnkle = leftAnkle;
     }
 
-    const shoulderMidX = (leftShoulder.x + rightShoulder.x) / 2;
+    // จุดกึ่งกลางไหล่
+    const shoulderMidX = (actualLeftShoulder.x + actualRightShoulder.x) / 2;
+    const shoulderMidY = (actualLeftShoulder.y + actualRightShoulder.y) / 2;
 
-    // ตรวจสอบว่าขาทั้งสองข้างยกจากพื้น (หัวเข่าอยู่สูงกว่าข้อเท้า)
+    // เช็คว่าขายกจากพื้น
     const feetLifted =
-      leftKnee.y < leftAnkle.y - 5 && rightKnee.y < rightAnkle.y - 5;
+      actualLeftKnee.y < actualLeftAnkle.y - 5 &&
+      actualRightKnee.y < actualRightAnkle.y - 5;
 
     if (!feetLifted) {
       stateRef.current.readyToTwist = false;
@@ -717,24 +740,13 @@ const Home = () => {
     stateRef.current.readyToTwist = true;
 
     const now = Date.now();
-    const twistThreshold = 30; // ปรับค่าตามต้องการ
+    const twistThreshold = 15;
     const cooldown = 1000;
-
     const prevTwist = stateRef.current.lastTwist;
 
-    // ตรวจจับว่ากำลังบิดขวา (ข้อมือขวาเลย midpoint)
+    // ตรวจจับการบิดซ้าย
     if (
-      rightWrist.x > shoulderMidX + twistThreshold &&
-      stateRef.current.readyToTwist &&
-      prevTwist !== "right"
-    ) {
-      stateRef.current.lastTwist = "right";
-      showFeedback("บิดขวา");
-    }
-
-    // ตรวจจับว่ากำลังบิดซ้าย (ข้อมือซ้ายเลย midpoint)
-    if (
-      leftWrist.x < shoulderMidX - twistThreshold &&
+      actualLeftWrist.x < shoulderMidX - twistThreshold &&
       stateRef.current.readyToTwist &&
       prevTwist !== "left"
     ) {
@@ -742,7 +754,17 @@ const Home = () => {
       showFeedback("บิดซ้าย");
     }
 
-    // ตรวจจับว่าบิดกลับจากข้างหนึ่งไปอีกข้าง (นับ rep)
+    // ตรวจจับการบิดขวา
+    if (
+      actualRightWrist.x > shoulderMidX + twistThreshold &&
+      stateRef.current.readyToTwist &&
+      prevTwist !== "right"
+    ) {
+      stateRef.current.lastTwist = "right";
+      showFeedback("บิดขวา");
+    }
+
+    // ตรวจจับการสลับซ้าย-ขวา เพื่อเพิ่มจำนวน rep
     if (
       (prevTwist === "left" && stateRef.current.lastTwist === "right") ||
       (prevTwist === "right" && stateRef.current.lastTwist === "left")
@@ -908,10 +930,6 @@ const Home = () => {
       leftAnkle.score > 0.2 &&
       rightAnkle.score > 0.2
     ) {
-      // ตรวจสอบว่าเป็น Side Plank ด้านซ้ายหรือขวา
-      // Side Plank ด้านซ้าย: ข้อศอกซ้ายอยู่ใต้ไหล่ซ้าย และลำตัวตั้งฉากกับพื้น
-      // Side Plank ด้านขวา: ข้อศอกขวาอยู่ใต้ไหล่ขวา และลำตัวตั้งฉากกับพื้น
-
       // คำนวณมุมของลำตัวเทียบกับแนวดิ่ง
       const shoulderDiffX = Math.abs(leftShoulder.x - rightShoulder.x);
       const shoulderDiffY = Math.abs(leftShoulder.y - rightShoulder.y);
@@ -1152,42 +1170,6 @@ const Home = () => {
     ctx.lineWidth = 2;
     ctx.font = "30px Arial";
 
-    if (posesRef.current && posesRef.current.length > 0) {
-      // แสดงสถานะการตรวจจับ (สำหรบการดีบัก)
-      if (exerciseTypeRef.current.includes("burpee")) {
-        const statusText = `สถานะ: ${
-          standingPositionRef.current ? "ยืน" : ""
-        } ${squatPositionRef.current ? "ย่อตัว" : ""} ${
-          jumpDetectedRef.current ? "กระโดด" : ""
-        } ${jumpWithArmsUpRef.current ? "ยกแขน" : ""} ${
-          pushupPositionRef.current ? "Push Up" : ""
-        }`;
-        ctx.font = "20px Arial";
-        ctx.fillText(statusText, 20, 90);
-        ctx.strokeText(statusText, 20, 90);
-
-        // แสดงขั้นตอนปัจจุบันสำหรับ burpee แบบผู้เชี่ยวชาญ
-        if (exerciseTypeRef.current === "burpee-expert") {
-          const stepText = `ขั้นตอน: ${burpeeStep.current}`;
-          ctx.fillText(stepText, 20, 120);
-          ctx.strokeText(stepText, 20, 120);
-        }
-      }
-
-      // แสดงข้อความแจ้งเตือน
-      if (feedbackMessage) {
-        ctx.font = "24px Arial";
-        ctx.fillStyle = "red";
-        ctx.strokeStyle = "white";
-        ctx.lineWidth = 1;
-        ctx.fillText(feedbackMessage, 20, canvasRef.current.height - 30);
-        ctx.strokeText(feedbackMessage, 20, canvasRef.current.height - 30);
-      }
-    } else {
-      ctx.fillText(message, 20, 50);
-      ctx.strokeText(message, 20, 50);
-    }
-
     requestAnimationFrame(draw);
   };
 
@@ -1199,7 +1181,7 @@ const Home = () => {
       // ปรับการตั้งค่ากล้องให้เหมาะกับมือถือ
       const constraints = {
         video: {
-          facingMode: "user", // เปลี่ยนจาก isMobile ? "environment" : "user" เป็น "user" เพื่อใช้กล้องหน้าเสมอ
+          facingMode: "user",
           width: { ideal: isMobile ? 720 : 1280 },
           height: { ideal: isMobile ? 1280 : 720 },
         },
