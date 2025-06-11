@@ -676,8 +676,10 @@ const Home = () => {
 
     const leftShoulder = get(6);
     const rightShoulder = get(5);
-    const leftHip = get(12);
-    const rightHip = get(11);
+    const leftElbow = get(8);
+    const rightElbow = get(7);
+    const leftWrist = get(10);
+    const rightWrist = get(9);
     const leftKnee = get(14);
     const rightKnee = get(13);
     const leftAnkle = get(16);
@@ -687,58 +689,42 @@ const Home = () => {
       [
         leftShoulder,
         rightShoulder,
-        leftHip,
-        rightHip,
+        leftElbow,
+        rightElbow,
+        leftWrist,
+        rightWrist,
         leftKnee,
         rightKnee,
         leftAnkle,
         rightAnkle,
       ].some((p) => !p || typeof p.score === "undefined" || p.score < minScore)
-    )
+    ) {
       return;
+    }
 
     const shoulderMidX = (leftShoulder.x + rightShoulder.x) / 2;
-    const shoulderMidY = (leftShoulder.y + rightShoulder.y) / 2;
-    const hipMidX = (leftHip.x + rightHip.x) / 2;
-    const hipMidY = (leftHip.y + rightHip.y) / 2;
 
-    const torsoAngle = Math.abs(
-      Math.atan2(shoulderMidY - hipMidY, shoulderMidX - hipMidX) *
-        (180 / Math.PI)
-    );
-    const properTorsoAngle = torsoAngle >= 70 && torsoAngle <= 100;
-
+    // ตรวจสอบว่าขาทั้งสองข้างยกจากพื้น (หัวเข่าอยู่สูงกว่าข้อเท้า)
     const feetLifted =
       leftKnee.y < leftAnkle.y - 5 && rightKnee.y < rightAnkle.y - 5;
 
-    if (!properTorsoAngle || !feetLifted) {
-      // ยังไม่อยู่ในท่าที่เหมาะสม
+    if (!feetLifted) {
       stateRef.current.readyToTwist = false;
       stateRef.current.twistState = "center";
       return;
     }
 
-    // เมื่ออยู่ในท่าที่เหมาะสม ตั้งค่า readyToTwist เป็น true
     stateRef.current.readyToTwist = true;
 
     const now = Date.now();
-    const twistThreshold = 15;
+    const twistThreshold = 30; // ปรับค่าตามต้องการ
     const cooldown = 1000;
 
     const prevTwist = stateRef.current.lastTwist;
 
-    // ตรวจจับการ twist
+    // ตรวจจับว่ากำลังบิดขวา (ข้อมือขวาเลย midpoint)
     if (
-      shoulderMidX > hipMidX + twistThreshold &&
-      stateRef.current.readyToTwist &&
-      prevTwist !== "left"
-    ) {
-      stateRef.current.lastTwist = "left";
-      showFeedback("บิดซ้าย");
-    }
-
-    if (
-      shoulderMidX < hipMidX - twistThreshold &&
+      rightWrist.x > shoulderMidX + twistThreshold &&
       stateRef.current.readyToTwist &&
       prevTwist !== "right"
     ) {
@@ -746,7 +732,17 @@ const Home = () => {
       showFeedback("บิดขวา");
     }
 
-    // ตรวจจับเมื่อสลับซ้าย <-> ขวา เพื่อเพิ่ม rep
+    // ตรวจจับว่ากำลังบิดซ้าย (ข้อมือซ้ายเลย midpoint)
+    if (
+      leftWrist.x < shoulderMidX - twistThreshold &&
+      stateRef.current.readyToTwist &&
+      prevTwist !== "left"
+    ) {
+      stateRef.current.lastTwist = "left";
+      showFeedback("บิดซ้าย");
+    }
+
+    // ตรวจจับว่าบิดกลับจากข้างหนึ่งไปอีกข้าง (นับ rep)
     if (
       (prevTwist === "left" && stateRef.current.lastTwist === "right") ||
       (prevTwist === "right" && stateRef.current.lastTwist === "left")
