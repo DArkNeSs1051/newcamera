@@ -672,7 +672,7 @@ const Home = () => {
 
     const pose = posesRef.current[0];
     const get = (index: number) => pose.keypoints[index];
-    const minScore = 0.5; // เพิ่มความเข้มข้น
+    const minScore = 0.3; // เพิ่มความเข้มข้น
 
     const leftShoulder = get(6);
     const rightShoulder = get(5);
