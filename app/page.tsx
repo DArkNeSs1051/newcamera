@@ -62,19 +62,6 @@ const Home = () => {
   const legAngleRef = useRef<number>(180);
   const lowerBackWarningRef = useRef<boolean>(false);
 
-  // ตัวแปรสำหรับการตรวจจับท่า Russian Twists
-  // const stateRef = useRef<{
-  //   readyToTwist: boolean;
-  //   twistState: "center" | "left" | "right";
-  //   lastTwist: "left" | "right" | null;
-  //   lastCountTime: number;
-  // }>({
-  //   readyToTwist: false,
-  //   twistState: "center",
-  //   lastTwist: null,
-  //   lastCountTime: 0,
-  // });
-
   // เพิ่มตัวแปรสำหรับการจับเวลา Plank
   const [plankTime, setPlankTime] = useState(0);
   const plankTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -666,203 +653,126 @@ const Home = () => {
     }
   };
 
-  // ฟังก์ชันสำหรับการตรวจสอบท่า Russian Twist
-  // const detectRussianTwist = () => {
-  //   if (!posesRef.current || posesRef.current.length === 0) return;
-
-  //   const pose = posesRef.current[0];
-  //   const get = (index: number) => pose.keypoints[index];
-  //   const minScore = 0.3; // เพิ่มความเข้มข้น
-
-  //   const leftShoulder = get(6);
-  //   const rightShoulder = get(5);
-  //   const leftElbow = get(8);
-  //   const rightElbow = get(7);
-  //   const leftWrist = get(10);
-  //   const rightWrist = get(9);
-  //   const leftKnee = get(14);
-  //   const rightKnee = get(13);
-  //   const leftAnkle = get(16);
-  //   const rightAnkle = get(15);
-
-  //   const keypointsToCheck = [
-  //     leftShoulder,
-  //     rightShoulder,
-  //     leftElbow,
-  //     rightElbow,
-  //     leftWrist,
-  //     rightWrist,
-  //     leftKnee,
-  //     rightKnee,
-  //     leftAnkle,
-  //     rightAnkle,
-  //   ];
-
-  //   // ความแม่นยำขั้นต่ำ
-  //   if (
-  //     keypointsToCheck.some(
-  //       (p) => !p || typeof p.score === "undefined" || p.score < minScore
-  //     )
-  //   ) {
-  //     return;
-  //   }
-
-  //   const isMirror = true;
-
-  //   // จัด keypoints สำหรับ mirror camera
-  //   let actualLeftShoulder = leftShoulder;
-  //   let actualRightShoulder = rightShoulder;
-  //   let actualLeftElbow = leftElbow;
-  //   let actualRightElbow = rightElbow;
-  //   let actualLeftWrist = leftWrist;
-  //   let actualRightWrist = rightWrist;
-  //   let actualLeftKnee = leftKnee;
-  //   let actualRightKnee = rightKnee;
-  //   let actualLeftAnkle = leftAnkle;
-  //   let actualRightAnkle = rightAnkle;
-
-  //   if (isMirror) {
-  //     actualLeftShoulder = rightShoulder;
-  //     actualRightShoulder = leftShoulder;
-  //     actualLeftElbow = rightElbow;
-  //     actualRightElbow = leftElbow;
-  //     actualLeftWrist = rightWrist;
-  //     actualRightWrist = leftWrist;
-  //     actualLeftKnee = rightKnee;
-  //     actualRightKnee = leftKnee;
-  //     actualLeftAnkle = rightAnkle;
-  //     actualRightAnkle = leftAnkle;
-  //   }
-
-  //   // จุดกึ่งกลางไหล่
-  //   const shoulderMidX = (actualLeftShoulder.x + actualRightShoulder.x) / 2;
-
-  //   // ตรวจสอบขายก
-  //   const feetLifted =
-  //     actualLeftKnee.y < actualLeftAnkle.y - 5 &&
-  //     actualRightKnee.y < actualRightAnkle.y - 5;
-
-  //   if (!feetLifted) {
-  //     stateRef.current.readyToTwist = false;
-  //     stateRef.current.twistState = "center";
-  //     return;
-  //   }
-
-  //   stateRef.current.readyToTwist = true;
-
-  //   const now = Date.now();
-  //   const twistThreshold = 10;
-  //   const cooldown = 1000;
-  //   const prevTwist = stateRef.current.lastTwist;
-
-  //   const leftArmX =
-  //     (actualLeftShoulder.x + actualLeftElbow.x + actualLeftWrist.x) / 3;
-  //   const rightArmX =
-  //     (actualRightShoulder.x + actualRightElbow.x + actualRightWrist.x) / 3;
-
-  //   // ตรวจจับการ twist
-  //   if (
-  //     leftArmX < shoulderMidX - twistThreshold &&
-  //     stateRef.current.readyToTwist &&
-  //     prevTwist !== "left"
-  //   ) {
-  //     stateRef.current.lastTwist = "left";
-  //     showFeedback("บิดซ้าย");
-  //   }
-
-  //   if (
-  //     rightArmX > shoulderMidX + twistThreshold &&
-  //     stateRef.current.readyToTwist &&
-  //     prevTwist !== "right"
-  //   ) {
-  //     stateRef.current.lastTwist = "right";
-  //     showFeedback("บิดขวา");
-  //   }
-
-  //   // ตรวจจับการสลับเพื่อเพิ่ม rep
-  //   if (
-  //     (prevTwist === "left" && stateRef.current.lastTwist === "right") ||
-  //     (prevTwist === "right" && stateRef.current.lastTwist === "left")
-  //   ) {
-  //     if (
-  //       !stateRef.current.lastCountTime ||
-  //       now - stateRef.current.lastCountTime > cooldown
-  //     ) {
-  //       setReps((prev) => prev + 1);
-  //       stateRef.current.lastCountTime = now;
-  //       showFeedback("เยี่ยม! ทำครบ 1 ครั้ง");
-  //     }
-  //   }
-  // };
-
-  const THRESHOLD = 0.1;
-  const minscore = 0.3;
-
-  const twistStateRef = useRef({
-    lastDirection: null as "left" | "right" | null,
-    currentDirection: null as "left" | "right" | null,
-    count: 0,
-  });
+  // ตัวแปรสำหรับการตรวจจับท่า Russian Twist
+  const russianTwistLeftRef = useRef<boolean>(false);
+  const russianTwistRightRef = useRef<boolean>(false);
+  const russianTwistCenterRef = useRef<boolean>(true);
+  const russianTwistWarningGivenRef = useRef<boolean>(false);
+  const lastTwistDirectionRef = useRef<string>("");
 
   const detectRussianTwist = () => {
     if (!posesRef.current || posesRef.current.length === 0) return;
 
     const pose = posesRef.current[0];
     const get = (name: string) => pose.keypoints.find((p) => p.name === name);
-    const mirrorX = (x: number) => 1 - x;
 
     const leftWrist = get("left_wrist");
     const rightWrist = get("right_wrist");
+    const leftShoulder = get("left_shoulder");
+    const rightShoulder = get("right_shoulder");
     const leftHip = get("left_hip");
     const rightHip = get("right_hip");
+    const leftKnee = get("left_knee");
+    const rightKnee = get("right_knee");
 
+    // ตรวจสอบว่า keypoints ทั้งหมดมีค่า confidence ที่เพียงพอ
     if (
-      !leftWrist?.score ||
-      !rightWrist?.score ||
-      !leftHip?.score ||
-      !rightHip?.score ||
-      leftWrist.score < minscore ||
-      rightWrist.score < minscore ||
-      leftHip.score < minscore ||
-      rightHip.score < minscore
+      !leftWrist?.score || leftWrist.score < 0.3 ||
+      !rightWrist?.score || rightWrist.score < 0.3 ||
+      !leftShoulder?.score || leftShoulder.score < 0.3 ||
+      !rightShoulder?.score || rightShoulder.score < 0.3 ||
+      !leftHip?.score || leftHip.score < 0.3 ||
+      !rightHip?.score || rightHip.score < 0.3 ||
+      !leftKnee?.score || leftKnee.score < 0.3 ||
+      !rightKnee?.score || rightKnee.score < 0.3
     ) {
       return;
     }
 
-    const leftWristX = mirrorX(leftWrist.x);
-    const rightWristX = mirrorX(rightWrist.x);
-    const leftHipX = mirrorX(leftHip.x);
-    const rightHipX = mirrorX(rightHip.x);
+    // คำนวณจุดกึ่งกลางของไหล่และสะโพก
+    const shoulderMidX = (leftShoulder.x + rightShoulder.x) / 2;
+    const shoulderMidY = (leftShoulder.y + rightShoulder.y) / 2;
+    const hipMidX = (leftHip.x + rightHip.x) / 2;
+    const hipMidY = (leftHip.y + rightHip.y) / 2;
+    const kneeMidX = (leftKnee.x + rightKnee.x) / 2;
+    const kneeMidY = (leftKnee.y + rightKnee.y) / 2;
 
-    const midHipX = (leftHipX + rightHipX) / 2;
-    const handX = (leftWristX + rightWristX) / 2;
-
-    let twistDirection: "left" | "right" | null = null;
-
-    if (handX < midHipX - THRESHOLD) {
-      twistDirection = "left";
-    } else if (handX > midHipX + THRESHOLD) {
-      twistDirection = "right";
+    // ตรวจสอบท่านั่งที่ถูกต้อง (เข่างอประมาณ 90 องศา)
+    const leftKneeAngle = calculateAngle(leftHip, leftKnee, { x: leftKnee.x, y: leftKnee.y + 100 });
+    const rightKneeAngle = calculateAngle(rightHip, rightKnee, { x: rightKnee.x, y: rightKnee.y + 100 });
+    const avgKneeAngle = (leftKneeAngle + rightKneeAngle) / 2;
+    
+    // ตรวจสอบว่าเท้าไม่แตะพื้น (สะโพกสูงกว่าเข่า)
+    const feetOffGround = hipMidY < kneeMidY - 20;
+    
+    // ตรวจสอบท่านั่งที่ถูกต้อง
+    const isProperSittingPosition = avgKneeAngle > 70 && avgKneeAngle < 110 && feetOffGround;
+    
+    if (!isProperSittingPosition) {
+      if (!russianTwistWarningGivenRef.current) {
+        showFeedback("นั่งโดยงอเข่าประมาณ 90 องศา และยกเท้าขึ้นจากพื้น");
+        russianTwistWarningGivenRef.current = true;
+      }
+      return;
+    } else {
+      russianTwistWarningGivenRef.current = false;
     }
 
-    if (!twistDirection) return;
-
-    const { lastDirection, currentDirection } = twistStateRef.current;
-
-    if (
-      lastDirection &&
-      currentDirection &&
-      twistDirection !== currentDirection &&
-      twistDirection === lastDirection
-    ) {
-      twistStateRef.current.count += 1;
-      setReps((prev) => prev + 1);
+    // คำนวณจุดกึ่งกลางของข้อมือ (แทนการจับมือ)
+    const handsMidX = (leftWrist.x + rightWrist.x) / 2;
+    const handsMidY = (leftWrist.y + rightWrist.y) / 2;
+    
+    // ตรวจสอบว่าแขนอยู่ในตำแหน่งที่ถูกต้อง (ข้อมือต่ำกว่าไหล่แต่สูงกว่าสะโพก)
+    const armsInCorrectPosition = handsMidY > shoulderMidY && handsMidY < hipMidY + 50;
+    
+    if (!armsInCorrectPosition) {
+      showFeedback("ยกแขนขึ้นระดับอก และจับมือไว้ด้วยกัน");
+      return;
     }
 
-    // อัปเดตสถานะล่าสุด
-    twistStateRef.current.currentDirection = twistDirection;
-    if (twistDirection !== lastDirection) {
-      twistStateRef.current.lastDirection = twistDirection;
+    // คำนวณการหมุนลำตัว โดยเปรียบเทียบตำแหน่งมือกับแกนกึ่งกลางของลำตัว
+    const torsoMidX = (shoulderMidX + hipMidX) / 2;
+    const rotationThreshold = 40; // ระยะห่างขั้นต่ำสำหรับการหมุน
+    
+    // ตรวจสอบการหมุนไปทางซ้าย
+    const isTwistingLeft = handsMidX < torsoMidX - rotationThreshold;
+    // ตรวจสอบการหมุนไปทางขวา  
+    const isTwistingRight = handsMidX > torsoMidX + rotationThreshold;
+    // ตรวจสอบการอยู่ตรงกลาง
+    const isCenter = !isTwistingLeft && !isTwistingRight;
+
+    // ตรวจจับการเคลื่อนไหวและนับครั้ง
+    if (isTwistingLeft && !russianTwistLeftRef.current && russianTwistCenterRef.current) {
+      russianTwistLeftRef.current = true;
+      russianTwistRightRef.current = false;
+      russianTwistCenterRef.current = false;
+      
+      if (lastTwistDirectionRef.current === "right") {
+        setReps((prev) => prev + 1);
+        showFeedback("ดีมาก! หมุนซ้าย");
+      } else {
+        showFeedback("หมุนซ้าย");
+      }
+      lastTwistDirectionRef.current = "left";
+    }
+    else if (isTwistingRight && !russianTwistRightRef.current && russianTwistCenterRef.current) {
+      russianTwistRightRef.current = true;
+      russianTwistLeftRef.current = false;
+      russianTwistCenterRef.current = false;
+      
+      if (lastTwistDirectionRef.current === "left") {
+        setReps((prev) => prev + 1);
+        showFeedback("ดีมาก! หมุนขวา");
+      } else {
+        showFeedback("หมุนขวา");
+      }
+      lastTwistDirectionRef.current = "right";
+    }
+    else if (isCenter && (russianTwistLeftRef.current || russianTwistRightRef.current)) {
+      // กลับมาตรงกลาง - เตรียมพร้อมสำหรับการหมุนครั้งต่อไป
+      russianTwistCenterRef.current = true;
+      russianTwistLeftRef.current = false;
+      russianTwistRightRef.current = false;
     }
   };
 
