@@ -77,6 +77,21 @@ const Home = () => {
   const sidePlankWarningGivenRef = useRef<boolean>(false);
   const sidePlankSideRef = useRef<string>("left");
 
+  // ตัวแปรสำหรับการตรวจจับท่า Dumbbell Bench Press
+  const dumbbellUpPositionRef = useRef<boolean>(true);
+  const dumbbellDownPositionRef = useRef<boolean>(false);
+  const dumbbellArmAngleRef = useRef<number>(180);
+  const dumbbellFormWarningRef = useRef<boolean>(false);
+  const dumbbellElbowPositionRef = useRef<boolean>(false);
+
+  // ตัวแปรสำหรับการตรวจจับท่า Dumbbell Bent-Over Rows
+  const bentOverRowUpPositionRef = useRef<boolean>(true);
+  const bentOverRowDownPositionRef = useRef<boolean>(false);
+  const bentOverRowBackAngleRef = useRef<number>(0);
+  const bentOverRowArmAngleRef = useRef<number>(180);
+  const bentOverRowFormWarningRef = useRef<boolean>(false);
+  const bentOverRowProperBentRef = useRef<boolean>(false);
+
   // ฟังก์ชันสำหรับการพูด
   const speak = (text: string) => {
     if (soundEnabled) {
@@ -197,6 +212,10 @@ const Home = () => {
         detectPlank();
       } else if (exerciseTypeRef.current === "sideplank") {
         detectSidePlank();
+      } else if (exerciseTypeRef.current === "dumbbellbenchpress") {
+        detectDumbbellBenchPress();
+      } else if (exerciseTypeRef.current === "dumbbellbentoverrows") {
+        detectDumbbellBentOverRows();
       }
     }
   };
@@ -1008,6 +1027,193 @@ const Home = () => {
     }
   };
 
+  // ฟังก์ชันสำหรับการตรวจจับท่า Dumbbell Bench Press
+  const detectDumbbellBenchPress = () => {
+    if (!posesRef.current || posesRef.current.length === 0) return;
+
+    const pose = posesRef.current[0];
+    const get = (name: string) => pose.keypoints.find((p) => p.name === name);
+
+    const leftWrist = get("left_wrist");
+    const rightWrist = get("right_wrist");
+    const leftElbow = get("left_elbow");
+    const rightElbow = get("right_elbow");
+    const leftShoulder = get("left_shoulder");
+    const rightShoulder = get("right_shoulder");
+    const leftHip = get("left_hip");
+    const rightHip = get("right_hip");
+
+    // ตรวจสอบว่า keypoints ทั้งหมดมีค่า confidence ที่เพียงพอ
+    if (
+      !leftWrist?.score || leftWrist.score < 0.3 ||
+      !rightWrist?.score || rightWrist.score < 0.3 ||
+      !leftElbow?.score || leftElbow.score < 0.3 ||
+      !rightElbow?.score || rightElbow.score < 0.3 ||
+      !leftShoulder?.score || leftShoulder.score < 0.3 ||
+      !rightShoulder?.score || rightShoulder.score < 0.3 ||
+      !leftHip?.score || leftHip.score < 0.3 ||
+      !rightHip?.score || rightHip.score < 0.3
+    ) {
+      return;
+    }
+
+    // ตรวจสอบว่าอยู่ในท่านอนหงาย (สะโพกและไหล่อยู่ในระดับเดียวกัน)
+    const shoulderMidY = (leftShoulder.y + rightShoulder.y) / 2;
+    const hipMidY = (leftHip.y + rightHip.y) / 2;
+    const isLyingDown = Math.abs(shoulderMidY - hipMidY) < 50;
+
+    if (!isLyingDown) {
+      if (!dumbbellFormWarningRef.current) {
+        showFeedback("นอนหงายบนม้านั่ง เท้าแตะพื้น");
+        dumbbellFormWarningRef.current = true;
+      }
+      return;
+    } else {
+      dumbbellFormWarningRef.current = false;
+    }
+
+    // คำนวณมุมแขนซ้ายและขวา (ไหล่-ข้อศอก-ข้อมือ)
+    const leftArmAngle = calculateAngle(leftShoulder, leftElbow, leftWrist);
+    const rightArmAngle = calculateAngle(rightShoulder, rightElbow, rightWrist);
+    const avgArmAngle = (leftArmAngle + rightArmAngle) / 2;
+    dumbbellArmAngleRef.current = avgArmAngle;
+
+    // ตรวจสอบตำแหน่งข้อศอก (ควรอยู่ในมุม 45 องศาจากลำตัว)
+    const leftElbowPosition = Math.abs(leftElbow.x - leftShoulder.x);
+    const rightElbowPosition = Math.abs(rightElbow.x - rightShoulder.x);
+    const shoulderWidth = Math.abs(leftShoulder.x - rightShoulder.x);
+    const properElbowPosition = (leftElbowPosition + rightElbowPosition) / 2 > shoulderWidth * 0.3;
+    dumbbellElbowPositionRef.current = properElbowPosition;
+
+    // ตรวจสอบท่าดันขึ้น (แขนเหยียดตรง)
+    if (avgArmAngle > 160 && dumbbellDownPositionRef.current && properElbowPosition) {
+      dumbbellUpPositionRef.current = true;
+      dumbbellDownPositionRef.current = false;
+      setReps((prev) => prev + 1);
+      showFeedback("ดีมาก! ดันขึ้นสำเร็จ");
+    }
+    // ตรวจสอบท่าลดลง (แขนงอประมาณ 90 องศา)
+    else if (avgArmAngle < 100 && dumbbellUpPositionRef.current && properElbowPosition) {
+      dumbbellDownPositionRef.current = true;
+      dumbbellUpPositionRef.current = false;
+      showFeedback("ลดลงช้าๆ ควบคุมน้ำหนัก");
+    }
+
+    // ตรวจสอบท่าทางที่ไม่ถูกต้อง
+    if (!properElbowPosition && !dumbbellFormWarningRef.current) {
+      showFeedback("จัดท่าแขนให้ถูกต้อง ข้อศอกทำมุม 45 องศาจากลำตัว");
+      dumbbellFormWarningRef.current = true;
+      setTimeout(() => {
+        dumbbellFormWarningRef.current = false;
+      }, 3000);
+    }
+  };
+
+  // ฟังก์ชันสำหรับการตรวจจับท่า Dumbbell Bent-Over Rows
+  const detectDumbbellBentOverRows = () => {
+    if (!posesRef.current || posesRef.current.length === 0) return;
+
+    const pose = posesRef.current[0];
+    const get = (name: string) => pose.keypoints.find((p) => p.name === name);
+
+    const leftWrist = get("left_wrist");
+    const rightWrist = get("right_wrist");
+    const leftElbow = get("left_elbow");
+    const rightElbow = get("right_elbow");
+    const leftShoulder = get("left_shoulder");
+    const rightShoulder = get("right_shoulder");
+    const leftHip = get("left_hip");
+    const rightHip = get("right_hip");
+    const leftKnee = get("left_knee");
+    const rightKnee = get("right_knee");
+
+    // ตรวจสอบว่า keypoints ทั้งหมดมีค่า confidence ที่เพียงพอ
+    if (
+      !leftWrist?.score || leftWrist.score < 0.3 ||
+      !rightWrist?.score || rightWrist.score < 0.3 ||
+      !leftElbow?.score || leftElbow.score < 0.3 ||
+      !rightElbow?.score || rightElbow.score < 0.3 ||
+      !leftShoulder?.score || leftShoulder.score < 0.3 ||
+      !rightShoulder?.score || rightShoulder.score < 0.3 ||
+      !leftHip?.score || leftHip.score < 0.3 ||
+      !rightHip?.score || rightHip.score < 0.3 ||
+      !leftKnee?.score || leftKnee.score < 0.3 ||
+      !rightKnee?.score || rightKnee.score < 0.3
+    ) {
+      return;
+    }
+
+    // คำนวณมุมของลำตัว (ไหล่-สะโพก-เข่า) เพื่อตรวจสอบท่าโน้มตัวไปข้างหน้า
+    const shoulderMidX = (leftShoulder.x + rightShoulder.x) / 2;
+    const shoulderMidY = (leftShoulder.y + rightShoulder.y) / 2;
+    const hipMidX = (leftHip.x + rightHip.x) / 2;
+    const hipMidY = (leftHip.y + rightHip.y) / 2;
+    const kneeMidX = (leftKnee.x + rightKnee.x) / 2;
+    const kneeMidY = (leftKnee.y + rightKnee.y) / 2;
+
+    // คำนวณมุมของลำตัวเทียบกับแนวดิ่ง (ควรโน้มไปข้างหน้าประมาณ 45-60 องศา)
+    const torsoAngle = Math.atan2(shoulderMidY - hipMidY, shoulderMidX - hipMidX) * (180 / Math.PI);
+    bentOverRowBackAngleRef.current = Math.abs(torsoAngle);
+
+    // ตรวจสอบท่าโน้มตัวที่ถูกต้อง (ลำตัวโน้มไปข้างหน้าประมาณ 45-75 องศา)
+    const isProperBentPosition = bentOverRowBackAngleRef.current > 30 && bentOverRowBackAngleRef.current < 80;
+    bentOverRowProperBentRef.current = isProperBentPosition;
+
+    if (!isProperBentPosition) {
+      if (!bentOverRowFormWarningRef.current) {
+        showFeedback("โน้มตัวไปข้างหน้าประมาณ 45-60 องศา เกร็งหลัง");
+        bentOverRowFormWarningRef.current = true;
+      }
+      return;
+    } else {
+      bentOverRowFormWarningRef.current = false;
+    }
+
+    // คำนวณมุมแขนซ้ายและขวา (ไหล่-ข้อศอก-ข้อมือ)
+    const leftArmAngle = calculateAngle(leftShoulder, leftElbow, leftWrist);
+    const rightArmAngle = calculateAngle(rightShoulder, rightElbow, rightWrist);
+    const avgArmAngle = (leftArmAngle + rightArmAngle) / 2;
+    bentOverRowArmAngleRef.current = avgArmAngle;
+
+    // ตรวจสอบตำแหน่งข้อศอก (ควรอยู่ใกล้ลำตัวและไม่กางออกด้านข้างมากเกินไป)
+    const leftElbowToTorso = Math.abs(leftElbow.x - shoulderMidX);
+    const rightElbowToTorso = Math.abs(rightElbow.x - shoulderMidX);
+    const shoulderWidth = Math.abs(leftShoulder.x - rightShoulder.x);
+    const properElbowPosition = (leftElbowToTorso + rightElbowToTorso) / 2 < shoulderWidth * 0.8;
+
+    // ตรวจสอบท่าดึงขึ้น (แขนงอ ข้อศอกใกล้ลำตัว)
+    if (avgArmAngle < 90 && bentOverRowDownPositionRef.current && properElbowPosition) {
+      bentOverRowUpPositionRef.current = true;
+      bentOverRowDownPositionRef.current = false;
+      setReps((prev) => prev + 1);
+      showFeedback("ดีมาก! หนีบรักแร้ เกร็งหลัง");
+    }
+    // ตรวจสอบท่าลดลง (แขนเหยียดลง)
+    else if (avgArmAngle > 150 && bentOverRowUpPositionRef.current && properElbowPosition) {
+      bentOverRowDownPositionRef.current = true;
+      bentOverRowUpPositionRef.current = false;
+      showFeedback("ลดลงช้าๆ ควบคุมน้ำหนัก");
+    }
+
+    // ตรวจสอบท่าทางที่ไม่ถูกต้อง
+    if (!properElbowPosition && !bentOverRowFormWarningRef.current) {
+      showFeedback("ไม่กางศอกออกด้านข้างมากเกินไป หนีบรักแร้");
+      bentOverRowFormWarningRef.current = true;
+      setTimeout(() => {
+        bentOverRowFormWarningRef.current = false;
+      }, 3000);
+    }
+
+    // ตรวจสอบการแอ่นหลังมากเกินไป
+    if (bentOverRowBackAngleRef.current < 20 && !bentOverRowFormWarningRef.current) {
+      showFeedback("ระวังปวดหลังส่วนล่าง ไม่แอ่นหลังมากจนเกินไป");
+      bentOverRowFormWarningRef.current = true;
+      setTimeout(() => {
+        bentOverRowFormWarningRef.current = false;
+      }, 3000);
+    }
+  };
+
   // ฟังก์ชันคำนวณมุมระหว่างจุด 3 จุด
   const calculateAngle = (pointA: any, pointB: any, pointC: any) => {
     if (!pointA || !pointB || !pointC) return 0;
@@ -1287,6 +1493,8 @@ const Home = () => {
     { value: "russiantwist", label: "Russian Twist" },
     { value: "plank", label: "Plank" },
     { value: "sideplank", label: "Side Plank" },
+    { value: "dumbbellbenchpress", label: "Dumbbell Bench Press" },
+    { value: "dumbbellbentoverrows", label: "Dumbbell Bent-Over Rows" },
   ];
 
   return (
@@ -1419,6 +1627,24 @@ const Home = () => {
             ยกลำตัวขึ้นโดยใช้ข้อศอกและปลายเท้าด้านเดียวกันรับน้ำหนัก → เกร็งท้อง
             ก้นและขาตลอดเวลา → รักษาลำตัวให้ตรงและตั้งฉากกับพื้น →
             เปลี่ยนข้างเพื่อทำอีกด้านหนึ่ง
+          </p>
+        )}
+
+        {exerciseType === "dumbbellbenchpress" && (
+          <p className="mt-1 text-sm md:text-base text-black">
+            ท่า Dumbbell Bench Press: นอนหงายบนม้านั่ง เท้าแตะพื้น → 
+            จับดัมเบลด้วยมือทั้งสองข้าง ยกขึ้นเหนือหน้าอก → 
+            ลดลงช้าๆ ให้ข้อศอกทำมุม 45 องศาจากลำตัว → 
+            ดันขึ้นกลับสู่ตำแหน่งเริ่มต้น (เกร็งกล้ามเนื้อหน้าอกตลอดการเคลื่อนไหว)
+          </p>
+        )}
+
+        {exerciseType === "dumbbellbentoverrows" && (
+          <p className="mt-1 text-sm md:text-base text-black">
+            ท่า Dumbbell Bent-Over Rows: ยืนเท้าแยกระดับไหล่ โน้มตัวไปข้างหน้าประมาณ 45-60 องศา → 
+            จับดัมเบลด้วยมือทั้งสองข้าง แขนห้อยลงตรง → 
+            ดึงดัมเบลขึ้นมาที่ลำตัว หนีบรักแร้ เกร็งหลัง → 
+            ลดลงช้าๆ กลับสู่ตำแหน่งเริ่มต้น (ระวังไม่ให้แอ่นหลังมากเกินไป และไม่กางศอกออกด้านข้าง)
           </p>
         )}
 
