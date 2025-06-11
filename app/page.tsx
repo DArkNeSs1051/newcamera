@@ -696,14 +696,22 @@ const Home = () => {
 
     // ตรวจสอบว่า keypoints ทั้งหมดมีค่า confidence ที่เพียงพอ
     if (
-      !leftWrist?.score || leftWrist.score < 0.3 ||
-      !rightWrist?.score || rightWrist.score < 0.3 ||
-      !leftShoulder?.score || leftShoulder.score < 0.3 ||
-      !rightShoulder?.score || rightShoulder.score < 0.3 ||
-      !leftHip?.score || leftHip.score < 0.3 ||
-      !rightHip?.score || rightHip.score < 0.3 ||
-      !leftKnee?.score || leftKnee.score < 0.3 ||
-      !rightKnee?.score || rightKnee.score < 0.3
+      !leftWrist?.score ||
+      leftWrist.score < 0.3 ||
+      !rightWrist?.score ||
+      rightWrist.score < 0.3 ||
+      !leftShoulder?.score ||
+      leftShoulder.score < 0.3 ||
+      !rightShoulder?.score ||
+      rightShoulder.score < 0.3 ||
+      !leftHip?.score ||
+      leftHip.score < 0.3 ||
+      !rightHip?.score ||
+      rightHip.score < 0.3 ||
+      !leftKnee?.score ||
+      leftKnee.score < 0.3 ||
+      !rightKnee?.score ||
+      rightKnee.score < 0.3
     ) {
       return;
     }
@@ -717,16 +725,23 @@ const Home = () => {
     const kneeMidY = (leftKnee.y + rightKnee.y) / 2;
 
     // ตรวจสอบท่านั่งที่ถูกต้อง (เข่างอประมาณ 90 องศา)
-    const leftKneeAngle = calculateAngle(leftHip, leftKnee, { x: leftKnee.x, y: leftKnee.y + 100 });
-    const rightKneeAngle = calculateAngle(rightHip, rightKnee, { x: rightKnee.x, y: rightKnee.y + 100 });
+    const leftKneeAngle = calculateAngle(leftHip, leftKnee, {
+      x: leftKnee.x,
+      y: leftKnee.y + 100,
+    });
+    const rightKneeAngle = calculateAngle(rightHip, rightKnee, {
+      x: rightKnee.x,
+      y: rightKnee.y + 100,
+    });
     const avgKneeAngle = (leftKneeAngle + rightKneeAngle) / 2;
-    
+
     // ตรวจสอบว่าเท้าไม่แตะพื้น (สะโพกสูงกว่าเข่า)
     const feetOffGround = hipMidY < kneeMidY - 20;
-    
+
     // ตรวจสอบท่านั่งที่ถูกต้อง
-    const isProperSittingPosition = avgKneeAngle > 70 && avgKneeAngle < 110 && feetOffGround;
-    
+    const isProperSittingPosition =
+      avgKneeAngle > 70 && avgKneeAngle < 110 && feetOffGround;
+
     if (!isProperSittingPosition) {
       if (!russianTwistWarningGivenRef.current) {
         showFeedback("นั่งโดยงอเข่าประมาณ 90 องศา และยกเท้าขึ้นจากพื้น");
@@ -740,10 +755,11 @@ const Home = () => {
     // คำนวณจุดกึ่งกลางของข้อมือ (แทนการจับมือ)
     const handsMidX = (leftWrist.x + rightWrist.x) / 2;
     const handsMidY = (leftWrist.y + rightWrist.y) / 2;
-    
+
     // ตรวจสอบว่าแขนอยู่ในตำแหน่งที่ถูกต้อง (ข้อมือต่ำกว่าไหล่แต่สูงกว่าสะโพก)
-    const armsInCorrectPosition = handsMidY > shoulderMidY && handsMidY < hipMidY + 50;
-    
+    const armsInCorrectPosition =
+      handsMidY > shoulderMidY && handsMidY < hipMidY + 50;
+
     if (!armsInCorrectPosition) {
       showFeedback("ยกแขนขึ้นระดับอก และจับมือไว้ด้วยกัน");
       return;
@@ -752,20 +768,24 @@ const Home = () => {
     // คำนวณการหมุนลำตัว โดยเปรียบเทียบตำแหน่งมือกับแกนกึ่งกลางของลำตัว
     const torsoMidX = (shoulderMidX + hipMidX) / 2;
     const rotationThreshold = 40; // ระยะห่างขั้นต่ำสำหรับการหมุน
-    
+
     // ตรวจสอบการหมุนไปทางซ้าย
     const isTwistingLeft = handsMidX < torsoMidX - rotationThreshold;
-    // ตรวจสอบการหมุนไปทางขวา  
+    // ตรวจสอบการหมุนไปทางขวา
     const isTwistingRight = handsMidX > torsoMidX + rotationThreshold;
     // ตรวจสอบการอยู่ตรงกลาง
     const isCenter = !isTwistingLeft && !isTwistingRight;
 
     // ตรวจจับการเคลื่อนไหวและนับครั้ง
-    if (isTwistingLeft && !russianTwistLeftRef.current && russianTwistCenterRef.current) {
+    if (
+      isTwistingLeft &&
+      !russianTwistLeftRef.current &&
+      russianTwistCenterRef.current
+    ) {
       russianTwistLeftRef.current = true;
       russianTwistRightRef.current = false;
       russianTwistCenterRef.current = false;
-      
+
       if (lastTwistDirectionRef.current === "right") {
         setReps((prev) => prev + 1);
         showFeedback("ดีมาก! หมุนซ้าย");
@@ -773,12 +793,15 @@ const Home = () => {
         showFeedback("หมุนซ้าย");
       }
       lastTwistDirectionRef.current = "left";
-    }
-    else if (isTwistingRight && !russianTwistRightRef.current && russianTwistCenterRef.current) {
+    } else if (
+      isTwistingRight &&
+      !russianTwistRightRef.current &&
+      russianTwistCenterRef.current
+    ) {
       russianTwistRightRef.current = true;
       russianTwistLeftRef.current = false;
       russianTwistCenterRef.current = false;
-      
+
       if (lastTwistDirectionRef.current === "left") {
         setReps((prev) => prev + 1);
         showFeedback("ดีมาก! หมุนขวา");
@@ -786,8 +809,10 @@ const Home = () => {
         showFeedback("หมุนขวา");
       }
       lastTwistDirectionRef.current = "right";
-    }
-    else if (isCenter && (russianTwistLeftRef.current || russianTwistRightRef.current)) {
+    } else if (
+      isCenter &&
+      (russianTwistLeftRef.current || russianTwistRightRef.current)
+    ) {
       // กลับมาตรงกลาง - เตรียมพร้อมสำหรับการหมุนครั้งต่อไป
       russianTwistCenterRef.current = true;
       russianTwistLeftRef.current = false;
@@ -1045,14 +1070,22 @@ const Home = () => {
 
     // ตรวจสอบว่า keypoints ทั้งหมดมีค่า confidence ที่เพียงพอ
     if (
-      !leftWrist?.score || leftWrist.score < 0.3 ||
-      !rightWrist?.score || rightWrist.score < 0.3 ||
-      !leftElbow?.score || leftElbow.score < 0.3 ||
-      !rightElbow?.score || rightElbow.score < 0.3 ||
-      !leftShoulder?.score || leftShoulder.score < 0.3 ||
-      !rightShoulder?.score || rightShoulder.score < 0.3 ||
-      !leftHip?.score || leftHip.score < 0.3 ||
-      !rightHip?.score || rightHip.score < 0.3
+      !leftWrist?.score ||
+      leftWrist.score < 0.3 ||
+      !rightWrist?.score ||
+      rightWrist.score < 0.3 ||
+      !leftElbow?.score ||
+      leftElbow.score < 0.3 ||
+      !rightElbow?.score ||
+      rightElbow.score < 0.3 ||
+      !leftShoulder?.score ||
+      leftShoulder.score < 0.3 ||
+      !rightShoulder?.score ||
+      rightShoulder.score < 0.3 ||
+      !leftHip?.score ||
+      leftHip.score < 0.3 ||
+      !rightHip?.score ||
+      rightHip.score < 0.3
     ) {
       return;
     }
@@ -1082,18 +1115,27 @@ const Home = () => {
     const leftElbowPosition = Math.abs(leftElbow.x - leftShoulder.x);
     const rightElbowPosition = Math.abs(rightElbow.x - rightShoulder.x);
     const shoulderWidth = Math.abs(leftShoulder.x - rightShoulder.x);
-    const properElbowPosition = (leftElbowPosition + rightElbowPosition) / 2 > shoulderWidth * 0.3;
+    const properElbowPosition =
+      (leftElbowPosition + rightElbowPosition) / 2 > shoulderWidth * 0.3;
     dumbbellElbowPositionRef.current = properElbowPosition;
 
     // ตรวจสอบท่าดันขึ้น (แขนเหยียดตรง)
-    if (avgArmAngle > 160 && dumbbellDownPositionRef.current && properElbowPosition) {
+    if (
+      avgArmAngle > 160 &&
+      dumbbellDownPositionRef.current &&
+      properElbowPosition
+    ) {
       dumbbellUpPositionRef.current = true;
       dumbbellDownPositionRef.current = false;
       setReps((prev) => prev + 1);
       showFeedback("ดีมาก! ดันขึ้นสำเร็จ");
     }
     // ตรวจสอบท่าลดลง (แขนงอประมาณ 90 องศา)
-    else if (avgArmAngle < 100 && dumbbellUpPositionRef.current && properElbowPosition) {
+    else if (
+      avgArmAngle < 100 &&
+      dumbbellUpPositionRef.current &&
+      properElbowPosition
+    ) {
       dumbbellDownPositionRef.current = true;
       dumbbellUpPositionRef.current = false;
       showFeedback("ลดลงช้าๆ ควบคุมน้ำหนัก");
@@ -1129,16 +1171,26 @@ const Home = () => {
 
     // ตรวจสอบว่า keypoints ทั้งหมดมีค่า confidence ที่เพียงพอ
     if (
-      !leftWrist?.score || leftWrist.score < 0.3 ||
-      !rightWrist?.score || rightWrist.score < 0.3 ||
-      !leftElbow?.score || leftElbow.score < 0.3 ||
-      !rightElbow?.score || rightElbow.score < 0.3 ||
-      !leftShoulder?.score || leftShoulder.score < 0.3 ||
-      !rightShoulder?.score || rightShoulder.score < 0.3 ||
-      !leftHip?.score || leftHip.score < 0.3 ||
-      !rightHip?.score || rightHip.score < 0.3 ||
-      !leftKnee?.score || leftKnee.score < 0.3 ||
-      !rightKnee?.score || rightKnee.score < 0.3
+      !leftWrist?.score ||
+      leftWrist.score < 0.3 ||
+      !rightWrist?.score ||
+      rightWrist.score < 0.3 ||
+      !leftElbow?.score ||
+      leftElbow.score < 0.3 ||
+      !rightElbow?.score ||
+      rightElbow.score < 0.3 ||
+      !leftShoulder?.score ||
+      leftShoulder.score < 0.3 ||
+      !rightShoulder?.score ||
+      rightShoulder.score < 0.3 ||
+      !leftHip?.score ||
+      leftHip.score < 0.3 ||
+      !rightHip?.score ||
+      rightHip.score < 0.3 ||
+      !leftKnee?.score ||
+      leftKnee.score < 0.3 ||
+      !rightKnee?.score ||
+      rightKnee.score < 0.3
     ) {
       return;
     }
@@ -1152,11 +1204,15 @@ const Home = () => {
     const kneeMidY = (leftKnee.y + rightKnee.y) / 2;
 
     // คำนวณมุมของลำตัวเทียบกับแนวดิ่ง (ควรโน้มไปข้างหน้าประมาณ 45-60 องศา)
-    const torsoAngle = Math.atan2(shoulderMidY - hipMidY, shoulderMidX - hipMidX) * (180 / Math.PI);
+    const torsoAngle =
+      Math.atan2(shoulderMidY - hipMidY, shoulderMidX - hipMidX) *
+      (180 / Math.PI);
     bentOverRowBackAngleRef.current = Math.abs(torsoAngle);
 
     // ตรวจสอบท่าโน้มตัวที่ถูกต้อง (ลำตัวโน้มไปข้างหน้าประมาณ 45-75 องศา)
-    const isProperBentPosition = bentOverRowBackAngleRef.current > 30 && bentOverRowBackAngleRef.current < 80;
+    const isProperBentPosition =
+      bentOverRowBackAngleRef.current > 30 &&
+      bentOverRowBackAngleRef.current < 80;
     bentOverRowProperBentRef.current = isProperBentPosition;
 
     if (!isProperBentPosition) {
@@ -1179,17 +1235,26 @@ const Home = () => {
     const leftElbowToTorso = Math.abs(leftElbow.x - shoulderMidX);
     const rightElbowToTorso = Math.abs(rightElbow.x - shoulderMidX);
     const shoulderWidth = Math.abs(leftShoulder.x - rightShoulder.x);
-    const properElbowPosition = (leftElbowToTorso + rightElbowToTorso) / 2 < shoulderWidth * 0.8;
+    const properElbowPosition =
+      (leftElbowToTorso + rightElbowToTorso) / 2 < shoulderWidth * 0.8;
 
     // ตรวจสอบท่าดึงขึ้น (แขนงอ ข้อศอกใกล้ลำตัว)
-    if (avgArmAngle < 90 && bentOverRowDownPositionRef.current && properElbowPosition) {
+    if (
+      avgArmAngle < 90 &&
+      bentOverRowDownPositionRef.current &&
+      properElbowPosition
+    ) {
       bentOverRowUpPositionRef.current = true;
       bentOverRowDownPositionRef.current = false;
       setReps((prev) => prev + 1);
       showFeedback("ดีมาก! หนีบรักแร้ เกร็งหลัง");
     }
     // ตรวจสอบท่าลดลง (แขนเหยียดลง)
-    else if (avgArmAngle > 150 && bentOverRowUpPositionRef.current && properElbowPosition) {
+    else if (
+      avgArmAngle > 150 &&
+      bentOverRowUpPositionRef.current &&
+      properElbowPosition
+    ) {
       bentOverRowDownPositionRef.current = true;
       bentOverRowUpPositionRef.current = false;
       showFeedback("ลดลงช้าๆ ควบคุมน้ำหนัก");
@@ -1205,7 +1270,10 @@ const Home = () => {
     }
 
     // ตรวจสอบการแอ่นหลังมากเกินไป
-    if (bentOverRowBackAngleRef.current < 20 && !bentOverRowFormWarningRef.current) {
+    if (
+      bentOverRowBackAngleRef.current < 20 &&
+      !bentOverRowFormWarningRef.current
+    ) {
       showFeedback("ระวังปวดหลังส่วนล่าง ไม่แอ่นหลังมากจนเกินไป");
       bentOverRowFormWarningRef.current = true;
       setTimeout(() => {
@@ -1561,92 +1629,6 @@ const Home = () => {
             ? "ระบบจะจับเวลาและตรวจสอบท่าทางของคุณอัตโนมัติ"
             : "ระบบจะนับจำนวนครั้งและตรวจสอบท่าทางของคุณอัตโนมัติ"}
         </p>
-
-        {exerciseType === "pushup" && (
-          <p className="mt-1 text-sm md:text-base text-black">
-            ให้แน่ใจว่าคุณอยู่ในระยะที่กล้องสามารถมองเห็นร่างกายทั้งหมดได้
-          </p>
-        )}
-
-        {exerciseType === "burpee-beginner" && (
-          <p className="mt-1 text-sm md:text-base text-black">
-            ท่า Burpee สำหรับผู้เริ่มต้น: ยืน → ย่อตัว →
-            กระโดดพร้อมยกแขนเหนือศีรษะ → ยืน
-          </p>
-        )}
-
-        {exerciseType === "burpee-expert" && (
-          <p className="mt-1 text-sm md:text-base text-black">
-            ท่า Burpee สำหรับผู้เชี่ยวชาญ: ยืน → ย่อตัว → Push Up → ย่อตัว →
-            กระโดดพร้อมยกแขนเหนือศีรษะ → ยืน
-          </p>
-        )}
-
-        {exerciseType === "squat" && (
-          <p className="mt-1 text-sm md:text-base text-black">
-            ท่า Squat: ยืนตรง → ย่อตัวลงโดยดันสะโพกไปด้านหลังพร้อมงอเข่า →
-            กลับมายืนตรง (ระวังไม่ให้เข่าเลยปลายเท้ามากเกินไป)
-          </p>
-        )}
-
-        {exerciseType === "lunges" && (
-          <p className="mt-1 text-sm md:text-base text-black">
-            ท่า Leg Lunges: ยืนตรง → ก้าวขาข้างหนึ่งไปข้างหน้า →
-            ย่อตัวลงให้เข่าหน้างอประมาณ 90 องศา → กลับมายืนตรง
-            (ระวังไม่ให้เข่าหน้าเลยปลายเท้ามากเกินไป)
-          </p>
-        )}
-
-        {exerciseType === "legraise" && (
-          <p className="mt-1 text-sm md:text-base text-black">
-            ท่า Leg Raise: นอนหงาย → เกร็งท้องค่อยๆม้วนก้นและยกขาขึ้น →
-            ค่อยๆลดขาลงสู่พื้น (ระวังอย่าแอ่นหลังส่วนล่างมากเกินไป)
-          </p>
-        )}
-
-        {exerciseType === "russiantwist" && (
-          <p className="mt-1 text-sm md:text-base text-black">
-            ท่า Russian Twist: นั่งเอียงลำตัวประมาณ 45 องศา → บิดลำตัวไปทางซ้าย
-            → กลับมาตรงกลาง → บิดลำตัวไปทางขวา → กลับมาตรงกลาง
-            (เกร็งกล้ามเนื้อหน้าท้องตลอดการทำท่า)
-          </p>
-        )}
-
-        {exerciseType === "plank" && (
-          <p className="mt-1 text-sm md:text-base text-black">
-            ท่า Plank: คว่ำหน้าลงพื้น
-            ยกลำตัวขึ้นโดยใช้ปลายเท้าและข้อศอกรับน้ำหนัก → เกร็งท้อง
-            ก้นและขาตลอดเวลา → รักษาลำตัวให้เป็นเส้นตรง
-            (ระวังอย่าห่อสะบักและยื่นคอลงพื้น อย่าหลังแอ่น หรือกระดกก้น)
-          </p>
-        )}
-
-        {exerciseType === "sideplank" && (
-          <p className="mt-1 text-sm md:text-base text-black">
-            ท่า Side Plank: นอนตะแคงข้าง →
-            ยกลำตัวขึ้นโดยใช้ข้อศอกและปลายเท้าด้านเดียวกันรับน้ำหนัก → เกร็งท้อง
-            ก้นและขาตลอดเวลา → รักษาลำตัวให้ตรงและตั้งฉากกับพื้น →
-            เปลี่ยนข้างเพื่อทำอีกด้านหนึ่ง
-          </p>
-        )}
-
-        {exerciseType === "dumbbellbenchpress" && (
-          <p className="mt-1 text-sm md:text-base text-black">
-            ท่า Dumbbell Bench Press: นอนหงายบนม้านั่ง เท้าแตะพื้น → 
-            จับดัมเบลด้วยมือทั้งสองข้าง ยกขึ้นเหนือหน้าอก → 
-            ลดลงช้าๆ ให้ข้อศอกทำมุม 45 องศาจากลำตัว → 
-            ดันขึ้นกลับสู่ตำแหน่งเริ่มต้น (เกร็งกล้ามเนื้อหน้าอกตลอดการเคลื่อนไหว)
-          </p>
-        )}
-
-        {exerciseType === "dumbbellbentoverrows" && (
-          <p className="mt-1 text-sm md:text-base text-black">
-            ท่า Dumbbell Bent-Over Rows: ยืนเท้าแยกระดับไหล่ โน้มตัวไปข้างหน้าประมาณ 45-60 องศา → 
-            จับดัมเบลด้วยมือทั้งสองข้าง แขนห้อยลงตรง → 
-            ดึงดัมเบลขึ้นมาที่ลำตัว หนีบรักแร้ เกร็งหลัง → 
-            ลดลงช้าๆ กลับสู่ตำแหน่งเริ่มต้น (ระวังไม่ให้แอ่นหลังมากเกินไป และไม่กางศอกออกด้านข้าง)
-          </p>
-        )}
 
         {isMobile && (
           <p className="mt-1 text-sm text-red-600 font-medium">
