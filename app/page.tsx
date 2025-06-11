@@ -796,21 +796,20 @@ const Home = () => {
   // };
 
   const THRESHOLD = 0.1;
+  const minscore = 0.3;
+
+  const twistStateRef = useRef({
+    lastDirection: null as "left" | "right" | null,
+    currentDirection: null as "left" | "right" | null,
+    count: 0,
+  });
 
   const detectRussianTwist = () => {
     if (!posesRef.current || posesRef.current.length === 0) return;
 
     const pose = posesRef.current[0];
     const get = (name: string) => pose.keypoints.find((p) => p.name === name);
-    const minscore = 0.3; // เพิ่มความเข้มข้น
-
-    const mirrorX = (x: number) => 1 - x; // สำหรับ normalized ค่า x [0-1]
-
-    const initialState = {
-      lastDirection: null as "left" | "right" | null,
-      currentDirection: null as "left" | "right" | null,
-      count: 0,
-    };
+    const mirrorX = (x: number) => 1 - x;
 
     const leftWrist = get("left_wrist");
     const rightWrist = get("right_wrist");
@@ -827,7 +826,7 @@ const Home = () => {
       leftHip.score < minscore ||
       rightHip.score < minscore
     ) {
-      return initialState;
+      return;
     }
 
     const leftWristX = mirrorX(leftWrist.x);
@@ -846,10 +845,9 @@ const Home = () => {
       twistDirection = "right";
     }
 
-    if (!twistDirection) return initialState;
+    if (!twistDirection) return;
 
-    const { lastDirection, currentDirection, count } = initialState;
-    let newCount = count;
+    const { lastDirection, currentDirection } = twistStateRef.current;
 
     if (
       lastDirection &&
@@ -857,15 +855,15 @@ const Home = () => {
       twistDirection !== currentDirection &&
       twistDirection === lastDirection
     ) {
-      newCount += 1;
+      twistStateRef.current.count += 1;
       setReps((prev) => prev + 1);
     }
 
-    return {
-      lastDirection: twistDirection,
-      currentDirection: initialState.lastDirection,
-      count: newCount,
-    };
+    // อัปเดตสถานะล่าสุด
+    twistStateRef.current.currentDirection = twistDirection;
+    if (twistDirection !== lastDirection) {
+      twistStateRef.current.lastDirection = twistDirection;
+    }
   };
 
   // ฟังก์ชันสำหรับการตรวจสอบท่า Plank
