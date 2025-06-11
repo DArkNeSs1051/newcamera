@@ -6,7 +6,7 @@ import "@tensorflow/tfjs-backend-webgl";
 import * as tf from "@tensorflow/tfjs";
 
 const Home = () => {
-  const version = "1.0.3"; // กำหนดเวอร์ชันของแอปพลิเคชัน
+  const version = "1.0.4"; // กำหนดเวอร์ชันของแอปพลิเคชัน
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [reps, setReps] = useState(0);
@@ -672,11 +672,12 @@ const Home = () => {
 
     const pose = posesRef.current[0];
     const get = (index: number) => pose.keypoints[index];
-    const minScore = 0.2;
+    const minScore = 0.5; // เพิ่มความเข้มข้น
 
-    // ดึง keypoints
     const leftShoulder = get(6);
     const rightShoulder = get(5);
+    const leftElbow = get(8);
+    const rightElbow = get(7);
     const leftWrist = get(10);
     const rightWrist = get(9);
     const leftKnee = get(14);
@@ -684,26 +685,35 @@ const Home = () => {
     const leftAnkle = get(16);
     const rightAnkle = get(15);
 
-    // ตรวจสอบความแม่นยำ
-    if (
-      [
-        leftShoulder,
-        rightShoulder,
-        leftWrist,
-        rightWrist,
-        leftKnee,
-        rightKnee,
-        leftAnkle,
-        rightAnkle,
-      ].some((p) => !p || typeof p.score === "undefined" || p.score < minScore)
-    )
-      return;
+    const keypointsToCheck = [
+      leftShoulder,
+      rightShoulder,
+      leftElbow,
+      rightElbow,
+      leftWrist,
+      rightWrist,
+      leftKnee,
+      rightKnee,
+      leftAnkle,
+      rightAnkle,
+    ];
 
-    // ปรับสำหรับกล้องหน้าแบบ mirror
+    // ความแม่นยำขั้นต่ำ
+    if (
+      keypointsToCheck.some(
+        (p) => !p || typeof p.score === "undefined" || p.score < minScore
+      )
+    ) {
+      return;
+    }
+
     const isMirror = true;
 
+    // จัด keypoints สำหรับ mirror camera
     let actualLeftShoulder = leftShoulder;
     let actualRightShoulder = rightShoulder;
+    let actualLeftElbow = leftElbow;
+    let actualRightElbow = rightElbow;
     let actualLeftWrist = leftWrist;
     let actualRightWrist = rightWrist;
     let actualLeftKnee = leftKnee;
@@ -714,6 +724,8 @@ const Home = () => {
     if (isMirror) {
       actualLeftShoulder = rightShoulder;
       actualRightShoulder = leftShoulder;
+      actualLeftElbow = rightElbow;
+      actualRightElbow = leftElbow;
       actualLeftWrist = rightWrist;
       actualRightWrist = leftWrist;
       actualLeftKnee = rightKnee;
@@ -724,9 +736,8 @@ const Home = () => {
 
     // จุดกึ่งกลางไหล่
     const shoulderMidX = (actualLeftShoulder.x + actualRightShoulder.x) / 2;
-    const shoulderMidY = (actualLeftShoulder.y + actualRightShoulder.y) / 2;
 
-    // เช็คว่าขายกจากพื้น
+    // ตรวจสอบขายก
     const feetLifted =
       actualLeftKnee.y < actualLeftAnkle.y - 5 &&
       actualRightKnee.y < actualRightAnkle.y - 5;
@@ -740,13 +751,18 @@ const Home = () => {
     stateRef.current.readyToTwist = true;
 
     const now = Date.now();
-    const twistThreshold = 15;
+    const twistThreshold = 10;
     const cooldown = 1000;
     const prevTwist = stateRef.current.lastTwist;
 
-    // ตรวจจับการบิดซ้าย
+    const leftArmX =
+      (actualLeftShoulder.x + actualLeftElbow.x + actualLeftWrist.x) / 3;
+    const rightArmX =
+      (actualRightShoulder.x + actualRightElbow.x + actualRightWrist.x) / 3;
+
+    // ตรวจจับการ twist
     if (
-      actualLeftWrist.x < shoulderMidX - twistThreshold &&
+      leftArmX < shoulderMidX - twistThreshold &&
       stateRef.current.readyToTwist &&
       prevTwist !== "left"
     ) {
@@ -754,9 +770,8 @@ const Home = () => {
       showFeedback("บิดซ้าย");
     }
 
-    // ตรวจจับการบิดขวา
     if (
-      actualRightWrist.x > shoulderMidX + twistThreshold &&
+      rightArmX > shoulderMidX + twistThreshold &&
       stateRef.current.readyToTwist &&
       prevTwist !== "right"
     ) {
@@ -764,7 +779,7 @@ const Home = () => {
       showFeedback("บิดขวา");
     }
 
-    // ตรวจจับการสลับซ้าย-ขวา เพื่อเพิ่มจำนวน rep
+    // ตรวจจับการสลับเพื่อเพิ่ม rep
     if (
       (prevTwist === "left" && stateRef.current.lastTwist === "right") ||
       (prevTwist === "right" && stateRef.current.lastTwist === "left")
