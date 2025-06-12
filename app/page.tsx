@@ -108,6 +108,23 @@ const Home = () => {
   const bicepCurlElbowStabilityRef = useRef<boolean>(false);
   const bicepCurlWristPositionRef = useRef<boolean>(false);
 
+  // ตัวแปรสำหรับการตรวจจับท่า Dumbbell Romanian Deadlifts
+  const romanianDeadliftUpPositionRef = useRef<boolean>(true);
+  const romanianDeadliftDownPositionRef = useRef<boolean>(false);
+  const romanianDeadliftHipAngleRef = useRef<number>(180);
+  const romanianDeadliftBackAngleRef = useRef<number>(0);
+  const romanianDeadliftFormWarningRef = useRef<boolean>(false);
+  const romanianDeadliftHipHingeRef = useRef<boolean>(false);
+  const romanianDeadliftKneeStabilityRef = useRef<boolean>(false);
+
+  // ตัวแปรสำหรับการตรวจจับท่า Dumbbell Goblet Squat
+  const gobletSquatDownPositionRef = useRef<boolean>(false);
+  const gobletSquatUpPositionRef = useRef<boolean>(true);
+  const gobletSquatKneeAngleRef = useRef<number>(180);
+  const gobletSquatFormWarningRef = useRef<boolean>(false);
+  const gobletSquatDumbbellPositionRef = useRef<boolean>(false);
+  const gobletSquatBackPostureRef = useRef<boolean>(false);
+
   // ฟังก์ชันสำหรับการพูด
   const speak = (text: string) => {
     if (soundEnabled) {
@@ -236,6 +253,10 @@ const Home = () => {
         detectDumbbellShoulderPress();
       } else if (exerciseTypeRef.current === "dumbbellbicepcurls") {
         detectDumbbellBicepCurls();
+      } else if (exerciseTypeRef.current === "dumbbellromaniandeadlifts") {
+        detectDumbbellRomanianDeadlifts();
+      } else if (exerciseTypeRef.current === "dumbbellgobletsquat") {
+        detectDumbbellGobletSquat();
       }
     }
   };
@@ -1522,6 +1543,278 @@ const Home = () => {
     }
   };
 
+  // ฟังก์ชันสำหรับการตรวจจับท่า Dumbbell Goblet Squat
+  const detectDumbbellGobletSquat = () => {
+    if (!posesRef.current || posesRef.current.length === 0) return;
+
+    const pose = posesRef.current[0];
+    const get = (name: string) => pose.keypoints.find((p) => p.name === name);
+
+    const leftWrist = get("left_wrist");
+    const rightWrist = get("right_wrist");
+    const leftElbow = get("left_elbow");
+    const rightElbow = get("right_elbow");
+    const leftShoulder = get("left_shoulder");
+    const rightShoulder = get("right_shoulder");
+    const leftHip = get("left_hip");
+    const rightHip = get("right_hip");
+    const leftKnee = get("left_knee");
+    const rightKnee = get("right_knee");
+    const leftAnkle = get("left_ankle");
+    const rightAnkle = get("right_ankle");
+
+    // ตรวจสอบว่า keypoints ทั้งหมดมีค่า confidence ที่เพียงพอ
+    if (
+      !leftWrist?.score ||
+      leftWrist.score < 0.3 ||
+      !rightWrist?.score ||
+      rightWrist.score < 0.3 ||
+      !leftElbow?.score ||
+      leftElbow.score < 0.3 ||
+      !rightElbow?.score ||
+      rightElbow.score < 0.3 ||
+      !leftShoulder?.score ||
+      leftShoulder.score < 0.3 ||
+      !rightShoulder?.score ||
+      rightShoulder.score < 0.3 ||
+      !leftHip?.score ||
+      leftHip.score < 0.3 ||
+      !rightHip?.score ||
+      rightHip.score < 0.3 ||
+      !leftKnee?.score ||
+      leftKnee.score < 0.3 ||
+      !rightKnee?.score ||
+      rightKnee.score < 0.3 ||
+      !leftAnkle?.score ||
+      leftAnkle.score < 0.3 ||
+      !rightAnkle?.score ||
+      rightAnkle.score < 0.3
+    ) {
+      return;
+    }
+
+    // คำนวณมุมเข่าซ้ายและขวา
+    const leftKneeAngle = calculateAngle(leftHip, leftKnee, leftAnkle);
+    const rightKneeAngle = calculateAngle(rightHip, rightKnee, rightAnkle);
+    const avgKneeAngle = (leftKneeAngle + rightKneeAngle) / 2;
+    gobletSquatKneeAngleRef.current = avgKneeAngle;
+
+    // ตรวจสอบตำแหน่งดัมเบล (ข้อมือควรอยู่ระดับอกหรือสูงกว่า)
+    const shoulderMidY = (leftShoulder.y + rightShoulder.y) / 2;
+    const wristMidY = (leftWrist.y + rightWrist.y) / 2;
+    const dumbbellAtChest = wristMidY <= shoulderMidY + 30; // อนุญาตให้ต่ำกว่าไหล่เล็กน้อย
+    gobletSquatDumbbellPositionRef.current = dumbbellAtChest;
+
+    // ตรวจสอบท่าทางหลังตรง (ไหล่และสะโพกควรอยู่ในแนวเดียวกัน)
+    const shoulderMidX = (leftShoulder.x + rightShoulder.x) / 2;
+    const hipMidX = (leftHip.x + rightHip.x) / 2;
+    const backStraight = Math.abs(shoulderMidX - hipMidX) < 30;
+    gobletSquatBackPostureRef.current = backStraight;
+
+    // ตรวจสอบว่าอยู่ในท่า Goblet Squat ลง (ย่อตัว)
+    if (
+      avgKneeAngle < 120 &&
+      gobletSquatUpPositionRef.current &&
+      dumbbellAtChest &&
+      backStraight
+    ) {
+      gobletSquatDownPositionRef.current = true;
+      gobletSquatUpPositionRef.current = false;
+      showFeedback("ย่อตัวลงแล้ว ดันสะโพกไปด้านหลังพร้อมงอเข่า");
+    }
+    // ตรวจสอบว่ากลับมายืนตรง
+    else if (
+      avgKneeAngle > 160 &&
+      gobletSquatDownPositionRef.current &&
+      dumbbellAtChest &&
+      backStraight
+    ) {
+      gobletSquatUpPositionRef.current = true;
+      gobletSquatDownPositionRef.current = false;
+      setReps((prev) => prev + 1);
+      showFeedback("ดีมาก! ทำครบ 1 ครั้ง");
+    }
+
+    // ตรวจสอบท่าทางที่ไม่ถูกต้อง - ตำแหน่งดัมเบล
+    if (!dumbbellAtChest && !gobletSquatFormWarningRef.current) {
+      showFeedback("ถือดัมเบลไว้ที่อก ใกล้ลำตัว");
+      gobletSquatFormWarningRef.current = true;
+      setTimeout(() => {
+        gobletSquatFormWarningRef.current = false;
+      }, 3000);
+    }
+
+    // ตรวจสอบท่าทางที่ไม่ถูกต้อง - ท่าทางหลัง
+    if (!backStraight && !gobletSquatFormWarningRef.current) {
+      showFeedback("รักษาหลังให้ตรง อย่าโค้งหลังมากเกินไป");
+      gobletSquatFormWarningRef.current = true;
+      setTimeout(() => {
+        gobletSquatFormWarningRef.current = false;
+      }, 3000);
+    }
+
+    // ตรวจสอบว่าเข่าไม่เลยปลายเท้ามากเกินไป
+    if (gobletSquatDownPositionRef.current) {
+      const leftKneeOverToe = leftKnee.x > leftAnkle.x + 50;
+      const rightKneeOverToe = rightKnee.x > rightAnkle.x + 50;
+      
+      if ((leftKneeOverToe || rightKneeOverToe) && !gobletSquatFormWarningRef.current) {
+        showFeedback("ระวัง! เข่าไม่เลยปลายเท้ามากจนเกินไป");
+        gobletSquatFormWarningRef.current = true;
+        setTimeout(() => {
+          gobletSquatFormWarningRef.current = false;
+        }, 3000);
+      }
+    }
+  };
+
+  // ฟังก์ชันสำหรับการตรวจจับท่า Dumbbell Romanian Deadlifts
+  const detectDumbbellRomanianDeadlifts = () => {
+    if (!posesRef.current || posesRef.current.length === 0) return;
+
+    const pose = posesRef.current[0];
+    const get = (name: string) => pose.keypoints.find((p) => p.name === name);
+
+    const leftWrist = get("left_wrist");
+    const rightWrist = get("right_wrist");
+    const leftElbow = get("left_elbow");
+    const rightElbow = get("right_elbow");
+    const leftShoulder = get("left_shoulder");
+    const rightShoulder = get("right_shoulder");
+    const leftHip = get("left_hip");
+    const rightHip = get("right_hip");
+    const leftKnee = get("left_knee");
+    const rightKnee = get("right_knee");
+    const leftAnkle = get("left_ankle");
+    const rightAnkle = get("right_ankle");
+
+    // ตรวจสอบว่า keypoints ทั้งหมดมีค่า confidence ที่เพียงพอ
+    if (
+      !leftWrist?.score ||
+      leftWrist.score < 0.3 ||
+      !rightWrist?.score ||
+      rightWrist.score < 0.3 ||
+      !leftShoulder?.score ||
+      leftShoulder.score < 0.3 ||
+      !rightShoulder?.score ||
+      rightShoulder.score < 0.3 ||
+      !leftHip?.score ||
+      leftHip.score < 0.3 ||
+      !rightHip?.score ||
+      rightHip.score < 0.3 ||
+      !leftKnee?.score ||
+      leftKnee.score < 0.3 ||
+      !rightKnee?.score ||
+      rightKnee.score < 0.3 ||
+      !leftAnkle?.score ||
+      leftAnkle.score < 0.3 ||
+      !rightAnkle?.score ||
+      rightAnkle.score < 0.3
+    ) {
+      return;
+    }
+
+    // คำนวณมุมสะโพก (Hip Hinge) - มุมระหว่างลำตัวและขา
+    const shoulderMidX = (leftShoulder.x + rightShoulder.x) / 2;
+    const shoulderMidY = (leftShoulder.y + rightShoulder.y) / 2;
+    const hipMidX = (leftHip.x + rightHip.x) / 2;
+    const hipMidY = (leftHip.y + rightHip.y) / 2;
+    const kneeMidX = (leftKnee.x + rightKnee.x) / 2;
+    const kneeMidY = (leftKnee.y + rightKnee.y) / 2;
+
+    // คำนวณมุมของลำตัว (ไหล่-สะโพก-เข่า) สำหรับ Hip Hinge
+    const hipAngle = calculateAngle(
+      { x: shoulderMidX, y: shoulderMidY },
+      { x: hipMidX, y: hipMidY },
+      { x: kneeMidX, y: kneeMidY }
+    );
+    romanianDeadliftHipAngleRef.current = hipAngle;
+
+    // ตรวจสอบการ Hip Hinge ที่ถูกต้อง (มุมสะโพกควรอยู่ระหว่าง 45-90 องศา)
+    const properHipHinge = hipAngle > 45 && hipAngle < 120;
+    romanianDeadliftHipHingeRef.current = properHipHinge;
+
+    // คำนวณมุมเข่า (ควรงอเล็กน้อยเท่านั้น)
+    const leftKneeAngle = calculateAngle(leftHip, leftKnee, leftAnkle);
+    const rightKneeAngle = calculateAngle(rightHip, rightKnee, rightAnkle);
+    const avgKneeAngle = (leftKneeAngle + rightKneeAngle) / 2;
+    
+    // ตรวจสอบความมั่นคงของเข่า (ควรงอเล็กน้อย 15-30 องศา)
+    const kneeStability = avgKneeAngle > 150 && avgKneeAngle < 180;
+    romanianDeadliftKneeStabilityRef.current = kneeStability;
+
+    // ตรวจสอบท่าทางหลังตรง
+    const backAngle = Math.atan2(shoulderMidY - hipMidY, shoulderMidX - hipMidX) * (180 / Math.PI);
+    romanianDeadliftBackAngleRef.current = Math.abs(backAngle);
+    const straightBack = romanianDeadliftBackAngleRef.current < 30 || romanianDeadliftBackAngleRef.current > 150;
+
+    // ตรวจสอบตำแหน่งดัมเบล (ควรอยู่ใกล้ขา)
+    const wristMidX = (leftWrist.x + rightWrist.x) / 2;
+    const dumbbellCloseToLegs = Math.abs(wristMidX - kneeMidX) < 50;
+
+    // ตรวจสอบท่าลง (Hip Hinge)
+    if (
+      properHipHinge &&
+      kneeStability &&
+      straightBack &&
+      dumbbellCloseToLegs &&
+      romanianDeadliftUpPositionRef.current
+    ) {
+      romanianDeadliftDownPositionRef.current = true;
+      romanianDeadliftUpPositionRef.current = false;
+      showFeedback("ดันสะโพกไปด้านหลัง รู้สึกยืดที่หลังขา");
+    }
+    // ตรวจสอบท่าขึ้น (กลับสู่ท่ายืนตรง)
+    else if (
+      hipAngle > 160 &&
+      kneeStability &&
+      straightBack &&
+      dumbbellCloseToLegs &&
+      romanianDeadliftDownPositionRef.current
+    ) {
+      romanianDeadliftUpPositionRef.current = true;
+      romanianDeadliftDownPositionRef.current = false;
+      setReps((prev) => prev + 1);
+      showFeedback("ดีมาก! ดันสะโพกไปข้างหน้า ยืนตรง");
+    }
+
+    // ตรวจสอบท่าทางที่ไม่ถูกต้อง - Hip Hinge
+    if (!properHipHinge && !romanianDeadliftFormWarningRef.current) {
+      showFeedback("ดันสะโพกไปด้านหลัง ไม่ใช่งอเข่า");
+      romanianDeadliftFormWarningRef.current = true;
+      setTimeout(() => {
+        romanianDeadliftFormWarningRef.current = false;
+      }, 3000);
+    }
+
+    // ตรวจสอบท่าทางที่ไม่ถูกต้อง - เข่างอมากเกินไป
+    if (!kneeStability && !romanianDeadliftFormWarningRef.current) {
+      showFeedback("เข่างอเล็กน้อยเท่านั้น โฟกัสที่การดันสะโพก");
+      romanianDeadliftFormWarningRef.current = true;
+      setTimeout(() => {
+        romanianDeadliftFormWarningRef.current = false;
+      }, 3000);
+    }
+
+    // ตรวจสอบท่าทางที่ไม่ถูกต้อง - หลังโค้ง
+    if (!straightBack && !romanianDeadliftFormWarningRef.current) {
+      showFeedback("รักษาหลังให้ตรง อกผาย ไหล่ถอยหลัง");
+      romanianDeadliftFormWarningRef.current = true;
+      setTimeout(() => {
+        romanianDeadliftFormWarningRef.current = false;
+      }, 3000);
+    }
+
+    // ตรวจสอบท่าทางที่ไม่ถูกต้อง - ดัมเบลห่างจากขา
+    if (!dumbbellCloseToLegs && !romanianDeadliftFormWarningRef.current) {
+      showFeedback("เก็บดัมเบลให้ใกล้ขา ลื่นไปตามขา");
+      romanianDeadliftFormWarningRef.current = true;
+      setTimeout(() => {
+        romanianDeadliftFormWarningRef.current = false;
+      }, 3000);
+    }
+  };
+
   // ฟังก์ชันคำนวณมุมระหว่างจุด 3 จุด
   const calculateAngle = (pointA: any, pointB: any, pointC: any) => {
     if (!pointA || !pointB || !pointC) return 0;
@@ -1805,6 +2098,8 @@ const Home = () => {
     { value: "dumbbellbentoverrows", label: "Dumbbell Bent-Over Rows" },
     { value: "dumbbellshoulderpress", label: "Dumbbell Shoulder Press" },
     { value: "dumbbellbicepcurls", label: "Dumbbell Bicep Curls" },
+    { value: "dumbbellromaniandeadlifts", label: "Dumbbell Romanian Deadlifts" },
+    { value: "dumbbellgobletsquat", label: "Dumbbell Goblet Squat" },
   ];
 
   return (
