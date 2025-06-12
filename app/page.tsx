@@ -6,7 +6,7 @@ import "@tensorflow/tfjs-backend-webgl";
 import * as tf from "@tensorflow/tfjs";
 
 const Home = () => {
-  const version = "1.0.4"; // กำหนดเวอร์ชันของแอปพลิเคชัน
+  const version = "1.0.5"; // กำหนดเวอร์ชันของแอปพลิเคชัน
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [reps, setReps] = useState(0);
@@ -108,6 +108,14 @@ const Home = () => {
   const bicepCurlElbowStabilityRef = useRef<boolean>(false);
   const bicepCurlWristPositionRef = useRef<boolean>(false);
 
+  // ตัวแปรสำหรับการตรวจจับท่า Dumbbell Overhead Tricep Extension
+  const tricepExtensionUpPositionRef = useRef<boolean>(true);
+  const tricepExtensionDownPositionRef = useRef<boolean>(false);
+  const tricepExtensionArmAngleRef = useRef<number>(180);
+  const tricepExtensionFormWarningRef = useRef<boolean>(false);
+  const tricepExtensionElbowStabilityRef = useRef<boolean>(false);
+  const tricepExtensionUpperArmPositionRef = useRef<boolean>(false);
+
   // ตัวแปรสำหรับการตรวจจับท่า Dumbbell Romanian Deadlifts
   const romanianDeadliftUpPositionRef = useRef<boolean>(true);
   const romanianDeadliftDownPositionRef = useRef<boolean>(false);
@@ -124,6 +132,14 @@ const Home = () => {
   const gobletSquatFormWarningRef = useRef<boolean>(false);
   const gobletSquatDumbbellPositionRef = useRef<boolean>(false);
   const gobletSquatBackPostureRef = useRef<boolean>(false);
+
+  // ตัวแปรสำหรับการตรวจจับท่า Dumbbell Side Lateral Raises
+  const lateralRaiseUpPositionRef = useRef<boolean>(false);
+  const lateralRaiseDownPositionRef = useRef<boolean>(true);
+  const lateralRaiseArmAngleRef = useRef<number>(0);
+  const lateralRaiseFormWarningRef = useRef<boolean>(false);
+  const lateralRaiseShoulderHeightRef = useRef<boolean>(false);
+  const lateralRaiseElbowBentRef = useRef<boolean>(false);
 
   // ฟังก์ชันสำหรับการพูด
   const speak = (text: string) => {
@@ -253,10 +269,16 @@ const Home = () => {
         detectDumbbellShoulderPress();
       } else if (exerciseTypeRef.current === "dumbbellbicepcurls") {
         detectDumbbellBicepCurls();
+      } else if (
+        exerciseTypeRef.current === "dumbbelloverheadtricepextension"
+      ) {
+        detectDumbbellOverheadTricepExtension();
       } else if (exerciseTypeRef.current === "dumbbellromaniandeadlifts") {
         detectDumbbellRomanianDeadlifts();
       } else if (exerciseTypeRef.current === "dumbbellgobletsquat") {
         detectDumbbellGobletSquat();
+      } else if (exerciseTypeRef.current === "dumbbellsidelateralraises") {
+        detectDumbbellSideLateralRaises();
       }
     }
   };
@@ -1367,10 +1389,13 @@ const Home = () => {
     const hipMidY = (leftHip.y + rightHip.y) / 2;
     const shoulderMidX = (leftShoulder.x + rightShoulder.x) / 2;
     const hipMidX = (leftHip.x + rightHip.x) / 2;
-    
+
     // คำนวณมุมของลำตัวเทียบกับแนวดิ่ง
-    const torsoAngle = Math.atan2(shoulderMidY - hipMidY, shoulderMidX - hipMidX) * (180 / Math.PI);
-    const isProperPosture = Math.abs(torsoAngle) < 20 || Math.abs(torsoAngle) > 160;
+    const torsoAngle =
+      Math.atan2(shoulderMidY - hipMidY, shoulderMidX - hipMidX) *
+      (180 / Math.PI);
+    const isProperPosture =
+      Math.abs(torsoAngle) < 20 || Math.abs(torsoAngle) > 160;
     shoulderPressProperPostureRef.current = isProperPosture;
 
     if (!isProperPosture) {
@@ -1390,8 +1415,11 @@ const Home = () => {
     shoulderPressArmAngleRef.current = avgArmAngle;
 
     // ตรวจสอบตำแหน่งข้อศอก (ควรอยู่ใต้ข้อมือและไม่กางออกด้านข้างมากเกินไป)
-    const leftElbowAlignment = leftElbow.y > leftWrist.y && Math.abs(leftElbow.x - leftShoulder.x) < 50;
-    const rightElbowAlignment = rightElbow.y > rightWrist.y && Math.abs(rightElbow.x - rightShoulder.x) < 50;
+    const leftElbowAlignment =
+      leftElbow.y > leftWrist.y && Math.abs(leftElbow.x - leftShoulder.x) < 50;
+    const rightElbowAlignment =
+      rightElbow.y > rightWrist.y &&
+      Math.abs(rightElbow.x - rightShoulder.x) < 50;
     const properElbowAlignment = leftElbowAlignment && rightElbowAlignment;
     shoulderPressElbowAlignmentRef.current = properElbowAlignment;
 
@@ -1435,7 +1463,10 @@ const Home = () => {
     // ตรวจสอบการยกน้ำหนักเหนือศีรษะที่ไม่ถูกต้อง
     if (
       avgArmAngle > 160 &&
-      (!nose?.score || nose.score < 0.3 || leftWrist.y > nose.y || rightWrist.y > nose.y) &&
+      (!nose?.score ||
+        nose.score < 0.3 ||
+        leftWrist.y > nose.y ||
+        rightWrist.y > nose.y) &&
       !shoulderPressFormWarningRef.current
     ) {
       showFeedback("ยกดัมเบลขึ้นเหนือศีรษะให้สูงกว่าหัว");
@@ -1490,7 +1521,7 @@ const Home = () => {
     const leftElbowToShoulder = Math.abs(leftElbow.x - leftShoulder.x);
     const rightElbowToShoulder = Math.abs(rightElbow.x - rightShoulder.x);
     const shoulderWidth = Math.abs(leftShoulder.x - rightShoulder.x);
-    const properElbowPosition = 
+    const properElbowPosition =
       (leftElbowToShoulder + rightElbowToShoulder) / 2 < shoulderWidth * 0.3;
     bicepCurlElbowStabilityRef.current = properElbowPosition;
 
@@ -1539,6 +1570,276 @@ const Home = () => {
       bicepCurlFormWarningRef.current = true;
       setTimeout(() => {
         bicepCurlFormWarningRef.current = false;
+      }, 3000);
+    }
+  };
+
+  // ฟังก์ชันสำหรับการตรวจจับท่า Dumbbell Overhead Tricep Extension
+  const detectDumbbellOverheadTricepExtension = () => {
+    if (!posesRef.current || posesRef.current.length === 0) return;
+
+    const pose = posesRef.current[0];
+    const get = (name: string) => pose.keypoints.find((p) => p.name === name);
+
+    const leftWrist = get("left_wrist");
+    const rightWrist = get("right_wrist");
+    const leftElbow = get("left_elbow");
+    const rightElbow = get("right_elbow");
+    const leftShoulder = get("left_shoulder");
+    const rightShoulder = get("right_shoulder");
+    const leftHip = get("left_hip");
+    const rightHip = get("right_hip");
+    const nose = get("nose");
+
+    // ตรวจสอบว่า keypoints ทั้งหมดมีค่า confidence ที่เพียงพอ
+    if (
+      !leftWrist?.score ||
+      leftWrist.score < 0.3 ||
+      !rightWrist?.score ||
+      rightWrist.score < 0.3 ||
+      !leftElbow?.score ||
+      leftElbow.score < 0.3 ||
+      !rightElbow?.score ||
+      rightElbow.score < 0.3 ||
+      !leftShoulder?.score ||
+      leftShoulder.score < 0.3 ||
+      !rightShoulder?.score ||
+      rightShoulder.score < 0.3 ||
+      !leftHip?.score ||
+      leftHip.score < 0.3 ||
+      !rightHip?.score ||
+      rightHip.score < 0.3
+    ) {
+      return;
+    }
+
+    // ตรวจสอบท่ายืนที่ถูกต้อง (ลำตัวตั้งตรง)
+    const shoulderMidY = (leftShoulder.y + rightShoulder.y) / 2;
+    const hipMidY = (leftHip.y + rightHip.y) / 2;
+    const shoulderMidX = (leftShoulder.x + rightShoulder.x) / 2;
+    const hipMidX = (leftHip.x + rightHip.x) / 2;
+
+    // คำนวณมุมของลำตัวเทียบกับแนวดิ่ง
+    const torsoAngle =
+      Math.atan2(shoulderMidY - hipMidY, shoulderMidX - hipMidX) *
+      (180 / Math.PI);
+    const isProperPosture =
+      Math.abs(torsoAngle) < 20 || Math.abs(torsoAngle) > 160;
+
+    if (!isProperPosture) {
+      if (!tricepExtensionFormWarningRef.current) {
+        showFeedback("ยืนตัวตรง เท้าแยกเท่าไหล่ เกร็งหลัง");
+        tricepExtensionFormWarningRef.current = true;
+      }
+      return;
+    } else {
+      tricepExtensionFormWarningRef.current = false;
+    }
+
+    // คำนวณมุมแขนซ้ายและขวา (ไหล่-ข้อศอก-ข้อมือ)
+    const leftArmAngle = calculateAngle(leftShoulder, leftElbow, leftWrist);
+    const rightArmAngle = calculateAngle(rightShoulder, rightElbow, rightWrist);
+    const avgArmAngle = (leftArmAngle + rightArmAngle) / 2;
+    tricepExtensionArmAngleRef.current = avgArmAngle;
+
+    // ตรวจสอบตำแหน่งข้อศอก (ควรชี้ไปข้างหน้าและไม่เคลื่อนไหว)
+    const leftElbowStability = Math.abs(leftElbow.x - leftShoulder.x) < 50;
+    const rightElbowStability = Math.abs(rightElbow.x - rightShoulder.x) < 50;
+    const properElbowStability = leftElbowStability && rightElbowStability;
+    tricepExtensionElbowStabilityRef.current = properElbowStability;
+
+    // ตรวจสอบตำแหน่งต้นแขน (ควรอยู่ในแนวดิ่งหรือเอียงเล็กน้อย)
+    const leftUpperArmAngle =
+      Math.atan2(leftElbow.y - leftShoulder.y, leftElbow.x - leftShoulder.x) *
+      (180 / Math.PI);
+    const rightUpperArmAngle =
+      Math.atan2(
+        rightElbow.y - rightShoulder.y,
+        rightElbow.x - rightShoulder.x
+      ) *
+      (180 / Math.PI);
+    const avgUpperArmAngle =
+      (Math.abs(leftUpperArmAngle) + Math.abs(rightUpperArmAngle)) / 2;
+    const properUpperArmPosition =
+      avgUpperArmAngle < 45 || avgUpperArmAngle > 135;
+    tricepExtensionUpperArmPositionRef.current = properUpperArmPosition;
+
+    // ตรวจสอบท่าเหยียดขึ้น (แขนเหยียดตรงเหนือศีรษะ)
+    if (
+      avgArmAngle > 160 &&
+      tricepExtensionDownPositionRef.current &&
+      properElbowStability &&
+      properUpperArmPosition &&
+      nose?.score &&
+      nose.score > 0.3 &&
+      leftWrist.y < nose.y &&
+      rightWrist.y < nose.y
+    ) {
+      tricepExtensionUpPositionRef.current = true;
+      tricepExtensionDownPositionRef.current = false;
+      setReps((prev) => prev + 1);
+      showFeedback("ดีมาก! เหยียดแขนขึ้นเหนือศีรษะสำเร็จ");
+    }
+    // ตรวจสอบท่างอลง (แขนงอลงหลังศีรษะ)
+    else if (
+      avgArmAngle < 90 &&
+      tricepExtensionUpPositionRef.current &&
+      properElbowStability &&
+      properUpperArmPosition
+    ) {
+      tricepExtensionDownPositionRef.current = true;
+      tricepExtensionUpPositionRef.current = false;
+      showFeedback("งอลงหลังศีรษะ เก็บศอกให้ชี้ไปข้างหน้า");
+    }
+
+    // ตรวจสอบท่าทางที่ไม่ถูกต้อง - ข้อศอกเคลื่อนไหว
+    if (!properElbowStability && !tricepExtensionFormWarningRef.current) {
+      showFeedback("เก็บศอกให้นิ่ง ชี้ไปข้างหน้า ไม่เคลื่อนไหวต้นแขน");
+      tricepExtensionFormWarningRef.current = true;
+      setTimeout(() => {
+        tricepExtensionFormWarningRef.current = false;
+      }, 3000);
+    }
+
+    // ตรวจสอบท่าทางที่ไม่ถูกต้อง - ต้นแขนไม่อยู่ในตำแหน่งที่ถูกต้อง
+    if (!properUpperArmPosition && !tricepExtensionFormWarningRef.current) {
+      showFeedback("เก็บต้นแขนให้ตั้งตรงหรือเอียงเล็กน้อย");
+      tricepExtensionFormWarningRef.current = true;
+      setTimeout(() => {
+        tricepExtensionFormWarningRef.current = false;
+      }, 3000);
+    }
+
+    // ตรวจสอบการเหยียดแขนที่ไม่เต็มที่
+    if (
+      avgArmAngle > 140 &&
+      avgArmAngle < 160 &&
+      !tricepExtensionFormWarningRef.current
+    ) {
+      showFeedback("เหยียดแขนให้เต็มที่ จนแขนตรง");
+      tricepExtensionFormWarningRef.current = true;
+      setTimeout(() => {
+        tricepExtensionFormWarningRef.current = false;
+      }, 3000);
+    }
+  };
+
+  // ฟังก์ชันสำหรับการตรวจจับท่า Dumbbell Side Lateral Raises
+  const detectDumbbellSideLateralRaises = () => {
+    if (!posesRef.current || posesRef.current.length === 0) return;
+
+    const pose = posesRef.current[0];
+    const get = (name: string) => pose.keypoints.find((p) => p.name === name);
+
+    const leftWrist = get("left_wrist");
+    const rightWrist = get("right_wrist");
+    const leftElbow = get("left_elbow");
+    const rightElbow = get("right_elbow");
+    const leftShoulder = get("left_shoulder");
+    const rightShoulder = get("right_shoulder");
+    const leftHip = get("left_hip");
+    const rightHip = get("right_hip");
+
+    // ตรวจสอบว่า keypoints ทั้งหมดมีค่า confidence ที่เพียงพอ
+    if (
+      !leftWrist?.score ||
+      leftWrist.score < 0.3 ||
+      !rightWrist?.score ||
+      rightWrist.score < 0.3 ||
+      !leftElbow?.score ||
+      leftElbow.score < 0.3 ||
+      !rightElbow?.score ||
+      rightElbow.score < 0.3 ||
+      !leftShoulder?.score ||
+      leftShoulder.score < 0.3 ||
+      !rightShoulder?.score ||
+      rightShoulder.score < 0.3 ||
+      !leftHip?.score ||
+      leftHip.score < 0.3 ||
+      !rightHip?.score ||
+      rightHip.score < 0.3
+    ) {
+      return;
+    }
+
+    // คำนวณมุมแขนซ้ายและขวา (ไหล่-ข้อศอก-ข้อมือ)
+    const leftArmAngle = calculateAngle(leftShoulder, leftElbow, leftWrist);
+    const rightArmAngle = calculateAngle(rightShoulder, rightElbow, rightWrist);
+    const avgArmAngle = (leftArmAngle + rightArmAngle) / 2;
+    lateralRaiseArmAngleRef.current = avgArmAngle;
+
+    // ตรวจสอบว่าแขนยกขึ้นระดับไหล่ (ข้อมือควรอยู่ระดับไหล่หรือสูงกว่า)
+    const shoulderHeight = (leftShoulder.y + rightShoulder.y) / 2;
+    const wristHeight = (leftWrist.y + rightWrist.y) / 2;
+    const armsAtShoulderHeight = wristHeight <= shoulderHeight + 20; // อนุญาตให้สูงกว่าไหล่เล็กน้อย
+    lateralRaiseShoulderHeightRef.current = armsAtShoulderHeight;
+
+    // ตรวจสอบว่าข้อศอกงอเล็กน้อย (ไม่ตรงสนิท)
+    const elbowsBent = avgArmAngle > 160 && avgArmAngle < 180;
+    lateralRaiseElbowBentRef.current = elbowsBent;
+
+    // ตรวจสอบว่าอยู่ในท่ายกแขนขึ้น
+    if (
+      armsAtShoulderHeight &&
+      elbowsBent &&
+      lateralRaiseDownPositionRef.current
+    ) {
+      lateralRaiseUpPositionRef.current = true;
+      lateralRaiseDownPositionRef.current = false;
+      showFeedback("ยกแขนขึ้นระดับไหล่แล้ว ค้างไว้สักครู่");
+    }
+    // ตรวจสอบว่าลดแขนลงแล้ว
+    else if (
+      !armsAtShoulderHeight &&
+      wristHeight > shoulderHeight + 50 &&
+      lateralRaiseUpPositionRef.current
+    ) {
+      lateralRaiseDownPositionRef.current = true;
+      lateralRaiseUpPositionRef.current = false;
+      setReps((prev) => prev + 1);
+      showFeedback("ดีมาก! ทำครบ 1 ครั้ง");
+    }
+
+    // ตรวจสอบท่าทางที่ไม่ถูกต้อง - ยกแขนสูงเกินไป
+    if (
+      wristHeight < shoulderHeight - 30 &&
+      !lateralRaiseFormWarningRef.current
+    ) {
+      showFeedback("อย่ายกแขนสูงเกินไป ยกแค่ระดับไหล่");
+      lateralRaiseFormWarningRef.current = true;
+      setTimeout(() => {
+        lateralRaiseFormWarningRef.current = false;
+      }, 3000);
+    }
+
+    // ตรวจสอบท่าทางที่ไม่ถูกต้อง - ข้อศอกตรงเกินไป
+    if (avgArmAngle > 175 && !lateralRaiseFormWarningRef.current) {
+      showFeedback("งอข้อศอกเล็กน้อย อย่าเหยียดแขนตรงสนิท");
+      lateralRaiseFormWarningRef.current = true;
+      setTimeout(() => {
+        lateralRaiseFormWarningRef.current = false;
+      }, 3000);
+    }
+
+    // ตรวจสอบท่าทางที่ไม่ถูกต้อง - ข้อศอกงอมากเกินไป
+    if (avgArmAngle < 140 && !lateralRaiseFormWarningRef.current) {
+      showFeedback("อย่างอข้อศอกมากเกินไป ให้แขนเกือบตรง");
+      lateralRaiseFormWarningRef.current = true;
+      setTimeout(() => {
+        lateralRaiseFormWarningRef.current = false;
+      }, 3000);
+    }
+
+    // ตรวจสอบการเอียงตัว (ไหล่และสะโพกควรอยู่ในแนวเดียวกัน)
+    const shoulderMidX = (leftShoulder.x + rightShoulder.x) / 2;
+    const hipMidX = (leftHip.x + rightHip.x) / 2;
+    const bodyTilted = Math.abs(shoulderMidX - hipMidX) > 40;
+
+    if (bodyTilted && !lateralRaiseFormWarningRef.current) {
+      showFeedback("ยืนตรง อย่าเอียงตัวเวลายกแขน");
+      lateralRaiseFormWarningRef.current = true;
+      setTimeout(() => {
+        lateralRaiseFormWarningRef.current = false;
       }, 3000);
     }
   };
@@ -1657,8 +1958,11 @@ const Home = () => {
     if (gobletSquatDownPositionRef.current) {
       const leftKneeOverToe = leftKnee.x > leftAnkle.x + 50;
       const rightKneeOverToe = rightKnee.x > rightAnkle.x + 50;
-      
-      if ((leftKneeOverToe || rightKneeOverToe) && !gobletSquatFormWarningRef.current) {
+
+      if (
+        (leftKneeOverToe || rightKneeOverToe) &&
+        !gobletSquatFormWarningRef.current
+      ) {
         showFeedback("ระวัง! เข่าไม่เลยปลายเท้ามากจนเกินไป");
         gobletSquatFormWarningRef.current = true;
         setTimeout(() => {
@@ -1738,15 +2042,19 @@ const Home = () => {
     const leftKneeAngle = calculateAngle(leftHip, leftKnee, leftAnkle);
     const rightKneeAngle = calculateAngle(rightHip, rightKnee, rightAnkle);
     const avgKneeAngle = (leftKneeAngle + rightKneeAngle) / 2;
-    
+
     // ตรวจสอบความมั่นคงของเข่า (ควรงอเล็กน้อย 15-30 องศา)
     const kneeStability = avgKneeAngle > 150 && avgKneeAngle < 180;
     romanianDeadliftKneeStabilityRef.current = kneeStability;
 
     // ตรวจสอบท่าทางหลังตรง
-    const backAngle = Math.atan2(shoulderMidY - hipMidY, shoulderMidX - hipMidX) * (180 / Math.PI);
+    const backAngle =
+      Math.atan2(shoulderMidY - hipMidY, shoulderMidX - hipMidX) *
+      (180 / Math.PI);
     romanianDeadliftBackAngleRef.current = Math.abs(backAngle);
-    const straightBack = romanianDeadliftBackAngleRef.current < 30 || romanianDeadliftBackAngleRef.current > 150;
+    const straightBack =
+      romanianDeadliftBackAngleRef.current < 30 ||
+      romanianDeadliftBackAngleRef.current > 150;
 
     // ตรวจสอบตำแหน่งดัมเบล (ควรอยู่ใกล้ขา)
     const wristMidX = (leftWrist.x + rightWrist.x) / 2;
@@ -2098,8 +2406,19 @@ const Home = () => {
     { value: "dumbbellbentoverrows", label: "Dumbbell Bent-Over Rows" },
     { value: "dumbbellshoulderpress", label: "Dumbbell Shoulder Press" },
     { value: "dumbbellbicepcurls", label: "Dumbbell Bicep Curls" },
-    { value: "dumbbellromaniandeadlifts", label: "Dumbbell Romanian Deadlifts" },
+    {
+      value: "dumbbelloverheadtricepextension",
+      label: "Dumbbell Overhead Tricep Extension",
+    },
+    {
+      value: "dumbbellromaniandeadlifts",
+      label: "Dumbbell Romanian Deadlifts",
+    },
     { value: "dumbbellgobletsquat", label: "Dumbbell Goblet Squat" },
+    {
+      value: "dumbbellsidelateralraises",
+      label: "Dumbbell Side Lateral Raises",
+    },
   ];
 
   return (
