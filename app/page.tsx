@@ -92,6 +92,22 @@ const Home = () => {
   const bentOverRowFormWarningRef = useRef<boolean>(false);
   const bentOverRowProperBentRef = useRef<boolean>(false);
 
+  // ตัวแปรสำหรับการตรวจจับท่า Dumbbell Shoulder Press
+  const shoulderPressUpPositionRef = useRef<boolean>(true);
+  const shoulderPressDownPositionRef = useRef<boolean>(false);
+  const shoulderPressArmAngleRef = useRef<number>(180);
+  const shoulderPressFormWarningRef = useRef<boolean>(false);
+  const shoulderPressProperPostureRef = useRef<boolean>(false);
+  const shoulderPressElbowAlignmentRef = useRef<boolean>(false);
+
+  // ตัวแปรสำหรับการตรวจจับท่า Dumbbell Bicep Curls
+  const bicepCurlUpPositionRef = useRef<boolean>(false);
+  const bicepCurlDownPositionRef = useRef<boolean>(true);
+  const bicepCurlArmAngleRef = useRef<number>(180);
+  const bicepCurlFormWarningRef = useRef<boolean>(false);
+  const bicepCurlElbowStabilityRef = useRef<boolean>(false);
+  const bicepCurlWristPositionRef = useRef<boolean>(false);
+
   // ฟังก์ชันสำหรับการพูด
   const speak = (text: string) => {
     if (soundEnabled) {
@@ -216,6 +232,10 @@ const Home = () => {
         detectDumbbellBenchPress();
       } else if (exerciseTypeRef.current === "dumbbellbentoverrows") {
         detectDumbbellBentOverRows();
+      } else if (exerciseTypeRef.current === "dumbbellshoulderpress") {
+        detectDumbbellShoulderPress();
+      } else if (exerciseTypeRef.current === "dumbbellbicepcurls") {
+        detectDumbbellBicepCurls();
       }
     }
   };
@@ -1282,6 +1302,226 @@ const Home = () => {
     }
   };
 
+  // ฟังก์ชันสำหรับการตรวจจับท่า Dumbbell Shoulder Press
+  const detectDumbbellShoulderPress = () => {
+    if (!posesRef.current || posesRef.current.length === 0) return;
+
+    const pose = posesRef.current[0];
+    const get = (name: string) => pose.keypoints.find((p) => p.name === name);
+
+    const leftWrist = get("left_wrist");
+    const rightWrist = get("right_wrist");
+    const leftElbow = get("left_elbow");
+    const rightElbow = get("right_elbow");
+    const leftShoulder = get("left_shoulder");
+    const rightShoulder = get("right_shoulder");
+    const leftHip = get("left_hip");
+    const rightHip = get("right_hip");
+    const nose = get("nose");
+
+    // ตรวจสอบว่า keypoints ทั้งหมดมีค่า confidence ที่เพียงพอ
+    if (
+      !leftWrist?.score ||
+      leftWrist.score < 0.3 ||
+      !rightWrist?.score ||
+      rightWrist.score < 0.3 ||
+      !leftElbow?.score ||
+      leftElbow.score < 0.3 ||
+      !rightElbow?.score ||
+      rightElbow.score < 0.3 ||
+      !leftShoulder?.score ||
+      leftShoulder.score < 0.3 ||
+      !rightShoulder?.score ||
+      rightShoulder.score < 0.3 ||
+      !leftHip?.score ||
+      leftHip.score < 0.3 ||
+      !rightHip?.score ||
+      rightHip.score < 0.3
+    ) {
+      return;
+    }
+
+    // ตรวจสอบท่านั่งที่ถูกต้อง (ลำตัวตั้งตรง)
+    const shoulderMidY = (leftShoulder.y + rightShoulder.y) / 2;
+    const hipMidY = (leftHip.y + rightHip.y) / 2;
+    const shoulderMidX = (leftShoulder.x + rightShoulder.x) / 2;
+    const hipMidX = (leftHip.x + rightHip.x) / 2;
+    
+    // คำนวณมุมของลำตัวเทียบกับแนวดิ่ง
+    const torsoAngle = Math.atan2(shoulderMidY - hipMidY, shoulderMidX - hipMidX) * (180 / Math.PI);
+    const isProperPosture = Math.abs(torsoAngle) < 20 || Math.abs(torsoAngle) > 160;
+    shoulderPressProperPostureRef.current = isProperPosture;
+
+    if (!isProperPosture) {
+      if (!shoulderPressFormWarningRef.current) {
+        showFeedback("นั่งตัวตรง หลังชิดพนักพิง เท้าแตะพื้น");
+        shoulderPressFormWarningRef.current = true;
+      }
+      return;
+    } else {
+      shoulderPressFormWarningRef.current = false;
+    }
+
+    // คำนวณมุมแขนซ้ายและขวา (ไหล่-ข้อศอก-ข้อมือ)
+    const leftArmAngle = calculateAngle(leftShoulder, leftElbow, leftWrist);
+    const rightArmAngle = calculateAngle(rightShoulder, rightElbow, rightWrist);
+    const avgArmAngle = (leftArmAngle + rightArmAngle) / 2;
+    shoulderPressArmAngleRef.current = avgArmAngle;
+
+    // ตรวจสอบตำแหน่งข้อศอก (ควรอยู่ใต้ข้อมือและไม่กางออกด้านข้างมากเกินไป)
+    const leftElbowAlignment = leftElbow.y > leftWrist.y && Math.abs(leftElbow.x - leftShoulder.x) < 50;
+    const rightElbowAlignment = rightElbow.y > rightWrist.y && Math.abs(rightElbow.x - rightShoulder.x) < 50;
+    const properElbowAlignment = leftElbowAlignment && rightElbowAlignment;
+    shoulderPressElbowAlignmentRef.current = properElbowAlignment;
+
+    // ตรวจสอบท่าดันขึ้น (แขนเหยียดตรงเหนือศีรษะ)
+    if (
+      avgArmAngle > 160 &&
+      shoulderPressDownPositionRef.current &&
+      properElbowAlignment &&
+      nose?.score &&
+      nose.score > 0.3 &&
+      leftWrist.y < nose.y &&
+      rightWrist.y < nose.y
+    ) {
+      shoulderPressUpPositionRef.current = true;
+      shoulderPressDownPositionRef.current = false;
+      setReps((prev) => prev + 1);
+      showFeedback("ดีมาก! ดันขึ้นเหนือศีรษะสำเร็จ");
+    }
+    // ตรวจสอบท่าลดลง (แขนงอประมาณ 90 องศา ข้อศอกอยู่ในระดับไหล่)
+    else if (
+      avgArmAngle < 100 &&
+      shoulderPressUpPositionRef.current &&
+      properElbowAlignment &&
+      Math.abs(leftElbow.y - leftShoulder.y) < 30 &&
+      Math.abs(rightElbow.y - rightShoulder.y) < 30
+    ) {
+      shoulderPressDownPositionRef.current = true;
+      shoulderPressUpPositionRef.current = false;
+      showFeedback("ลดลงช้าๆ ข้อศอกในระดับไหล่");
+    }
+
+    // ตรวจสอบท่าทางที่ไม่ถูกต้อง
+    if (!properElbowAlignment && !shoulderPressFormWarningRef.current) {
+      showFeedback("ข้อศอกอยู่ใต้ข้อมือ ไม่กางออกด้านข้างมากเกินไป");
+      shoulderPressFormWarningRef.current = true;
+      setTimeout(() => {
+        shoulderPressFormWarningRef.current = false;
+      }, 3000);
+    }
+
+    // ตรวจสอบการยกน้ำหนักเหนือศีรษะที่ไม่ถูกต้อง
+    if (
+      avgArmAngle > 160 &&
+      (!nose?.score || nose.score < 0.3 || leftWrist.y > nose.y || rightWrist.y > nose.y) &&
+      !shoulderPressFormWarningRef.current
+    ) {
+      showFeedback("ยกดัมเบลขึ้นเหนือศีรษะให้สูงกว่าหัว");
+      shoulderPressFormWarningRef.current = true;
+      setTimeout(() => {
+        shoulderPressFormWarningRef.current = false;
+      }, 3000);
+    }
+  };
+
+  // ฟังก์ชันสำหรับการตรวจจับท่า Dumbbell Bicep Curls
+  const detectDumbbellBicepCurls = () => {
+    if (!posesRef.current || posesRef.current.length === 0) return;
+
+    const pose = posesRef.current[0];
+    const get = (name: string) => pose.keypoints.find((p) => p.name === name);
+
+    const leftWrist = get("left_wrist");
+    const rightWrist = get("right_wrist");
+    const leftElbow = get("left_elbow");
+    const rightElbow = get("right_elbow");
+    const leftShoulder = get("left_shoulder");
+    const rightShoulder = get("right_shoulder");
+    const leftHip = get("left_hip");
+    const rightHip = get("right_hip");
+
+    // ตรวจสอบว่า keypoints ทั้งหมดมีค่า confidence ที่เพียงพอ
+    if (
+      !leftWrist?.score ||
+      leftWrist.score < 0.3 ||
+      !rightWrist?.score ||
+      rightWrist.score < 0.3 ||
+      !leftElbow?.score ||
+      leftElbow.score < 0.3 ||
+      !rightElbow?.score ||
+      rightElbow.score < 0.3 ||
+      !leftShoulder?.score ||
+      leftShoulder.score < 0.3 ||
+      !rightShoulder?.score ||
+      rightShoulder.score < 0.3
+    ) {
+      return;
+    }
+
+    // คำนวณมุมแขนซ้ายและขวา (ไหล่-ข้อศอก-ข้อมือ)
+    const leftArmAngle = calculateAngle(leftShoulder, leftElbow, leftWrist);
+    const rightArmAngle = calculateAngle(rightShoulder, rightElbow, rightWrist);
+    const avgArmAngle = (leftArmAngle + rightArmAngle) / 2;
+    bicepCurlArmAngleRef.current = avgArmAngle;
+
+    // ตรวจสอบตำแหน่งข้อศอกที่ถูกต้อง (ควรอยู่ชิดข้างลำตัว)
+    const leftElbowToShoulder = Math.abs(leftElbow.x - leftShoulder.x);
+    const rightElbowToShoulder = Math.abs(rightElbow.x - rightShoulder.x);
+    const shoulderWidth = Math.abs(leftShoulder.x - rightShoulder.x);
+    const properElbowPosition = 
+      (leftElbowToShoulder + rightElbowToShoulder) / 2 < shoulderWidth * 0.3;
+    bicepCurlElbowStabilityRef.current = properElbowPosition;
+
+    // ตรวจสอบตำแหน่งข้อมือ (ไม่งอข้อมือ)
+    const leftWristAlignment = Math.abs(leftWrist.y - leftElbow.y) > 20;
+    const rightWristAlignment = Math.abs(rightWrist.y - rightElbow.y) > 20;
+    const properWristPosition = leftWristAlignment && rightWristAlignment;
+    bicepCurlWristPositionRef.current = properWristPosition;
+
+    // ตรวจสอบท่าขึ้น (แขนงอ ข้อศอกชิดลำตัว)
+    if (
+      avgArmAngle < 60 &&
+      bicepCurlDownPositionRef.current &&
+      properElbowPosition &&
+      properWristPosition
+    ) {
+      bicepCurlUpPositionRef.current = true;
+      bicepCurlDownPositionRef.current = false;
+      setReps((prev) => prev + 1);
+      showFeedback("ดีมาก! เก็บศอกชิดลำตัว");
+    }
+    // ตรวจสอบท่าลง (แขนเหยียดลง)
+    else if (
+      avgArmAngle > 150 &&
+      bicepCurlUpPositionRef.current &&
+      properElbowPosition &&
+      properWristPosition
+    ) {
+      bicepCurlDownPositionRef.current = true;
+      bicepCurlUpPositionRef.current = false;
+      showFeedback("ลดลงช้าๆ ควบคุมน้ำหนัก");
+    }
+
+    // ตรวจสอบท่าทางที่ไม่ถูกต้อง - ข้อศอกไม่ชิดลำตัว
+    if (!properElbowPosition && !bicepCurlFormWarningRef.current) {
+      showFeedback("เก็บศอกให้ชิดข้างลำตัว ไม่แกว่งเวลาออกแรง");
+      bicepCurlFormWarningRef.current = true;
+      setTimeout(() => {
+        bicepCurlFormWarningRef.current = false;
+      }, 3000);
+    }
+
+    // ตรวจสอบท่าทางที่ไม่ถูกต้อง - งอข้อมือ
+    if (!properWristPosition && !bicepCurlFormWarningRef.current) {
+      showFeedback("ไม่งอข้อมือ เพื่อโฟกัสที่กล้ามเนื้อต้นแขน");
+      bicepCurlFormWarningRef.current = true;
+      setTimeout(() => {
+        bicepCurlFormWarningRef.current = false;
+      }, 3000);
+    }
+  };
+
   // ฟังก์ชันคำนวณมุมระหว่างจุด 3 จุด
   const calculateAngle = (pointA: any, pointB: any, pointC: any) => {
     if (!pointA || !pointB || !pointC) return 0;
@@ -1563,6 +1803,8 @@ const Home = () => {
     { value: "sideplank", label: "Side Plank" },
     { value: "dumbbellbenchpress", label: "Dumbbell Bench Press" },
     { value: "dumbbellbentoverrows", label: "Dumbbell Bent-Over Rows" },
+    { value: "dumbbellshoulderpress", label: "Dumbbell Shoulder Press" },
+    { value: "dumbbellbicepcurls", label: "Dumbbell Bicep Curls" },
   ];
 
   return (
