@@ -1552,6 +1552,8 @@ const Home = () => {
     }
   };
 
+  const tricepExtensionMaxAngleRef = useRef<number>(0);
+
   // ฟังก์ชันสำหรับการตรวจจับท่า Dumbbell Overhead Tricep Extension
   const detectDumbbellOverheadTricepExtension = () => {
     if (!posesRef.current || posesRef.current.length === 0) return;
@@ -1608,11 +1610,26 @@ const Home = () => {
       leftElbowAboveShoulder && rightElbowAboveShoulder;
     tricepExtensionElbowStabilityRef.current = properElbowStability;
 
-    // ตรวจสอบตำแหน่งแขนส่วนบน (ข้อศอกควรอยู่ใกล้หู)
-    const leftElbowNearHead = Math.abs(leftElbow.x - nose.x) < 100;
-    const rightElbowNearHead = Math.abs(rightElbow.x - nose.x) < 100;
-    const properUpperArmPosition = leftElbowNearHead && rightElbowNearHead;
+    // ตรวจสอบการกางข้อศอก - ข้อศอกไม่ควรห่างจากแกนกลางตัวมากเกินไป
+    const bodyCenter = (leftShoulder.x + rightShoulder.x) / 2;
+    const leftElbowDistance = Math.abs(leftElbow.x - bodyCenter);
+    const rightElbowDistance = Math.abs(rightElbow.x - bodyCenter);
+    const shoulderWidth = Math.abs(leftShoulder.x - rightShoulder.x);
+
+    // ข้อศอกไม่ควรกางออกเกิน 1.2 เท่าของความกว้างไหล่
+    const leftElbowTooWide = leftElbowDistance > shoulderWidth * 0.6;
+    const rightElbowTooWide = rightElbowDistance > shoulderWidth * 0.6;
+    const elbowsNotTooWide = !leftElbowTooWide && !rightElbowTooWide;
+
+    // ตรวจสอบตำแหน่งแขนส่วนบน (ข้อศอกควรอยู่ใกล้หู แต่ไม่กางออกมาก)
+    const leftElbowNearHead = Math.abs(leftElbow.x - nose.x) < 120;
+    const rightElbowNearHead = Math.abs(rightElbow.x - nose.x) < 120;
+    const properUpperArmPosition =
+      leftElbowNearHead && rightElbowNearHead && elbowsNotTooWide;
     tricepExtensionUpperArmPositionRef.current = properUpperArmPosition;
+
+    // ตรวจสอบการเปลี่ยนแปลงมุมที่เพียงพอ - ป้องกันการนับเมื่อแค่ยกมือขึ้นเฉยๆ
+    const minimumAngleChange = 50; // ต้องมีการเปลี่ยนแปลงมุมอย่างน้อย 50 องศา
 
     // กำหนดท่าขึ้นและลง
     const bothArmsDown = avgArmAngle < 100; // งอแขนลงหลังศีรษะ
@@ -1622,23 +1639,37 @@ const Home = () => {
     if (
       bothArmsDown &&
       tricepExtensionUpPositionRef.current &&
-      properElbowStability
+      properElbowStability &&
+      elbowsNotTooWide
     ) {
       tricepExtensionDownPositionRef.current = true;
       tricepExtensionUpPositionRef.current = false;
-      showFeedback("งอแขนลงหลังศีรษะ เก็บศอกให้นิ่ง");
+      tricepExtensionMaxAngleRef.current = Math.max(
+        tricepExtensionMaxAngleRef.current || 0,
+        avgArmAngle
+      );
+      showFeedback("งอแขนลงหลังศีรษะ เก็บศอกให้นิ่งและไม่กาง");
     }
 
-    // ท่าเหยียดขึ้นเหนือศีรษะ (Up Position)
+    // ท่าเหยียดขึ้นเหนือศีรษะ (Up Position) - ต้องมีการเปลี่ยนแปลงมุมเพียงพอ
     else if (
       bothArmsUp &&
       tricepExtensionDownPositionRef.current &&
-      properElbowStability
+      properElbowStability &&
+      elbowsNotTooWide
     ) {
-      tricepExtensionUpPositionRef.current = true;
-      tricepExtensionDownPositionRef.current = false;
-      setReps((prev) => prev + 1);
-      showFeedback("ดีมาก! เหยียดแขนเต็มที่เหนือศีรษะ");
+      // ตรวจสอบว่ามีการเปลี่ยนแปลงมุมเพียงพอหรือไม่
+      const angleChange = Math.abs(
+        (tricepExtensionMaxAngleRef.current || 0) - avgArmAngle
+      );
+
+      if (angleChange >= minimumAngleChange) {
+        tricepExtensionUpPositionRef.current = true;
+        tricepExtensionDownPositionRef.current = false;
+        tricepExtensionMaxAngleRef.current = 0; // Reset สำหรับรอบถัดไป
+        setReps((prev) => prev + 1);
+        showFeedback("ดีมาก! เหยียดแขนเต็มที่เหนือศีรษะ");
+      }
     }
 
     // แจ้งเตือนท่าทางที่ไม่ถูกต้อง
@@ -1650,8 +1681,17 @@ const Home = () => {
       }, 3000);
     }
 
+    // แจ้งเตือนเมื่อข้อศอกกางออกมาก
+    if (!elbowsNotTooWide && !tricepExtensionFormWarningRef.current) {
+      showFeedback("อย่ากางข้อศอกออกมาก เก็บให้ใกล้ตัว");
+      tricepExtensionFormWarningRef.current = true;
+      setTimeout(() => {
+        tricepExtensionFormWarningRef.current = false;
+      }, 3000);
+    }
+
     if (!properUpperArmPosition && !tricepExtensionFormWarningRef.current) {
-      showFeedback("เก็บข้อศอกให้ใกล้หูมากขึ้น");
+      showFeedback("เก็บข้อศอกให้ใกล้หูและไม่กางออก");
       tricepExtensionFormWarningRef.current = true;
       setTimeout(() => {
         tricepExtensionFormWarningRef.current = false;
