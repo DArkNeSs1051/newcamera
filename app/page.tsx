@@ -1567,6 +1567,7 @@ const Home = () => {
     const Lw = get("left_wrist"),
       Rw = get("right_wrist");
     const nose = get("nose");
+
     if (
       ![Ls, Rs, Le, Re, Lw, Rw, nose].every(
         (kp) => kp?.score != null && kp.score >= 0.3
@@ -1576,7 +1577,7 @@ const Home = () => {
 
     if (!Ls || !Rs || !Le || !Re || !Lw || !Rw || !nose) return;
 
-    // คำนวณมุมแขน
+    // คำนวณมุมแขน (Shoulder-Elbow-Wrist)
     const angleL = calculateAngle(Ls, Le, Lw);
     const angleR = calculateAngle(Rs, Re, Rw);
     const avgAngle = (angleL + angleR) / 2;
@@ -1584,65 +1585,101 @@ const Home = () => {
 
     const shoulderWidth = Math.abs(Ls.x - Rs.x);
 
-    // เช็คว่าข้อมืออยู่เหนือศีรษะในแนวดิ่ง
-    const LwOff = Math.abs(Ls.x - Lw.x);
-    const RwOff = Math.abs(Rs.x - Rw.x);
-    const isVertical =
-      LwOff < shoulderWidth * 0.15 && RwOff < shoulderWidth * 0.15;
+    // ✅ เช็คว่าศอกอยู่เหนือไหล่ (ท่าเริ่มต้น)
+    const elbowsAboveShoulders = Le.y < Ls.y - 10 && Re.y < Rs.y - 10;
 
-    // ✅ ตรวจสอบว่า "ศอกอยู่ข้างศีรษะ ไม่กางออกมากเกินไป"
+    // ✅ เช็คว่าศอกอยู่ใกล้หู ไม่กางออกข้าง
     const LeXdiff = Math.abs(Le.x - nose.x);
     const ReXdiff = Math.abs(Re.x - nose.x);
-    const elbowClose =
-      LeXdiff < shoulderWidth * 0.8 && ReXdiff < shoulderWidth * 0.8;
+    const elbowsNearHead =
+      LeXdiff < shoulderWidth * 1.2 && ReXdiff < shoulderWidth * 1.2;
 
-    // ศอกอยู่ระดับสูง (หลังศีรษะ)
-    const elbowHigh = Le.y < Ls.y + 20 && Re.y < Rs.y + 20;
+    // ✅ เช็คว่าข้อมืออยู่เหนือศีรษะในท่าเหยียด
+    const wristsAboveHead = Lw.y < nose.y - 30 && Rw.y < nose.y - 30;
+
+    // ✅ เช็คว่าข้อมืออยู่ใกล้แนวกลางของร่างกาย (ไม่กางออกข้าง)
+    const centerX = (Ls.x + Rs.x) / 2;
+    const LwCenterDiff = Math.abs(Lw.x - centerX);
+    const RwCenterDiff = Math.abs(Rw.x - centerX);
+    const wristsNearCenter =
+      LwCenterDiff < shoulderWidth * 0.4 && RwCenterDiff < shoulderWidth * 0.4;
+
+    // ✅ เช็คว่าข้อมืออยู่ข้างหลังศีรษะในท่างอ (ลงต่ำกว่าศอก)
+    const wristsBehindHead = Lw.y > Le.y + 20 && Rw.y > Re.y + 20;
 
     // กำหนดสถานะท่า
-    const isDown = avgAngle < 100 && elbowClose && elbowHigh;
-    const isUp = avgAngle > 150 && isVertical && elbowHigh;
+    const isDownPosition =
+      avgAngle < 90 &&
+      elbowsAboveShoulders &&
+      elbowsNearHead &&
+      wristsBehindHead;
+    const isUpPosition =
+      avgAngle > 160 &&
+      elbowsAboveShoulders &&
+      elbowsNearHead &&
+      wristsAboveHead &&
+      wristsNearCenter;
 
-    const minChange = 50;
+    const minAngleChange = 70; // เพิ่มช่วงมุมที่ต้องเปลี่ยนแปลง
 
     // ตรวจจับการเคลื่อนไหว Down → Up
-    if (isDown && tricepExtensionUpPositionRef.current) {
+    console.log(
+      "isDownPosition && tricepExtensionUpPositionRef.current:",
+      isDownPosition && tricepExtensionUpPositionRef.current
+    );
+    if (isDownPosition && tricepExtensionUpPositionRef.current) {
       tricepExtensionDownPositionRef.current = true;
       tricepExtensionUpPositionRef.current = false;
       tricepExtensionMaxAngleRef.current = Math.max(
         tricepExtensionMaxAngleRef.current || 0,
         avgAngle
       );
-      showFeedback("งอแขนหลังศีรษะ");
-    } else if (isUp && tricepExtensionDownPositionRef.current) {
+      console.log("first");
+      showFeedback("งอแขนลงข้างหลังศีรษะ");
+    } else if (isUpPosition && tricepExtensionDownPositionRef.current) {
       const delta = Math.abs(
-        (tricepExtensionMaxAngleRef.current || 0) - avgAngle
+        avgAngle - (tricepExtensionMaxAngleRef.current || 0)
       );
-      if (delta >= minChange) {
+      console.log("delta:", delta);
+      if (delta >= minAngleChange) {
         tricepExtensionUpPositionRef.current = true;
         tricepExtensionDownPositionRef.current = false;
         tricepExtensionMaxAngleRef.current = 0;
         setReps((r) => r + 1);
-        showFeedback("✅ เหยียดแขนตรงเหนือศีรษะแบบถูกต้อง");
+        showFeedback("✅ เหยียดแขนตรงเหนือศีรษะสมบูรณ์");
       } else {
-        showFeedback("เหยียดไม่สุด ลองให้แขนตรงขึ้นอีกหน่อย");
+        showFeedback("เหยียดแขนไม่เต็มที่ ลองเหยียดให้ตรงขึ้นอีก");
       }
     }
 
-    // 💡 แจ้งเตือนถ้าศอกกางมากเกินไป
-    if (!elbowClose && !tricepExtensionFormWarningRef.current) {
-      tricepExtensionFormWarningRef.current = true;
-      showFeedback("ศอกควรอยู่ข้างศีรษะ ไม่กางออกข้าง");
-      setTimeout(() => (tricepExtensionFormWarningRef.current = false), 3000);
-    }
+    // 💡 แจ้งเตือนท่าผิด
+    // if (
+    //   elbowsAboveShoulders &&
+    //   !elbowsNearHead &&
+    //   !tricepExtensionFormWarningRef.current
+    // ) {
+    //   tricepExtensionFormWarningRef.current = true;
+    //   showFeedback("⚠️ ศอกควรอยู่ใกล้หู ไม่กางออกข้าง");
+    //   setTimeout(() => (tricepExtensionFormWarningRef.current = false), 3000);
+    // }
 
-    // 💡 แจ้งเตือนถ้าแขนไม่ตรงตอนเหยียด
-    if (!isVertical && isUp && !tricepExtensionFormWarningRef.current) {
-      tricepExtensionFormWarningRef.current = true;
-      showFeedback("เหยียดแขนให้ตรงเหนือศีรษะ");
-      setTimeout(() => (tricepExtensionFormWarningRef.current = false), 3000);
-    }
+    // if (
+    //   isUpPosition &&
+    //   !wristsNearCenter &&
+    //   !tricepExtensionFormWarningRef.current
+    // ) {
+    //   tricepExtensionFormWarningRef.current = true;
+    //   showFeedback("⚠️ เหยียดแขนให้ตรงเหนือศีรษะ อย่าให้กางออกข้าง");
+    //   setTimeout(() => (tricepExtensionFormWarningRef.current = false), 3000);
+    // }
+
+    // if (!elbowsAboveShoulders && !tricepExtensionFormWarningRef.current) {
+    //   tricepExtensionFormWarningRef.current = true;
+    //   showFeedback("⚠️ ยกศอกให้สูงเหนือไหล่");
+    //   setTimeout(() => (tricepExtensionFormWarningRef.current = false), 3000);
+    // }
   };
+
   // ฟังก์ชันสำหรับการตรวจจับท่า Dumbbell Side Lateral Raises
   const detectDumbbellSideLateralRaises = () => {
     if (!posesRef.current || posesRef.current.length === 0) return;
