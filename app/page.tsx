@@ -1637,12 +1637,12 @@ const Home = () => {
     if (!elbowClose && !tricepExtensionFormWarningRef.current) {
       showFeedback("ศอกควรแนบข้างศีรษะ ไม่กางออก");
       tricepExtensionFormWarningRef.current = true;
-      setTimeout(() => (tricepExtensionFormWarningRef.current = false), 3000);
+      setTimeout(() => (tricepExtensionFormWarningRef.current = false), 1000);
     }
     if (!isVertical && isUp && !tricepExtensionFormWarningRef.current) {
       showFeedback("เหยียดแขนให้ตรงแนวดิ่งเหนือศีรษะ");
       tricepExtensionFormWarningRef.current = true;
-      setTimeout(() => (tricepExtensionFormWarningRef.current = false), 3000);
+      setTimeout(() => (tricepExtensionFormWarningRef.current = false), 1000);
     }
   };
   // ฟังก์ชันสำหรับการตรวจจับท่า Dumbbell Side Lateral Raises
