@@ -880,110 +880,93 @@ const Home = () => {
 
   // ฟังก์ชันสำหรับการตรวจสอบท่า Plank
   const detectPlank = () => {
-    if (!posesRef.current || posesRef.current.length === 0) return;
+    const poses = posesRef.current;
+    if (!poses || poses.length === 0) return;
 
-    // ตรวจสอบตำแหน่งของร่างกาย
-    const leftShoulder = posesRef.current[0].keypoints[5];
-    const rightShoulder = posesRef.current[0].keypoints[6];
-    const leftElbow = posesRef.current[0].keypoints[7];
-    const rightElbow = posesRef.current[0].keypoints[8];
-    const leftHip = posesRef.current[0].keypoints[11];
-    const rightHip = posesRef.current[0].keypoints[12];
-    const leftKnee = posesRef.current[0].keypoints[13];
-    const rightKnee = posesRef.current[0].keypoints[14];
-    const leftAnkle = posesRef.current[0].keypoints[15];
-    const rightAnkle = posesRef.current[0].keypoints[16];
+    const p = poses[0];
+    const get = (name: string) => p.keypoints.find((k) => k.name === name);
 
-    if (
-      leftShoulder.score &&
-      rightShoulder.score &&
-      leftElbow.score &&
-      rightElbow.score &&
-      leftHip.score &&
-      rightHip.score &&
-      leftKnee.score &&
-      rightKnee.score &&
-      leftAnkle.score &&
-      rightAnkle.score &&
-      leftShoulder.score > 0.2 &&
-      rightShoulder.score > 0.2 &&
-      leftElbow.score > 0.2 &&
-      rightElbow.score > 0.2 &&
-      leftHip.score > 0.2 &&
-      rightHip.score > 0.2 &&
-      leftKnee.score > 0.2 &&
-      rightKnee.score > 0.2 &&
-      leftAnkle.score > 0.2 &&
-      rightAnkle.score > 0.2
-    ) {
-      // คำนวณมุมของลำตัว (torso) เทียบกับแนวราบ
-      const shoulderMidX = (leftShoulder.x + rightShoulder.x) / 2;
-      const shoulderMidY = (leftShoulder.y + rightShoulder.y) / 2;
-      const hipMidX = (leftHip.x + rightHip.x) / 2;
-      const hipMidY = (leftHip.y + rightHip.y) / 2;
-      const kneeMidX = (leftKnee.x + rightKnee.x) / 2;
-      const kneeMidY = (leftKnee.y + rightKnee.y) / 2;
+    const pts = [
+      "left_shoulder",
+      "right_shoulder",
+      "left_elbow",
+      "right_elbow",
+      "left_hip",
+      "right_hip",
+      "left_knee",
+      "right_knee",
+      "left_ankle",
+      "right_ankle",
+    ].map(get);
 
-      // คำนวณมุมของลำตัวเทียบกับแนวราบ
-      const torsoAngle =
-        Math.atan2(shoulderMidY - hipMidY, shoulderMidX - hipMidX) *
-        (180 / Math.PI);
-      const legAngle =
-        Math.atan2(hipMidY - kneeMidY, hipMidX - kneeMidX) * (180 / Math.PI);
+    if (pts.some((p) => !p || (p.score !== undefined && p.score < 0.2))) return;
+    const [ls, rs, le, re, lh, rh, lk, rk, la, ra] = pts as any[];
 
-      const isTorsoStraight =
-        Math.abs(torsoAngle) > 170 || Math.abs(torsoAngle) < 10;
-      const isLegStraight = Math.abs(legAngle) > 170 || Math.abs(legAngle) < 10;
+    // คำนวณมุม torso และขา สำหรับทั้งสองฝั่ง
+    const calcAngle = (A: any, B: any, C: any) =>
+      Math.atan2(A.y - B.y, A.x - B.x) * (180 / Math.PI);
 
-      // ตรวจสอบว่าอยู่ในท่า Plank ที่ถูกต้อง
-      if (isTorsoStraight && isLegStraight) {
-        // ตรวจสอบว่าหลังไม่แอ่น
-        if (
-          Math.abs(backAngleRef.current) < 20 ||
-          Math.abs(backAngleRef.current) > 160
-        ) {
-          if (!plankStartedRef.current) {
-            plankStartedRef.current = true;
-            plankProperFormRef.current = true;
-            showFeedback("เริ่มท่า Plank แล้ว เกร็งท้อง ก้นและขาตลอดเวลา");
+    const torsoL = calcAngle(ls, lh, lk);
+    const torsoR = calcAngle(rs, rh, rk);
+    const legL = calcAngle(lh, lk, la);
+    const legR = calcAngle(rh, rk, ra);
 
-            // เริ่มจับเวลา
-            if (plankTimerRef.current) {
-              clearInterval(plankTimerRef.current);
-            }
+    const isTorsoStraight =
+      Math.abs(torsoL) > 170 ||
+      Math.abs(torsoL) < 10 ||
+      Math.abs(torsoR) > 170 ||
+      Math.abs(torsoR) < 10;
 
-            setPlankTime(0);
-            plankTimerRef.current = setInterval(() => {
-              setPlankTime((prev) => prev + 1);
-            }, 1000);
-          }
+    const isLegStraight =
+      Math.abs(legL) > 150 ||
+      Math.abs(legL) < 20 ||
+      Math.abs(legR) > 150 ||
+      Math.abs(legR) < 20;
 
-          // รีเซ็ตการแจ้งเตือน
+    // คำนวณ back angle จาก midpoint
+    const midX = (ls.x + rs.x) / 2;
+    const midY = (ls.y + rs.y) / 2;
+    const hipX = (lh.x + rh.x) / 2;
+    const hipY = (lh.y + rh.y) / 2;
+    backAngleRef.current = calcAngle(
+      { x: midX, y: midY },
+      { x: hipX, y: hipY },
+      { x: hipX + 1, y: hipY }
+    );
+
+    if (isTorsoStraight && isLegStraight) {
+      const backOk =
+        Math.abs(backAngleRef.current) < 20 ||
+        Math.abs(backAngleRef.current) > 160;
+      if (backOk) {
+        if (!plankStartedRef.current) {
+          plankStartedRef.current = true;
+          plankProperFormRef.current = true;
           plankWarningGivenRef.current = false;
-        } else {
-          // หลังแอ่น
-          plankProperFormRef.current = false;
-          if (!plankWarningGivenRef.current) {
-            showFeedback(
-              "อย่าห่อสะบักและยื่นคอลงพื้น อย่าหลังแอ่น หรือกระดกก้น"
-            );
-            plankWarningGivenRef.current = true;
-          }
+          setPlankTime(0);
+          showFeedback("เริ่มท่า Plank: เกร็งท้อง ก้น และขาตลอดเวลา");
+
+          if (plankTimerRef.current) clearInterval(plankTimerRef.current);
+          plankTimerRef.current = setInterval(() => {
+            setPlankTime((prev) => prev + 1);
+          }, 1000);
         }
       } else {
-        // ไม่ได้อยู่ในท่า Plank แล้ว
-        if (plankStartedRef.current) {
-          plankStartedRef.current = false;
-          plankProperFormRef.current = false;
-
-          // หยุดจับเวลา
-          if (plankTimerRef.current) {
-            clearInterval(plankTimerRef.current);
-            plankTimerRef.current = null;
-          }
-
-          showFeedback(`จบท่า Plank แล้ว คุณทำได้ ${plankTime} วินาที`);
+        plankProperFormRef.current = false;
+        if (!plankWarningGivenRef.current) {
+          showFeedback("อย่าห่อสะบัก หรือหลังแอ่น ยกก้นขึ้น หรือยกคอลง");
+          plankWarningGivenRef.current = true;
         }
+      }
+    } else {
+      if (plankStartedRef.current) {
+        plankStartedRef.current = false;
+        plankProperFormRef.current = false;
+        if (plankTimerRef.current) {
+          clearInterval(plankTimerRef.current);
+          plankTimerRef.current = null;
+        }
+        showFeedback(`จบท่า Plank แล้ว ทำได้ ${plankTime} วินาที`);
       }
     }
   };
@@ -1048,13 +1031,13 @@ const Home = () => {
       // ตรวจสอบว่าเป็น Side Plank ด้านซ้าย
       const isLeftSidePlank =
         leftElbow.y > leftShoulder.y &&
-        Math.abs(leftElbow.x - leftShoulder.x) < 30 &&
+        Math.abs(leftElbow.x - leftShoulder.x) < 35 &&
         leftWrist.y > leftElbow.y;
 
       // ตรวจสอบว่าเป็น Side Plank ด้านขวา
       const isRightSidePlank =
         rightElbow.y > rightShoulder.y &&
-        Math.abs(rightElbow.x - rightShoulder.x) < 30 &&
+        Math.abs(rightElbow.x - rightShoulder.x) < 35 &&
         rightWrist.y > rightElbow.y;
 
       // ตรวจสอบว่าอยู่ในท่า Side Plank ที่ถูกต้อง
@@ -2383,7 +2366,7 @@ const Home = () => {
   ];
 
   return (
-    <div className="flex flex-col items-center justify-center p-2 md:p-8 gap-2 md:gap-4 bg-gray-100 w-full min-h-screen">
+    <div className="flex flex-col items-center justify-center p-2 md:p-8 gap-2 md:gap-4 bg-black w-full min-h-screen">
       <h1 className="text-xl md:text-3xl font-bold mb-2 md:mb-4">
         ระบบตรวจจับท่าออกกำลังกาย
       </h1>
