@@ -56,12 +56,6 @@ const Home = () => {
   const kneeAlignmentWarningRef = useRef<boolean>(false);
   const currentSideRef = useRef<"left" | "right">("left"); // ติดตามฝั่งที่กำลังทำ
 
-  // ตัวแปรสำหรับการตรวจจับท่า Leg Raise
-  const legRaiseUpPositionRef = useRef<boolean>(false);
-  const legRaiseDownPositionRef = useRef<boolean>(true);
-  const legAngleRef = useRef<number>(180);
-  const lowerBackWarningRef = useRef<boolean>(false);
-
   // เพิ่มตัวแปรสำหรับการจับเวลา Plank
   const [plankTime, setPlankTime] = useState(0);
   const plankTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -140,6 +134,15 @@ const Home = () => {
   const lateralRaiseFormWarningRef = useRef<boolean>(false);
   const lateralRaiseShoulderHeightRef = useRef<boolean>(false);
   const lateralRaiseElbowBentRef = useRef<boolean>(false);
+
+  // ตัวแปรสำหรับการตรวจจับท่า Leg Raise
+  const legRaiseUpPositionRef = useRef<boolean>(false);
+  const legRaiseDownPositionRef = useRef<boolean>(true);
+  const legRaiseHipAngleRef = useRef<number>(180);
+  const legRaiseFormWarningRef = useRef<boolean>(false);
+  const legRaiseBackArchWarningRef = useRef<boolean>(false);
+  const legRaiseMomentumWarningRef = useRef<boolean>(false);
+  const legRaiseControlledMovementRef = useRef<boolean>(false);
 
   // ฟังก์ชันสำหรับการพูด
   const speak = (text: string) => {
@@ -253,10 +256,10 @@ const Home = () => {
         detectSquat();
       } else if (exerciseTypeRef.current === "lunges") {
         detectLunges();
-      } else if (exerciseTypeRef.current === "legraise") {
-        detectLegRaise();
       } else if (exerciseTypeRef.current === "russiantwist") {
         detectRussianTwist();
+      } else if (exerciseTypeRef.current === "legraise") {
+        detectLegRaise();
       } else if (exerciseTypeRef.current === "plank") {
         detectPlank();
       } else if (exerciseTypeRef.current === "sideplank") {
@@ -674,61 +677,6 @@ const Home = () => {
       currentSideRef.current = side === "left" ? "right" : "left";
     }
   };
-  // ฟังก์ชันสำหรับการตรวจสอบท่า Leg Raise
-  const detectLegRaise = () => {
-    if (!posesRef.current || posesRef.current.length === 0) return;
-
-    // ตรวจสอบมุมขาและสะโพก
-    const leftHip = posesRef.current[0].keypoints[11];
-    const leftKnee = posesRef.current[0].keypoints[13];
-    const leftAnkle = posesRef.current[0].keypoints[15];
-    const leftShoulder = posesRef.current[0].keypoints[5];
-
-    if (
-      leftHip.score &&
-      leftKnee.score &&
-      leftAnkle.score &&
-      leftShoulder.score &&
-      leftHip.score > 0.2 &&
-      leftKnee.score > 0.2 &&
-      leftAnkle.score > 0.2 &&
-      leftShoulder.score > 0.2
-    ) {
-      // คำนวณมุมระหว่างลำตัวและขา
-      const legAngle =
-        (Math.atan2(leftKnee.y - leftHip.y, leftKnee.x - leftHip.x) -
-          Math.atan2(leftShoulder.y - leftHip.y, leftShoulder.x - leftHip.x)) *
-        (180 / Math.PI);
-
-      legAngleRef.current = Math.abs(legAngle);
-
-      // ตรวจสอบว่าขายกขึ้น (ท่า Leg Raise ขึ้น)
-      if (legAngleRef.current < 45 && legRaiseDownPositionRef.current) {
-        legRaiseUpPositionRef.current = true;
-        legRaiseDownPositionRef.current = false;
-        showFeedback("ยกขาขึ้นแล้ว เกร็งท้องไว้");
-
-        // ตรวจสอบหลังส่วนล่าง
-        const backAngle = Math.abs(backAngleRef.current);
-        if (backAngle > 20 && backAngle < 160) {
-          if (!lowerBackWarningRef.current) {
-            showFeedback("ระวัง! อย่าแอ่นหลังส่วนล่างมากเกินไป");
-            lowerBackWarningRef.current = true;
-          }
-        } else {
-          lowerBackWarningRef.current = false;
-        }
-      }
-      // ตรวจสอบว่าขาลดลงกลับสู่พื้น (ท่า Leg Raise ลง)
-      else if (legAngleRef.current > 160 && legRaiseUpPositionRef.current) {
-        legRaiseDownPositionRef.current = true;
-        legRaiseUpPositionRef.current = false;
-        setReps((prev) => prev + 1);
-        showFeedback("ดีมาก! ทำครบ 1 ครั้ง");
-        lowerBackWarningRef.current = false;
-      }
-    }
-  };
 
   // ตัวแปรสำหรับการตรวจจับท่า Russian Twist
   const russianTwistLeftRef = useRef<boolean>(false);
@@ -875,6 +823,181 @@ const Home = () => {
       russianTwistCenterRef.current = true;
       russianTwistLeftRef.current = false;
       russianTwistRightRef.current = false;
+    }
+  };
+
+  // ฟังก์ชันสำหรับการตรวจสอบท่า Leg Raise (ปรับลดความเข้มข้น)
+  const detectLegRaise = () => {
+    if (!posesRef.current || posesRef.current.length === 0) return;
+
+    const pose = posesRef.current[0];
+    const get = (name: string) => pose.keypoints.find((p) => p.name === name);
+
+    const leftHip = get("left_hip");
+    const rightHip = get("right_hip");
+    const leftKnee = get("left_knee");
+    const rightKnee = get("right_knee");
+    const leftAnkle = get("left_ankle");
+    const rightAnkle = get("right_ankle");
+    const leftShoulder = get("left_shoulder");
+    const rightShoulder = get("right_shoulder");
+
+    if (
+      !leftHip?.score ||
+      leftHip.score < 0.15 ||
+      !rightHip?.score ||
+      rightHip.score < 0.15 ||
+      !leftKnee?.score ||
+      leftKnee.score < 0.15 ||
+      !rightKnee?.score ||
+      rightKnee.score < 0.15 ||
+      !leftAnkle?.score ||
+      leftAnkle.score < 0.15 ||
+      !rightAnkle?.score ||
+      rightAnkle.score < 0.15
+    ) {
+      return;
+    }
+
+    const hipMidX = (leftHip.x + rightHip.x) / 2;
+    const hipMidY = (leftHip.y + rightHip.y) / 2;
+    const shoulderMidX = ((leftShoulder?.x || 0) + (rightShoulder?.x || 0)) / 2;
+    const shoulderMidY = ((leftShoulder?.y || 0) + (rightShoulder?.y || 0)) / 2;
+    const kneeMidX = (leftKnee.x + rightKnee.x) / 2;
+    const kneeMidY = (leftKnee.y + rightKnee.y) / 2;
+    const ankleMidX = (leftAnkle.x + rightAnkle.x) / 2;
+    const ankleMidY = (leftAnkle.y + rightAnkle.y) / 2;
+
+    const isLyingDown =
+      leftShoulder?.score && rightShoulder?.score
+        ? Math.abs(shoulderMidY - hipMidY) < 100
+        : true;
+
+    if (!isLyingDown) {
+      if (!legRaiseFormWarningRef.current) {
+        showFeedback("นอนหงายบนพื้น ให้ลำตัวตรง");
+        legRaiseFormWarningRef.current = true;
+      }
+      return;
+    } else {
+      legRaiseFormWarningRef.current = false;
+    }
+
+    if (leftShoulder?.score && rightShoulder?.score) {
+      const hipAngleLeft = calculateAngle(
+        { x: shoulderMidX, y: shoulderMidY },
+        { x: leftHip.x, y: leftHip.y },
+        { x: leftKnee.x, y: leftKnee.y }
+      );
+      const hipAngleRight = calculateAngle(
+        { x: shoulderMidX, y: shoulderMidY },
+        { x: rightHip.x, y: rightHip.y },
+        { x: rightKnee.x, y: rightKnee.y }
+      );
+      legRaiseHipAngleRef.current = (hipAngleLeft + hipAngleRight) / 2;
+    }
+
+    const leftLegStraight = calculateAngle(leftHip, leftKnee, leftAnkle) > 140;
+    const rightLegStraight =
+      calculateAngle(rightHip, rightKnee, rightAnkle) > 140;
+    const bothLegsStright = leftLegStraight && rightLegStraight;
+
+    if (!bothLegsStright && !legRaiseMomentumWarningRef.current) {
+      showFeedback("พยายามเหยียดขาให้ตรงมากขึ้น");
+      legRaiseMomentumWarningRef.current = true;
+      setTimeout(() => {
+        legRaiseMomentumWarningRef.current = false;
+      }, 4000);
+    }
+
+    const backArch =
+      leftShoulder?.score && rightShoulder?.score
+        ? Math.abs(shoulderMidY - hipMidY)
+        : 0;
+    if (backArch > 60 && leftShoulder?.score && rightShoulder?.score) {
+      if (!legRaiseBackArchWarningRef.current) {
+        showFeedback("พยายามกดหลังลงแนบพื้น");
+        legRaiseBackArchWarningRef.current = true;
+      }
+    } else {
+      legRaiseBackArchWarningRef.current = false;
+    }
+
+    const leftLegRaised = leftAnkle.y < leftHip.y - 40;
+    const rightLegRaised = rightAnkle.y < rightHip.y - 40;
+
+    const leftLegDown = leftAnkle.y > leftHip.y + 30;
+
+    const rightLegDown = rightAnkle.y > rightHip.y + 30;
+
+    const bothLegsRaised =
+      leftLegRaised && rightLegRaised && leftLegStraight && rightLegStraight;
+    const bothLegsDown =
+      leftLegDown && rightLegDown && leftLegStraight && rightLegStraight;
+
+    const legsInMiddlePosition =
+      (leftAnkle.y > leftHip.y - 40 && leftAnkle.y < leftHip.y + 40) ||
+      (rightAnkle.y > rightHip.y - 40 && rightAnkle.y < rightHip.y + 40);
+
+    const legsTooHigh =
+      leftShoulder?.score && rightShoulder?.score
+        ? ankleMidY < shoulderMidY - 30
+        : false;
+
+    if (legsTooHigh) {
+      showFeedback("ลดการยกขาลงเล็กน้อย");
+    }
+
+    if (
+      bothLegsRaised &&
+      !legRaiseUpPositionRef.current &&
+      legRaiseDownPositionRef.current &&
+      !legsInMiddlePosition
+    ) {
+      legRaiseUpPositionRef.current = true;
+      legRaiseDownPositionRef.current = false;
+      showFeedback("ยกขาขึ้นแล้ว ค่อยๆ ลงอย่างควบคุม");
+    } else if (
+      bothLegsDown &&
+      legRaiseUpPositionRef.current &&
+      !legRaiseDownPositionRef.current &&
+      !legsInMiddlePosition
+    ) {
+      legRaiseDownPositionRef.current = true;
+      legRaiseUpPositionRef.current = false;
+      setReps((prev) => prev + 1);
+      showFeedback("ดีมาก! ทำครบ 1 ครั้ง");
+    }
+
+    if (
+      (leftLegRaised && !rightLegRaised) ||
+      (!leftLegRaised && rightLegRaised)
+    ) {
+      if (!legRaiseMomentumWarningRef.current) {
+        showFeedback("ยกขาทั้งสองข้างพร้อมกัน");
+        legRaiseMomentumWarningRef.current = true;
+        setTimeout(() => {
+          legRaiseMomentumWarningRef.current = false;
+        }, 3000);
+      }
+    }
+
+    if (bothLegsRaised && !legRaiseMomentumWarningRef.current) {
+      showFeedback("เกร็งกล้ามเนื้อหน้าท้อง ควบคุมการเคลื่อนไหว");
+      legRaiseMomentumWarningRef.current = true;
+      setTimeout(() => {
+        legRaiseMomentumWarningRef.current = false;
+      }, 5000);
+    }
+
+    if (legsInMiddlePosition && legRaiseUpPositionRef.current) {
+      if (!legRaiseMomentumWarningRef.current) {
+        showFeedback("ลงขาให้ใกล้พื้นมากขึ้น ไม่ใช่แค่ขนานพื้น");
+        legRaiseMomentumWarningRef.current = true;
+        setTimeout(() => {
+          legRaiseMomentumWarningRef.current = false;
+        }, 3000);
+      }
     }
   };
 
@@ -2342,8 +2465,8 @@ const Home = () => {
     { value: "burpee-expert", label: "Burpee (ผู้เชี่ยวชาญ)" },
     { value: "squat", label: "Squat" },
     { value: "lunges", label: "Lunges" },
-    { value: "legraise", label: "Leg Raise" },
     { value: "russiantwist", label: "Russian Twist" },
+    { value: "legraise", label: "Leg Raise" },
     { value: "plank", label: "Plank" },
     { value: "sideplank", label: "Side Plank" },
     { value: "dumbbellbenchpress", label: "Dumbbell Bench Press" },
