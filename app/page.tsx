@@ -39,7 +39,6 @@ const Home = () => {
   const standingPositionRef = useRef<boolean>(true);
   const pushupPositionRef = useRef<boolean>(false);
   const kneeAngleRef = useRef<number>(180);
-  const hipHeightRef = useRef<number>(0);
   const prevHipHeightRef = useRef<number>(0);
   const burpeeStep = useRef<number>(0);
   const resetTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -106,9 +105,6 @@ const Home = () => {
   const tricepExtensionUpPositionRef = useRef<boolean>(true);
   const tricepExtensionDownPositionRef = useRef<boolean>(false);
   const tricepExtensionArmAngleRef = useRef<number>(180);
-  const tricepExtensionFormWarningRef = useRef<boolean>(false);
-  const tricepExtensionElbowStabilityRef = useRef<boolean>(false);
-  const tricepExtensionUpperArmPositionRef = useRef<boolean>(false);
 
   // ตัวแปรสำหรับการตรวจจับท่า Dumbbell Romanian Deadlifts
   const romanianDeadliftUpPositionRef = useRef<boolean>(true);
@@ -142,14 +138,13 @@ const Home = () => {
   const legRaiseFormWarningRef = useRef<boolean>(false);
   const legRaiseBackArchWarningRef = useRef<boolean>(false);
   const legRaiseMomentumWarningRef = useRef<boolean>(false);
-  const legRaiseControlledMovementRef = useRef<boolean>(false);
 
   // ฟังก์ชันสำหรับการพูด
   const speak = (text: string) => {
     if (soundEnabled) {
       const msg = new SpeechSynthesisUtterance(text);
       msg.lang = "th-TH"; // ตั้งค่าภาษาเป็นภาษาไทย
-      // window.speechSynthesis.speak(msg);
+      window.speechSynthesis.speak(msg);
     }
   };
 
@@ -679,11 +674,11 @@ const Home = () => {
   };
 
   // ตัวแปรสำหรับการตรวจจับท่า Russian Twist
-  const russianTwistLeftRef = useRef<boolean>(false);
-  const russianTwistRightRef = useRef<boolean>(false);
-  const russianTwistCenterRef = useRef<boolean>(true);
-  const russianTwistWarningGivenRef = useRef<boolean>(false);
-  const lastTwistDirectionRef = useRef<string>("");
+  const russianTwistLeftRef = useRef(false);
+  const russianTwistRightRef = useRef(false);
+  const russianTwistCenterRef = useRef(true);
+  const russianTwistWarningGivenRef = useRef(false);
+  const lastTwistDirectionRef = useRef("");
 
   const detectRussianTwist = () => {
     if (!posesRef.current || posesRef.current.length === 0) return;
@@ -700,7 +695,6 @@ const Home = () => {
     const leftKnee = get("left_knee");
     const rightKnee = get("right_knee");
 
-    // ตรวจสอบว่า keypoints ทั้งหมดมีค่า confidence ที่เพียงพอ
     if (
       !leftWrist?.score ||
       leftWrist.score < 0.3 ||
@@ -722,15 +716,12 @@ const Home = () => {
       return;
     }
 
-    // คำนวณจุดกึ่งกลางของไหล่และสะโพก
     const shoulderMidX = (leftShoulder.x + rightShoulder.x) / 2;
     const shoulderMidY = (leftShoulder.y + rightShoulder.y) / 2;
     const hipMidX = (leftHip.x + rightHip.x) / 2;
     const hipMidY = (leftHip.y + rightHip.y) / 2;
-    const kneeMidX = (leftKnee.x + rightKnee.x) / 2;
     const kneeMidY = (leftKnee.y + rightKnee.y) / 2;
 
-    // ตรวจสอบท่านั่งที่ถูกต้อง (เข่างอประมาณ 90 องศา)
     const leftKneeAngle = calculateAngle(leftHip, leftKnee, {
       x: leftKnee.x,
       y: leftKnee.y + 100,
@@ -741,16 +732,13 @@ const Home = () => {
     });
     const avgKneeAngle = (leftKneeAngle + rightKneeAngle) / 2;
 
-    // ตรวจสอบว่าเท้าไม่แตะพื้น (สะโพกสูงกว่าเข่า)
-    const feetOffGround = hipMidY < kneeMidY - 20;
+    const feetOffGround = hipMidY > kneeMidY + 100;
+    const isProperSitting =
+      avgKneeAngle > 20 && avgKneeAngle < 50 && feetOffGround;
 
-    // ตรวจสอบท่านั่งที่ถูกต้อง
-    const isProperSittingPosition =
-      avgKneeAngle > 70 && avgKneeAngle < 110 && feetOffGround;
-
-    if (!isProperSittingPosition) {
+    if (!isProperSitting) {
       if (!russianTwistWarningGivenRef.current) {
-        showFeedback("นั่งโดยงอเข่าประมาณ 90 องศา และยกเท้าขึ้นจากพื้น");
+        showFeedback("งอเข่าประมาณ 90° และยกเท้าขึ้นจากพื้น");
         russianTwistWarningGivenRef.current = true;
       }
       return;
@@ -758,31 +746,31 @@ const Home = () => {
       russianTwistWarningGivenRef.current = false;
     }
 
-    // คำนวณจุดกึ่งกลางของข้อมือ (แทนการจับมือ)
-    const handsMidX = (leftWrist.x + rightWrist.x) / 2;
-    const handsMidY = (leftWrist.y + rightWrist.y) / 2;
-
-    // ตรวจสอบว่าแขนอยู่ในตำแหน่งที่ถูกต้อง (ข้อมือต่ำกว่าไหล่แต่สูงกว่าสะโพก)
-    const armsInCorrectPosition =
-      handsMidY > shoulderMidY && handsMidY < hipMidY + 50;
-
-    if (!armsInCorrectPosition) {
-      showFeedback("ยกแขนขึ้นระดับอก และจับมือไว้ด้วยกัน");
+    const torsoAngle = calculateAngle(leftHip, leftShoulder, rightHip);
+    const backLeanProper = torsoAngle > 0 && torsoAngle < 35;
+    if (!backLeanProper) {
+      showFeedback("เอนไปข้างหลังประมาณ 45°");
       return;
     }
 
-    // คำนวณการหมุนลำตัว โดยเปรียบเทียบตำแหน่งมือกับแกนกึ่งกลางของลำตัว
-    const torsoMidX = (shoulderMidX + hipMidX) / 2;
-    const rotationThreshold = 40; // ระยะห่างขั้นต่ำสำหรับการหมุน
+    const handsMidX = (leftWrist.x + rightWrist.x) / 2;
+    const handsMidY = (leftWrist.y + rightWrist.y) / 2;
 
-    // ตรวจสอบการหมุนไปทางซ้าย
+    const armsInPosition = handsMidY > shoulderMidY && handsMidY < hipMidY + 50;
+
+    if (!armsInPosition) {
+      showFeedback("เหยียดแขนตรงไว้ระดับอก และจับมือไว้ด้วยกัน");
+      return;
+    }
+
+    const torsoMidX = (shoulderMidX + hipMidX) / 2;
+    const rotationThreshold = 60;
+
     const isTwistingLeft = handsMidX < torsoMidX - rotationThreshold;
-    // ตรวจสอบการหมุนไปทางขวา
+
     const isTwistingRight = handsMidX > torsoMidX + rotationThreshold;
-    // ตรวจสอบการอยู่ตรงกลาง
     const isCenter = !isTwistingLeft && !isTwistingRight;
 
-    // ตรวจจับการเคลื่อนไหวและนับครั้ง
     if (
       isTwistingLeft &&
       !russianTwistLeftRef.current &&
@@ -819,7 +807,6 @@ const Home = () => {
       isCenter &&
       (russianTwistLeftRef.current || russianTwistRightRef.current)
     ) {
-      // กลับมาตรงกลาง - เตรียมพร้อมสำหรับการหมุนครั้งต่อไป
       russianTwistCenterRef.current = true;
       russianTwistLeftRef.current = false;
       russianTwistRightRef.current = false;
