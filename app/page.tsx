@@ -363,50 +363,46 @@ const Home = () => {
   const detectJump = () => {
     if (!posesRef.current || posesRef.current.length === 0) return;
 
-    const leftHip = posesRef.current[0].keypoints[11];
-    const rightHip = posesRef.current[0].keypoints[12];
-    const leftWrist = posesRef.current[0].keypoints[9];
-    const rightWrist = posesRef.current[0].keypoints[10];
-    const leftShoulder = posesRef.current[0].keypoints[5];
-    const rightShoulder = posesRef.current[0].keypoints[6];
+    const pose = posesRef.current[0];
+    const get = (name: string) => pose.keypoints.find((p) => p.name === name);
 
+    const leftHip = get("left_hip");
+    const rightHip = get("right_hip");
+    const leftWrist = get("left_wrist");
+    const rightWrist = get("right_wrist");
+    const leftShoulder = get("left_shoulder");
+    const rightShoulder = get("right_shoulder");
+
+    const minScore = 0.2;
+
+    // ตรวจสอบว่า keypoint ทุกตัวไม่เป็น undefined และมีความแม่นยำพอ
     if (
-      leftHip.score &&
-      rightHip.score &&
-      leftWrist.score &&
-      rightWrist.score &&
-      leftShoulder.score &&
-      rightShoulder.score &&
-      leftHip.score > 0.2 &&
-      rightHip.score > 0.2 &&
-      leftWrist.score > 0.2 &&
-      rightWrist.score > 0.2 &&
-      leftShoulder.score > 0.2 &&
-      rightShoulder.score > 0.2
+      leftHip?.score &&
+      rightHip?.score &&
+      leftWrist?.score &&
+      rightWrist?.score &&
+      leftShoulder?.score &&
+      rightShoulder?.score &&
+      leftHip.score > minScore &&
+      rightHip.score > minScore &&
+      leftWrist.score > minScore &&
+      rightWrist.score > minScore &&
+      leftShoulder.score > minScore &&
+      rightShoulder.score > minScore
     ) {
-      // คำนวณความสูงเฉลี่ยของสะโพก
       const currentHipHeight = (leftHip.y + rightHip.y) / 2;
+      const hipLift = prevHipHeightRef.current - currentHipHeight;
 
-      // ตรวจจับว่ากระโดดขึ้น (เมื่อสะโพกสูงขึ้นจากตำแหน่งก่อนหน้า)
-      if (prevHipHeightRef.current - currentHipHeight > 30) {
-        // กำหนดค่า jumpDetectedRef.current เป็น true เมื่อตรวจพบการกระโดด
+      if (hipLift > 30) {
         jumpDetectedRef.current = true;
 
-        // ตรวจสอบว่ายกแขนขึ้นเหนือไหล่
         const leftArmUp = leftWrist.y < leftShoulder.y;
         const rightArmUp = rightWrist.y < rightShoulder.y;
 
-        if (leftArmUp && rightArmUp) {
-          if (!jumpWithArmsUpRef.current) {
-            jumpWithArmsUpRef.current = true;
-            showFeedback("กระโดดพร้อมยกแขน! เยี่ยมมาก");
-            setReps((prev) => prev + 1);
-          }
-        }
+        jumpWithArmsUpRef.current = leftArmUp && rightArmUp;
       } else {
-        jumpWithArmsUpRef.current = false;
-        // รีเซ็ต jumpDetectedRef.current เป็น false เมื่อไม่ได้กระโดด
         jumpDetectedRef.current = false;
+        jumpWithArmsUpRef.current = false;
       }
 
       prevHipHeightRef.current = currentHipHeight;
