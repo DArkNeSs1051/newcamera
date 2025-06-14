@@ -55,6 +55,13 @@ const Home = () => {
   const kneeAlignmentWarningRef = useRef<boolean>(false);
   const currentSideRef = useRef<"left" | "right">("left"); // ติดตามฝั่งที่กำลังทำ
 
+  // ตัวแปรสำหรับการตรวจจับท่า Russian Twist
+  const russianTwistLeftRef = useRef(false);
+  const russianTwistRightRef = useRef(false);
+  const russianTwistCenterRef = useRef(true);
+  const russianTwistWarningGivenRef = useRef(false);
+  const lastTwistDirectionRef = useRef("");
+
   // เพิ่มตัวแปรสำหรับการจับเวลา Plank
   const [plankTime, setPlankTime] = useState(0);
   const plankTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -421,67 +428,87 @@ const Home = () => {
   const detectBeginnerBurpee = () => {
     if (!posesRef.current || posesRef.current.length === 0) return;
 
+    // อัปเดตค่าท่าทางต่าง ๆ
     inUpPosition();
     inDownPosition();
     updateKneeAngle();
     detectSquatPosition();
 
-    // ตรวจสอบว่าอยู่ในท่า Push Up หรือไม่
-    if (downPositionRef.current || upPositionRef.current) {
-      pushupPositionRef.current = true;
-    } else {
-      pushupPositionRef.current = false;
-    }
+    const isInPushup = downPositionRef.current || upPositionRef.current;
+    const isStanding = standingPositionRef.current;
+    const isSquatting = squatPositionRef.current;
+    const isJumping = jumpDetectedRef.current;
+    const isArmsUp = jumpWithArmsUpRef.current;
 
-    // Step 0: เริ่มจากยืน
-    if (burpeeStep.current === 0 && standingPositionRef.current) {
-      if (squatPositionRef.current) {
-        burpeeStep.current = 1;
-        showFeedback("ย่อตัวลงแล้วเตรียมตั้งท่า Push Up");
-      }
-    }
-    // Step 1: ย่อตัวไปตั้งท่า Push Up
-    else if (burpeeStep.current === 1) {
-      if (pushupPositionRef.current) {
-        burpeeStep.current = 2;
-        showFeedback("ทำท่า Push Up แล้วกลับมาอยู่ในท่าย่อตัว");
-      } else if (!squatPositionRef.current && !pushupPositionRef.current) {
-        showFeedback("ทำท่า Push Up");
-      }
-    }
-    // Step 2: จากท่า Push Up กลับขึ้นมานั่งยอง
-    else if (burpeeStep.current === 2) {
-      if (squatPositionRef.current && !pushupPositionRef.current) {
-        burpeeStep.current = 3;
-        showFeedback("กระโดดพร้อมยกแขนขึ้นเหนือศีรษะ");
-      } else if (!pushupPositionRef.current && !squatPositionRef.current) {
-        showFeedback("กลับมาอยู่ในท่าย่อตัว");
-      }
-    }
-    // Step 3: จากท่าย่อตัว → กระโดด + ยกแขน
-    else if (burpeeStep.current === 3) {
-      if (jumpDetectedRef.current) {
-        if (!jumpWithArmsUpRef.current) {
-          showFeedback("กรุณายกแขนขึ้นเหนือศีรษะเมื่อกระโดด");
-        } else {
-          burpeeStep.current = 0;
-          setReps((prev) => prev + 1);
-          showFeedback("ดีมาก! ทำครบ 1 ครั้ง");
-        }
-      }
-    }
-
-    // Optional: หากไม่ทำต่อใน 3 วินาทีให้รีเซ็ต step
+    // เคลียร์ Timeout เดิมหากมี
     if (resetTimeoutRef.current) {
       clearTimeout(resetTimeoutRef.current);
     }
 
+    // ตรวจสอบตามลำดับ step อย่างเข้มงวด
+    switch (burpeeStep.current) {
+      case 0:
+        if (isStanding) {
+          showFeedback("เริ่มจากยืนตรง");
+          if (isSquatting) {
+            burpeeStep.current = 1;
+            showFeedback("ย่อตัวลงแล้วเตรียมตั้งท่า Push Up");
+          }
+        }
+        break;
+
+      case 1:
+        if (isInPushup) {
+          burpeeStep.current = 2;
+          showFeedback("ทำท่า Push Up แล้วกลับมานั่งยอง");
+        } else if (!isSquatting) {
+          showFeedback("ทำท่า Push Up ให้ชัดเจน");
+        }
+        break;
+
+      case 2:
+        if (isSquatting && !isInPushup) {
+          burpeeStep.current = 3;
+          showFeedback("กระโดดพร้อมยกแขนขึ้นเหนือศีรษะ");
+        } else if (!isSquatting && !isInPushup) {
+          showFeedback("กลับมาอยู่ในท่าย่อตัวก่อน");
+        }
+        break;
+
+      case 3:
+        if (isJumping) {
+          if (!isArmsUp) {
+            showFeedback("กรุณายกแขนขึ้นเหนือศีรษะเมื่อกระโดด");
+          } else {
+            // นับครบ 1 ครั้ง
+            burpeeStep.current = 0;
+            setReps((prev) => prev + 1);
+            showFeedback("ดีมาก! ทำครบ 1 ครั้ง");
+          }
+        }
+        break;
+
+      default:
+        burpeeStep.current = 0;
+        break;
+    }
+
+    // ตั้ง timeout ให้รีเซ็ต step หากหยุดนิ่งเกิน 3 วินาที
     resetTimeoutRef.current = setTimeout(() => {
       if (burpeeStep.current !== 0) {
-        showFeedback("เริ่มใหม่อีกครั้ง");
         burpeeStep.current = 0;
+        showFeedback("หยุดนานเกินไป เริ่มใหม่อีกครั้ง");
       }
     }, 3000);
+
+    // Debug (แนะนำลบตอนโปรดักชัน)
+    console.log("Burpee Step:", burpeeStep.current, {
+      standing: isStanding,
+      squat: isSquatting,
+      pushup: isInPushup,
+      jump: isJumping,
+      armsUp: isArmsUp,
+    });
   };
 
   // ฟังก์ชันสำหรับการตรวจสอบท่า Burpee แบบผู้เชี่ยวชาญ
@@ -673,13 +700,7 @@ const Home = () => {
     }
   };
 
-  // ตัวแปรสำหรับการตรวจจับท่า Russian Twist
-  const russianTwistLeftRef = useRef(false);
-  const russianTwistRightRef = useRef(false);
-  const russianTwistCenterRef = useRef(true);
-  const russianTwistWarningGivenRef = useRef(false);
-  const lastTwistDirectionRef = useRef("");
-
+  // ฟังก์ชันสำหรับตรวจจับท่า Russian Twist
   const detectRussianTwist = () => {
     if (!posesRef.current || posesRef.current.length === 0) return;
 
