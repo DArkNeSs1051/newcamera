@@ -399,7 +399,12 @@ const Home = () => {
         const leftArmUp = leftWrist.y < leftShoulder.y;
         const rightArmUp = rightWrist.y < rightShoulder.y;
 
-        jumpWithArmsUpRef.current = leftArmUp && rightArmUp;
+        if (leftArmUp && rightArmUp) {
+          if (!jumpWithArmsUpRef.current) {
+            jumpWithArmsUpRef.current = true;
+            showFeedback("กระโดดพร้อมยกแขน! เยี่ยมมาก");
+          }
+        }
       } else {
         jumpDetectedRef.current = false;
         jumpWithArmsUpRef.current = false;
