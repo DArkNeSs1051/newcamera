@@ -2463,12 +2463,16 @@ const Home = () => {
     },
   ];
 
+  const [a, setA] = useState();
+
   useEffect(() => {
     // 👂 ฟังข้อความจาก React Native WebView
     const handleMessage = (event: MessageEvent<any>) => {
       try {
         const data = JSON.parse(event.data);
         console.log("📥 ได้ข้อมูลจาก WebView:", data);
+
+        setA(data.token);
 
         // เช่น data.token -> ทำอะไรต่อได้เลย
       } catch (error) {
@@ -2488,7 +2492,7 @@ const Home = () => {
   return (
     <div className="flex flex-col items-center justify-center p-2 md:p-8 gap-2 md:gap-4 bg-black w-full min-h-screen">
       <h1 className="text-xl md:text-3xl font-bold mb-2 md:mb-4">
-        ระบบตรวจจับท่าออกกำลังกาย
+        ระบบตรวจจับท่าออกกำลังกาย {a}
       </h1>
 
       <div className="flex flex-wrap justify-center gap-2 mb-2 md:mb-4 w-full max-w-md md:max-w-lg">
