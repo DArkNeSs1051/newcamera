@@ -5,15 +5,6 @@ import * as poseDetection from "@tensorflow-models/pose-detection";
 import "@tensorflow/tfjs-backend-webgl";
 import * as tf from "@tensorflow/tfjs";
 
-// Add this to extend the Window type for ReactNativeWebView
-declare global {
-  interface Window {
-    ReactNativeWebView?: {
-      postMessage: (message: string) => void;
-    };
-  }
-}
-
 const Home = () => {
   const version = "1.0.5"; // กำหนดเวอร์ชันของแอปพลิเคชัน
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -2477,12 +2468,19 @@ const Home = () => {
   useEffect(() => {
     const handler = (event: MessageEvent<any>) => {
       try {
-        const data = JSON.parse(event.data);
-        setA(data.message);
-        console.log("📨 ได้ข้อมูลจากแอป:", data);
-        window.ReactNativeWebView?.postMessage(
-          JSON.stringify({ type: "debug", message: "Web ได้รับแล้ว!" })
-        );
+        // Android ใช้ event.data โดยตรง
+        const raw = event.data;
+        const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+        console.log("📨 ได้ข้อมูลจากแอป:", parsed);
+
+        if (
+          typeof window !== "undefined" &&
+          (window as any).ReactNativeWebView
+        ) {
+          (window as any).ReactNativeWebView.postMessage(
+            "Message from WebView"
+          );
+        }
       } catch (e) {
         console.error("❌ รับข้อความพัง:", e);
       }
@@ -2495,6 +2493,12 @@ const Home = () => {
       document.removeEventListener("message", handler as EventListener);
       window.removeEventListener("message", handler);
     };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && (window as any).ReactNativeWebView) {
+      (window as any).ReactNativeWebView.postMessage("Message from WebView");
+    }
   }, []);
 
   return (
