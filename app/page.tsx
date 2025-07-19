@@ -2463,37 +2463,32 @@ const Home = () => {
     },
   ];
 
-  const [a, setA] = useState();
+  const [a, setA] = useState<string | null>(null);
 
   useEffect(() => {
-    // 👂 ฟังข้อความจาก React Native WebView
-    const handleMessage = (event: MessageEvent<any>) => {
-      try {
-        const data = JSON.parse(event.data);
-        console.log("📥 ได้ข้อมูลจาก WebView:", data);
-
-        setA(data.token);
-
-        // เช่น data.token -> ทำอะไรต่อได้เลย
-      } catch (error) {
-        console.error("❌ Error parsing message:", error);
-      }
+    const handleStorage = () => {
+      const newToken = window.localStorage.getItem("token");
+      console.log("📦 token ใหม่จาก WebView:", newToken);
+      setA(newToken);
     };
 
-    document.addEventListener("message", handleMessage as EventListener); // Android
-    window.addEventListener("message", handleMessage); // iOS & WebView บางตัว
+    // 👂 ฟัง event storage (ถูกยิงจาก WebView)
+    window.addEventListener("storage", handleStorage);
+
+    // เรียกครั้งแรก
+    handleStorage();
 
     return () => {
-      document.removeEventListener("message", handleMessage as EventListener);
-      window.removeEventListener("message", handleMessage);
+      window.removeEventListener("storage", handleStorage);
     };
   }, []);
 
   return (
     <div className="flex flex-col items-center justify-center p-2 md:p-8 gap-2 md:gap-4 bg-black w-full min-h-screen">
       <h1 className="text-xl md:text-3xl font-bold mb-2 md:mb-4">
-        ระบบตรวจจับท่าออกกำลังกาย {a}
+        ระบบตรวจจับท่าออกกำลังกาย
       </h1>
+      <div className="bg-red-300 p-4">{a}</div>
 
       <div className="flex flex-wrap justify-center gap-2 mb-2 md:mb-4 w-full max-w-md md:max-w-lg">
         <select
