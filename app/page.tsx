@@ -2466,20 +2466,22 @@ const Home = () => {
   const [a, setA] = useState<string | null>(null);
 
   useEffect(() => {
-    const handleStorage = () => {
-      const newToken = window.localStorage.getItem("token");
-      console.log("📦 token ใหม่จาก WebView:", newToken);
-      setA(newToken);
+    const handler = (event: MessageEvent<any>) => {
+      try {
+        const data = JSON.parse(event.data);
+        setA(data.message);
+        console.log("📨 ได้ข้อมูลจากแอป:", data);
+      } catch (e) {
+        console.error("❌ รับข้อความพัง:", e);
+      }
     };
 
-    // 👂 ฟัง event storage (ถูกยิงจาก WebView)
-    window.addEventListener("storage", handleStorage);
-
-    // เรียกครั้งแรก
-    handleStorage();
+    document.addEventListener("message", handler as EventListener); // Android
+    window.addEventListener("message", handler); // iOS
 
     return () => {
-      window.removeEventListener("storage", handleStorage);
+      document.removeEventListener("message", handler as EventListener);
+      window.removeEventListener("message", handler);
     };
   }, []);
 
