@@ -2463,41 +2463,30 @@ const Home = () => {
     },
   ];
 
-  const [a, setA] = useState<string | null>(null);
+  const [a, setA] = useState<any>();
 
   useEffect(() => {
-    const handler = (event: MessageEvent<any>) => {
+    const handleMessage = (event: MessageEvent) => {
       try {
-        // Android ใช้ event.data โดยตรง
-        const raw = event.data;
-        const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
-        console.log("📨 ได้ข้อมูลจากแอป:", parsed);
-
-        if (
-          typeof window !== "undefined" &&
-          (window as any).ReactNativeWebView
-        ) {
-          (window as any).ReactNativeWebView.postMessage(
-            "Message from WebView"
-          );
+        const data = JSON.parse(event.data);
+        if (data?.type === "FROM_APP") {
+          setA(data.payload);
+          console.log("📥 ได้รับจากแอป:", data.payload);
         }
       } catch (e) {
-        console.error("❌ รับข้อความพัง:", e);
+        console.error("❌ รับข้อมูลพัง:", e);
       }
     };
 
-    document.addEventListener("message", handler as EventListener); // Android
-    window.addEventListener("message", handler); // iOS
-
-    return () => {
-      document.removeEventListener("message", handler as EventListener);
-      window.removeEventListener("message", handler);
-    };
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
   }, []);
 
   useEffect(() => {
     if (typeof window !== "undefined" && (window as any).ReactNativeWebView) {
-      (window as any).ReactNativeWebView.postMessage("Message from WebView");
+      (window as any).ReactNativeWebView.postMessage({
+        message: "Hello from Next.js",
+      });
     }
   }, []);
 
