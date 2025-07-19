@@ -5,6 +5,15 @@ import * as poseDetection from "@tensorflow-models/pose-detection";
 import "@tensorflow/tfjs-backend-webgl";
 import * as tf from "@tensorflow/tfjs";
 
+// Add this to extend the Window type for ReactNativeWebView
+declare global {
+  interface Window {
+    ReactNativeWebView?: {
+      postMessage: (message: string) => void;
+    };
+  }
+}
+
 const Home = () => {
   const version = "1.0.5"; // กำหนดเวอร์ชันของแอปพลิเคชัน
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -2471,6 +2480,9 @@ const Home = () => {
         const data = JSON.parse(event.data);
         setA(data.message);
         console.log("📨 ได้ข้อมูลจากแอป:", data);
+        window.ReactNativeWebView?.postMessage(
+          JSON.stringify({ type: "debug", message: "Web ได้รับแล้ว!" })
+        );
       } catch (e) {
         console.error("❌ รับข้อความพัง:", e);
       }
