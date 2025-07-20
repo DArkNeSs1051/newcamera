@@ -2542,6 +2542,14 @@ const Home = () => {
     });
   };
 
+  useEffect(() => {
+    if (a.length > 0) {
+      // เซ็ตเป็นชื่อท่าแรกของ array
+      exerciseTypeRef.current = a[0].exercise;
+      console.log("🎯 เซ็ต exerciseTypeRef แล้ว:", exerciseTypeRef.current);
+    }
+  }, [a]);
+
   return (
     <div className="flex flex-col items-center justify-center p-2 md:p-8 gap-2 md:gap-4 bg-black w-full min-h-screen">
       <h1 className="text-xl md:text-3xl font-bold mb-2 md:mb-4">
@@ -2613,7 +2621,7 @@ const Home = () => {
         </div>
       )}
 
-      {/* <div className="mt-2 md:mt-4 p-3 md:p-4 bg-white rounded-lg shadow-md w-full max-w-md md:max-w-lg">
+      <div className="mt-2 md:mt-4 p-3 md:p-4 bg-white rounded-lg shadow-md w-full max-w-md md:max-w-lg">
         <h2 className="text-xl md:text-2xl font-semibold text-black">
           {exerciseType === "plank"
             ? `เวลา Plank: ${plankTime} วินาที`
@@ -2635,7 +2643,7 @@ const Home = () => {
           </p>
         )}
       </div>
-      <div className="text-sm">Version {version}</div> */}
+      <div className="text-sm">Version {version}</div>
     </div>
   );
 };
