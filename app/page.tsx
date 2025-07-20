@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import * as poseDetection from "@tensorflow-models/pose-detection";
-import "@tensorflow/tfjs-backend-webgl";
 import * as tf from "@tensorflow/tfjs";
+import "@tensorflow/tfjs-backend-webgl";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 const Home = () => {
   const version = "1.0.5"; // กำหนดเวอร์ชันของแอปพลิเคชัน
@@ -2463,12 +2463,24 @@ const Home = () => {
     },
   ];
 
-  const [a, setA] = useState<any>();
+  type TExercise = {
+    id: string;
+    exercise: string;
+    target: string;
+    sets: string;
+    rest: string;
+    reps?: string;
+    duration?: string;
+  };
+
+  const [a, setA] = useState<TExercise[]>([]);
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       try {
         const data = JSON.parse(event.data);
+        console.log("event.data:", event.data);
+        console.log("data:", data);
         if (data?.type === "FROM_APP") {
           setA(data.payload);
           console.log("📥 ได้รับจากแอป:", data.payload);
@@ -2484,18 +2496,38 @@ const Home = () => {
 
   useEffect(() => {
     if (typeof window !== "undefined" && (window as any).ReactNativeWebView) {
-      (window as any).ReactNativeWebView.postMessage({
-        message: "Hello from Next.js",
-      });
+      (window as any).ReactNativeWebView.postMessage(
+        JSON.stringify({
+          message: "Hello from Next.js asd", // ✅ stringified
+        })
+      );
     }
   }, []);
+
+  const optionSet = useMemo(() => {
+    return a.map((item) => ({
+      value: item.exercise.toLocaleLowerCase(),
+      label: item.exercise,
+    }));
+  }, [a]);
 
   return (
     <div className="flex flex-col items-center justify-center p-2 md:p-8 gap-2 md:gap-4 bg-black w-full min-h-screen">
       <h1 className="text-xl md:text-3xl font-bold mb-2 md:mb-4">
         ระบบตรวจจับท่าออกกำลังกาย
       </h1>
-      <div className="bg-red-300 p-4">{a}</div>
+      {/* <div className="bg-red-300 p-4">
+        {Array.isArray(a) &&
+          a.map((item, index) => (
+            <div key={index}>
+              <div>Exercise: {item.exercise}</div>
+              <div>Sets: {item.sets}</div>
+              <div>Reps: {item.reps}</div>
+              <div>Rest: {item.rest}</div>
+              <div>Target: {item.target}</div>
+            </div>
+          ))}
+      </div> */}
 
       <div className="flex flex-wrap justify-center gap-2 mb-2 md:mb-4 w-full max-w-md md:max-w-lg">
         <select
@@ -2518,7 +2550,7 @@ const Home = () => {
           }}
           className="px-4 py-2 rounded-lg bg-gray-200 text-black w-full md:w-auto"
         >
-          {poseOption.map((v) => (
+          {optionSet.map((v) => (
             <option key={v.value} value={v.value}>
               {v.label}
             </option>
