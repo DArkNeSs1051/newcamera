@@ -2503,9 +2503,7 @@ const Home = () => {
           exercise: item.exercise,
           stepNumber: index + 1,
           setNumber: i,
-          repsOrDuration: item.reps
-            ? `${item.reps} ครั้ง`
-            : item.duration ?? "-",
+          repsOrDuration: item.reps ? `${item.reps}` : item.duration ?? "-",
           restTime: `${item.rest} นาที`,
           totalReps: reps,
         });
@@ -2525,7 +2523,7 @@ const Home = () => {
     setReps((prev) => {
       const newReps = prev + 1;
 
-      if (newReps >= currentStep.totalReps) {
+      if (newReps >= +currentStep.repsOrDuration) {
         // ✅ ครบเซ็ตแล้ว
         console.log("✅ เซ็ตครบแล้ว:", currentStep);
 
@@ -2616,7 +2614,7 @@ const Home = () => {
           <div>ท่าที่: {currentStep.exercise}</div>
           <div>เซ็ต: {currentStep.setNumber}</div>
           <div>
-            ทำไปแล้ว: {reps} / {currentStep.totalReps}
+            ทำไปแล้ว: {reps} / {currentStep.repsOrDuration}
           </div>
         </div>
       )}
