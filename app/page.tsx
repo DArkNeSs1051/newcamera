@@ -568,7 +568,8 @@ const Home = () => {
     else if (kneeAngleRef.current > 160 && squatDownPositionRef.current) {
       squatUpPositionRef.current = true;
       squatDownPositionRef.current = false;
-      setReps((prev) => prev + 1);
+      // setReps((prev) => prev + 1);
+      handleDoOneRep();
       showFeedback("ดีมาก! ทำครบ 1 ครั้ง");
     }
 
@@ -2444,6 +2445,15 @@ const Home = () => {
     duration?: string;
   };
 
+  type TExerciseStep = {
+    exercise: string;
+    stepNumber: number;
+    setNumber: number;
+    repsOrDuration: string;
+    restTime: string;
+    totalReps: number; // สำหรับตรวจจับ
+  };
+
   const [a, setA] = useState<TExercise[]>([]);
 
   useEffect(() => {
@@ -2482,11 +2492,74 @@ const Home = () => {
     }));
   }, [a]);
 
+  const getExerciseSteps = (exerciseList: TExercise[]): TExerciseStep[] => {
+    const steps: TExerciseStep[] = [];
+
+    exerciseList.forEach((item, index) => {
+      const sets = parseInt(item.sets, 10) || 1;
+
+      for (let i = 1; i <= sets; i++) {
+        steps.push({
+          exercise: item.exercise,
+          stepNumber: index + 1,
+          setNumber: i,
+          repsOrDuration: item.reps
+            ? `${item.reps} ครั้ง`
+            : item.duration ?? "-",
+          restTime: `${item.rest} นาที`,
+          totalReps: reps,
+        });
+      }
+    });
+
+    return steps;
+  };
+
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+
+  // const steps = getExerciseSteps(a);
+  const steps = useMemo(() => getExerciseSteps(a), [a]);
+  const currentStep = steps[currentStepIndex];
+
+  const handleDoOneRep = () => {
+    setReps((prev) => {
+      const newReps = prev + 1;
+
+      if (newReps >= currentStep.totalReps) {
+        // ✅ ครบเซ็ตแล้ว
+        console.log("✅ เซ็ตครบแล้ว:", currentStep);
+
+        // ไปยัง step ถัดไป
+        setTimeout(() => {
+          setCurrentStepIndex((i) => Math.min(i + 1, steps.length - 1));
+          setReps(0); // รีเซ็ต reps
+        }, 1000); // อาจรอ 1 วิ หรือรอเวลา rest ก็ได้
+
+        return 0; // รีเซ็ต reps
+      }
+
+      return newReps;
+    });
+  };
+
   return (
     <div className="flex flex-col items-center justify-center p-2 md:p-8 gap-2 md:gap-4 bg-black w-full min-h-screen">
       <h1 className="text-xl md:text-3xl font-bold mb-2 md:mb-4">
         ระบบตรวจจับท่าออกกำลังกาย
       </h1>
+      {/* <div className="bg-amber-500 p-4">
+        {steps.map((i, index) => {
+          return (
+            <div key={i.exercise + index} className="flex flex-wrap gap-2">
+              <div>{i.exercise}</div>
+              <div>{i.repsOrDuration}</div>
+              <div>{i.restTime}</div>
+              <div>{i.setNumber}</div>
+              <div>{i.stepNumber}</div>
+            </div>
+          );
+        })}
+      </div> */}
       <div className="flex flex-wrap justify-center gap-2 mb-2 md:mb-4 w-full max-w-md md:max-w-lg">
         <select
           value={exerciseType}
@@ -2530,7 +2603,17 @@ const Home = () => {
         )}
       </div>
 
-      <div className="mt-2 md:mt-4 p-3 md:p-4 bg-white rounded-lg shadow-md w-full max-w-md md:max-w-lg">
+      {currentStep && (
+        <div className="bg-blue-400 px-4">
+          <div>ท่าที่: {currentStep.exercise}</div>
+          <div>เซ็ต: {currentStep.setNumber}</div>
+          <div>
+            ทำไปแล้ว: {reps} / {currentStep.totalReps}
+          </div>
+        </div>
+      )}
+
+      {/* <div className="mt-2 md:mt-4 p-3 md:p-4 bg-white rounded-lg shadow-md w-full max-w-md md:max-w-lg">
         <h2 className="text-xl md:text-2xl font-semibold text-black">
           {exerciseType === "plank"
             ? `เวลา Plank: ${plankTime} วินาที`
@@ -2552,7 +2635,7 @@ const Home = () => {
           </p>
         )}
       </div>
-      <div className="text-sm">Version {version}</div>
+      <div className="text-sm">Version {version}</div> */}
     </div>
   );
 };
