@@ -2523,17 +2523,20 @@ const Home = () => {
     setReps((prev) => {
       const newReps = prev + 1;
 
-      if (newReps >= +currentStep.repsOrDuration) {
-        // ✅ ครบเซ็ตแล้ว
+      const expectedReps = parseInt(
+        currentStep.repsOrDuration.replace(/\D/g, ""),
+        10
+      ); // ดึงแค่เลข
+
+      if (newReps >= expectedReps) {
         console.log("✅ เซ็ตครบแล้ว:", currentStep);
 
-        // ไปยัง step ถัดไป
         setTimeout(() => {
           setCurrentStepIndex((i) => Math.min(i + 1, steps.length - 1));
-          setReps(0); // รีเซ็ต reps
-        }, 1000); // อาจรอ 1 วิ หรือรอเวลา rest ก็ได้
+          setReps(0);
+        }, 1000);
 
-        return 0; // รีเซ็ต reps
+        return 0;
       }
 
       return newReps;
@@ -2543,7 +2546,7 @@ const Home = () => {
   useEffect(() => {
     if (a.length > 0) {
       // เซ็ตเป็นชื่อท่าแรกของ array
-      exerciseTypeRef.current = a[0].exercise;
+      setExerciseType(a[0].exercise);
       console.log("🎯 เซ็ต exerciseTypeRef แล้ว:", exerciseTypeRef.current);
     }
   }, [a]);
