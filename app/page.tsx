@@ -10,7 +10,7 @@ const Home = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [reps, setReps] = useState(0);
-  const [exerciseType, setExerciseType] = useState("pushup");
+  const [exerciseType, setExerciseType] = useState("push up");
   const exerciseTypeRef = useRef(exerciseType);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("กำลังโหลด กรุณารอสักครู่...");
@@ -245,42 +245,42 @@ const Home = () => {
       updateBackAngle();
 
       // เลือกฟังก์ชันตรวจจับตามประเภทการออกกำลังกาย
-      if (exerciseTypeRef.current === "pushup") {
+      if (exerciseTypeRef.current === "push up") {
         inUpPosition();
         inDownPosition();
-      } else if (exerciseTypeRef.current === "burpee-beginner") {
+      } else if (exerciseTypeRef.current === "burpee no push up") {
         detectBeginnerBurpee();
-      } else if (exerciseTypeRef.current === "burpee-expert") {
+      } else if (exerciseTypeRef.current === "burpee with push up") {
         detectExpertBurpee();
       } else if (exerciseTypeRef.current === "squat") {
         detectSquat();
-      } else if (exerciseTypeRef.current === "lunges") {
+      } else if (exerciseTypeRef.current === "leg lunges") {
         detectLunges();
-      } else if (exerciseTypeRef.current === "russiantwist") {
+      } else if (exerciseTypeRef.current === "russian twist") {
         detectRussianTwist();
-      } else if (exerciseTypeRef.current === "legraise") {
+      } else if (exerciseTypeRef.current === "leg raise") {
         detectLegRaise();
       } else if (exerciseTypeRef.current === "plank") {
         detectPlank();
-      } else if (exerciseTypeRef.current === "sideplank") {
+      } else if (exerciseTypeRef.current === "side plank") {
         detectSidePlank();
-      } else if (exerciseTypeRef.current === "dumbbellbenchpress") {
+      } else if (exerciseTypeRef.current === "dumbbell bench press") {
         detectDumbbellBenchPress();
-      } else if (exerciseTypeRef.current === "dumbbellbentoverrows") {
+      } else if (exerciseTypeRef.current === "dumbbell bent over row") {
         detectDumbbellBentOverRows();
-      } else if (exerciseTypeRef.current === "dumbbellshoulderpress") {
+      } else if (exerciseTypeRef.current === "dumbbell shoulder press") {
         detectDumbbellShoulderPress();
-      } else if (exerciseTypeRef.current === "dumbbellbicepcurls") {
+      } else if (exerciseTypeRef.current === "dumbbell bicep curls") {
         detectDumbbellBicepCurls();
       } else if (
-        exerciseTypeRef.current === "dumbbelloverheadtricepextension"
+        exerciseTypeRef.current === "dumbbell overhead triceps extension"
       ) {
         detectDumbbellOverheadTricepExtension();
-      } else if (exerciseTypeRef.current === "dumbbellromaniandeadlifts") {
+      } else if (exerciseTypeRef.current === "dumbbell romanian deadlift") {
         detectDumbbellRomanianDeadlifts();
-      } else if (exerciseTypeRef.current === "dumbbellgobletsquat") {
+      } else if (exerciseTypeRef.current === "dumbbell goblet squat") {
         detectDumbbellGobletSquat();
-      } else if (exerciseTypeRef.current === "dumbbellsidelateralraises") {
+      } else if (exerciseTypeRef.current === "dumbbell side lateral raises") {
         detectDumbbellSideLateralRaises();
       }
     }
@@ -2251,12 +2251,12 @@ const Home = () => {
     if (elbowAngleRef.current > 170 && elbowAngleRef.current < 200) {
       if (downPositionRef.current === true) {
         // แก้ไขเงื่อนความตรงนี้
-        if (exerciseTypeRef.current === "pushup") {
+        if (exerciseTypeRef.current === "push up") {
           setReps((prev) => prev + 1);
           showFeedback("ดีมาก!");
         }
         // เพิ่มเงื่อนความสำหรับ burpee-expert เพื่อไม่ให้นับเมื่อทำเพียงท่า push up
-        else if (exerciseTypeRef.current === "burpee-expert") {
+        else if (exerciseTypeRef.current === "burpee with push up") {
           // ไม่เพิ่มจำนวนครั้งที่นี่ แต่ให้ไปเพิ่มในฟังก์ชัน detectExpertBurpee เมื่อทำครบทุกขั้นตอน
           showFeedback("ท่า Push Up ถูกต้อง");
         }
@@ -2434,35 +2434,6 @@ const Home = () => {
     exerciseTypeRef.current = exerciseType;
   }, [exerciseType]);
 
-  const poseOption = [
-    { value: "pushup", label: "Push Up" },
-    { value: "burpee-beginner", label: "Burpee (ผู้เริ่มต้น)" },
-    { value: "burpee-expert", label: "Burpee (ผู้เชี่ยวชาญ)" },
-    { value: "squat", label: "Squat" },
-    { value: "lunges", label: "Lunges" },
-    { value: "russiantwist", label: "Russian Twist" },
-    { value: "legraise", label: "Leg Raise" },
-    { value: "plank", label: "Plank" },
-    { value: "sideplank", label: "Side Plank" },
-    { value: "dumbbellbenchpress", label: "Dumbbell Bench Press" },
-    { value: "dumbbellbentoverrows", label: "Dumbbell Bent-Over Rows" },
-    { value: "dumbbellshoulderpress", label: "Dumbbell Shoulder Press" },
-    { value: "dumbbellbicepcurls", label: "Dumbbell Bicep Curls" },
-    {
-      value: "dumbbelloverheadtricepextension",
-      label: "Dumbbell Overhead Tricep Extension",
-    },
-    {
-      value: "dumbbellromaniandeadlifts",
-      label: "Dumbbell Romanian Deadlifts",
-    },
-    { value: "dumbbellgobletsquat", label: "Dumbbell Goblet Squat" },
-    {
-      value: "dumbbellsidelateralraises",
-      label: "Dumbbell Side Lateral Raises",
-    },
-  ];
-
   type TExercise = {
     id: string;
     exercise: string;
@@ -2516,19 +2487,6 @@ const Home = () => {
       <h1 className="text-xl md:text-3xl font-bold mb-2 md:mb-4">
         ระบบตรวจจับท่าออกกำลังกาย
       </h1>
-      {/* <div className="bg-red-300 p-4">
-        {Array.isArray(a) &&
-          a.map((item, index) => (
-            <div key={index}>
-              <div>Exercise: {item.exercise}</div>
-              <div>Sets: {item.sets}</div>
-              <div>Reps: {item.reps}</div>
-              <div>Rest: {item.rest}</div>
-              <div>Target: {item.target}</div>
-            </div>
-          ))}
-      </div> */}
-
       <div className="flex flex-wrap justify-center gap-2 mb-2 md:mb-4 w-full max-w-md md:max-w-lg">
         <select
           value={exerciseType}
@@ -2576,14 +2534,14 @@ const Home = () => {
         <h2 className="text-xl md:text-2xl font-semibold text-black">
           {exerciseType === "plank"
             ? `เวลา Plank: ${plankTime} วินาที`
-            : exerciseType === "sideplank"
+            : exerciseType === "side plank"
             ? `เวลา Side Plank: ${sidePlankTime} วินาที (ด้าน${
                 sidePlankSideRef.current === "left" ? "ซ้าย" : "ขวา"
               })`
             : `จำนวน ${exerciseType} ที่ทำได้: ${reps}`}
         </h2>
         <p className="mt-1 md:mt-2 text-sm md:text-base text-black">
-          {exerciseType === "plank" || exerciseType === "sideplank"
+          {exerciseType === "plank" || exerciseType === "side plank"
             ? "ระบบจะจับเวลาและตรวจสอบท่าทางของคุณอัตโนมัติ"
             : "ระบบจะนับจำนวนครั้งและตรวจสอบท่าทางของคุณอัตโนมัติ"}
         </p>
