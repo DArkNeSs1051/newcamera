@@ -24,6 +24,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <script src="https://unpkg.com/vconsole@latest/dist/vconsole.min.js"></script>
+        <script>
+          // VConsole will be exported to `window.VConsole` by default. var
+          vConsole = new window.VConsole();
+        </script>
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
