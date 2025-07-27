@@ -10,7 +10,7 @@ const Home = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [reps, setReps] = useState(0);
-  const [exerciseType, setExerciseType] = useState("push up");
+  const [exerciseType, setExerciseType] = useState("squat");
   const exerciseTypeRef = useRef(exerciseType);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("กำลังโหลด กรุณารอสักครู่...");
