@@ -2506,7 +2506,9 @@ const Home = () => {
           exercise: item.exercise,
           stepNumber: index + 1,
           setNumber: i,
-          repsOrDuration: item.reps ? `${item.reps}` : item.duration ?? "-",
+          repsOrDuration: item.reps
+            ? `${item.reps}`
+            : `${item.duration}` || "0",
           restTime: `${item.rest} นาที`,
           totalReps: reps,
         });
@@ -2531,10 +2533,7 @@ const Home = () => {
       console.log("prev:", prev);
       console.log("newReps:", newReps);
 
-      const expectedReps = parseInt(
-        currentStep.repsOrDuration.replace(/\D/g, ""),
-        10
-      ); // ดึงแค่เลข
+      const expectedReps = Number(currentStep.repsOrDuration); // ดึงแค่เลข
       console.log("expectedReps:", expectedReps);
 
       if (newReps >= expectedReps) {
