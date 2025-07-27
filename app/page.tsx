@@ -2523,7 +2523,7 @@ const Home = () => {
   console.log("steps:", steps);
   const currentStep = steps[currentStepIndex];
   console.log("currentStep:", currentStep);
-  console.log("currentStep.repsOrDuration:", currentStep.repsOrDuration);
+  console.log("currentStep.repsOrDuration:", currentStep?.repsOrDuration);
 
   const handleDoOneRep = () => {
     console.log("asdasdasd");
@@ -2532,7 +2532,7 @@ const Home = () => {
       console.log("prev:", prev);
       console.log("newReps:", newReps);
 
-      const expectedReps = Number(currentStep.repsOrDuration); // ดึงแค่เลข
+      const expectedReps = Number(currentStep?.repsOrDuration); // ดึงแค่เลข
       console.log("expectedReps:", expectedReps);
 
       if (newReps >= expectedReps) {
