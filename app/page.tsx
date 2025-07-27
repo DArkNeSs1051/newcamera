@@ -2523,7 +2523,7 @@ const Home = () => {
   console.log("steps:", steps);
   const currentStep = steps[currentStepIndex];
   console.log("currentStep:", currentStep);
-  console.log(currentStep.repsOrDuration);
+  console.log("currentStep.repsOrDuration:", currentStep.repsOrDuration);
 
   const handleDoOneRep = () => {
     console.log("asdasdasd");
