@@ -568,6 +568,7 @@ const Home = () => {
     else if (kneeAngleRef.current > 160 && squatDownPositionRef.current) {
       squatUpPositionRef.current = true;
       squatDownPositionRef.current = false;
+      console.log("llllll");
       // setReps((prev) => prev + 1);
       handleDoOneRep();
       showFeedback("ดีมาก! ทำครบ 1 ครั้ง");
@@ -2522,6 +2523,7 @@ const Home = () => {
   const currentStep = steps[currentStepIndex];
 
   const handleDoOneRep = () => {
+    console.log("asdasdasd");
     setReps((prev) => {
       const newReps = prev + 1;
       console.log("prev:", prev);
