@@ -2433,6 +2433,8 @@ const Home = () => {
 
   useEffect(() => {
     exerciseTypeRef.current = exerciseType;
+    console.log("exerciseType:", exerciseType);
+    console.log("first");
   }, [exerciseType]);
 
   type TExercise = {
@@ -2546,10 +2548,13 @@ const Home = () => {
     });
   };
 
+  console.log("exerciseTypeRef.current:", exerciseTypeRef.current);
+
   useEffect(() => {
     if (a.length > 0) {
       // เซ็ตเป็นชื่อท่าแรกของ array
       setExerciseType(a[0].exercise);
+
       // console.log("🎯 เซ็ต exerciseTypeRef แล้ว:", exerciseTypeRef.current);
     }
   }, [a]);
