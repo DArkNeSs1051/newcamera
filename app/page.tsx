@@ -569,8 +569,8 @@ const Home = () => {
       squatUpPositionRef.current = true;
       squatDownPositionRef.current = false;
       console.log("llllll");
-      // setReps((prev) => prev + 1);
-      handleDoOneRep();
+      setReps((prev) => prev + 1);
+      // handleDoOneRep();
       showFeedback("ดีมาก! ทำครบ 1 ครั้ง");
     }
 
