@@ -2555,7 +2555,8 @@ const Home = () => {
   useEffect(() => {
     if (a.length > 0) {
       // เซ็ตเป็นชื่อท่าแรกของ array
-      setExerciseType(a[0].exercise);
+      console.log("a[0].exercise:", a[0].exercise);
+      setExerciseType(a[0].exercise || "squat");
 
       // console.log("🎯 เซ็ต exerciseTypeRef แล้ว:", exerciseTypeRef.current);
     }
