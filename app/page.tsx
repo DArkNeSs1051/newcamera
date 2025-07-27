@@ -2460,11 +2460,11 @@ const Home = () => {
     const handleMessage = (event: MessageEvent) => {
       try {
         const data = JSON.parse(event.data);
-        console.log("event.data:", event.data);
-        console.log("data:", data);
+        // console.log("event.data:", event.data);
+        // console.log("data:", data);
         if (data?.type === "FROM_APP") {
           setA(data.payload);
-          console.log("📥 ได้รับจากแอป:", data.payload);
+          // console.log("📥 ได้รับจากแอป:", data.payload);
         }
       } catch (e) {
         console.error("❌ รับข้อมูลพัง:", e);
@@ -2522,11 +2522,14 @@ const Home = () => {
   const handleDoOneRep = () => {
     setReps((prev) => {
       const newReps = prev + 1;
+      console.log("prev:", prev);
+      console.log("newReps:", newReps);
 
       const expectedReps = parseInt(
         currentStep.repsOrDuration.replace(/\D/g, ""),
         10
       ); // ดึงแค่เลข
+      console.log("expectedReps:", expectedReps);
 
       if (newReps >= expectedReps) {
         console.log("✅ เซ็ตครบแล้ว:", currentStep);
@@ -2547,7 +2550,7 @@ const Home = () => {
     if (a.length > 0) {
       // เซ็ตเป็นชื่อท่าแรกของ array
       setExerciseType(a[0].exercise);
-      console.log("🎯 เซ็ต exerciseTypeRef แล้ว:", exerciseTypeRef.current);
+      // console.log("🎯 เซ็ต exerciseTypeRef แล้ว:", exerciseTypeRef.current);
     }
   }, [a]);
 
