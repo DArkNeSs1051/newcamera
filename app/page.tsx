@@ -2463,8 +2463,6 @@ const Home = () => {
     const handleMessage = (event: MessageEvent) => {
       try {
         const data = JSON.parse(event.data);
-        // console.log("event.data:", event.data);
-        // console.log("data:", data);
         if (data?.type === "FROM_APP") {
           setA(data.payload);
           // console.log("📥 ได้รับจากแอป:", data.payload);
@@ -2550,17 +2548,14 @@ const Home = () => {
     });
   };
 
-  console.log("exerciseTypeRef.current:", exerciseTypeRef.current);
+  const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
-    if (a.length > 0) {
-      // เซ็ตเป็นชื่อท่าแรกของ array
-      console.log("a[0].exercise:", a[0].exercise);
+    if (a.length > 0 && !initialized) {
       setExerciseType(a[0].exercise.toLocaleLowerCase() || "squat");
-
-      // console.log("🎯 เซ็ต exerciseTypeRef แล้ว:", exerciseTypeRef.current);
+      setInitialized(true); // เซ็ตครั้งเดียวเท่านั้น
     }
-  }, [a]);
+  }, [a, initialized]);
 
   return (
     <div className="flex flex-col items-center justify-center p-2 md:p-8 gap-2 md:gap-4 bg-black w-full min-h-screen">
