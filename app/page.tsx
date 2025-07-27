@@ -2452,7 +2452,7 @@ const Home = () => {
     exercise: string;
     stepNumber: number;
     setNumber: number;
-    repsOrDuration: string;
+    repsOrDuration: number;
     restTime: string;
     totalReps: number; // สำหรับตรวจจับ
   };
@@ -2506,9 +2506,7 @@ const Home = () => {
           exercise: item.exercise,
           stepNumber: index + 1,
           setNumber: i,
-          repsOrDuration: item.reps
-            ? `${item.reps}`
-            : `${item.duration}` || "0",
+          repsOrDuration: item.reps ? +(item.reps ?? 0) : +(item.duration ?? 0),
           restTime: `${item.rest} นาที`,
           totalReps: reps,
         });
