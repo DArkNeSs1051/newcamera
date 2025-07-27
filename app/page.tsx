@@ -2520,23 +2520,21 @@ const Home = () => {
 
   // const steps = getExerciseSteps(a);
   const steps = useMemo(() => getExerciseSteps(a), [a]);
-  console.log("steps:", steps);
   const currentStep = steps[currentStepIndex];
-  console.log("currentStep:", currentStep);
-  console.log("currentStep.repsOrDuration:", currentStep?.repsOrDuration);
 
   const handleDoOneRep = () => {
-    console.log("asdasdasd");
     setReps((prev) => {
       const newReps = prev + 1;
+
+      const currentStepLocal = steps[currentStepIndex]; // ✅ คำนวณใหม่
+      const expectedReps = currentStepLocal?.repsOrDuration;
+
       console.log("prev:", prev);
       console.log("newReps:", newReps);
-
-      const expectedReps = currentStep?.repsOrDuration; // ดึงแค่เลข
       console.log("expectedReps:", expectedReps);
 
       if (newReps >= expectedReps) {
-        console.log("✅ เซ็ตครบแล้ว:", currentStep);
+        console.log("✅ เซ็ตครบแล้ว:", currentStepLocal);
 
         setTimeout(() => {
           setCurrentStepIndex((i) => Math.min(i + 1, steps.length - 1));
