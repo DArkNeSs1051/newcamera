@@ -2498,6 +2498,8 @@ const Home = () => {
 
     exerciseList.forEach((item, index) => {
       const sets = parseInt(item.sets, 10) || 1;
+      console.log("item.reps:", item.reps);
+      console.log("item.duration:", item.duration);
 
       for (let i = 1; i <= sets; i++) {
         steps.push({
@@ -2518,7 +2520,9 @@ const Home = () => {
 
   // const steps = getExerciseSteps(a);
   const steps = useMemo(() => getExerciseSteps(a), [a]);
+  console.log("steps:", steps);
   const currentStep = steps[currentStepIndex];
+  console.log("currentStep:", currentStep);
 
   const handleDoOneRep = () => {
     console.log("asdasdasd");
