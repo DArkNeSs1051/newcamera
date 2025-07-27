@@ -2532,7 +2532,7 @@ const Home = () => {
       console.log("prev:", prev);
       console.log("newReps:", newReps);
 
-      const expectedReps = Number(currentStep?.repsOrDuration); // ดึงแค่เลข
+      const expectedReps = +currentStep?.repsOrDuration; // ดึงแค่เลข
       console.log("expectedReps:", expectedReps);
 
       if (newReps >= expectedReps) {
