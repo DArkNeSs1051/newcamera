@@ -569,8 +569,8 @@ const Home = () => {
       squatUpPositionRef.current = true;
       squatDownPositionRef.current = false;
       console.log("llllll");
-      setReps((prev) => prev + 1);
-      // handleDoOneRep();
+      // setReps((prev) => prev + 1);
+      handleDoOneRep();
       showFeedback("ดีมาก! ทำครบ 1 ครั้ง");
     }
 
@@ -2556,7 +2556,7 @@ const Home = () => {
     if (a.length > 0) {
       // เซ็ตเป็นชื่อท่าแรกของ array
       console.log("a[0].exercise:", a[0].exercise);
-      setExerciseType(a[0].exercise || "squat");
+      setExerciseType(a[0].exercise.toLocaleLowerCase() || "squat");
 
       // console.log("🎯 เซ็ต exerciseTypeRef แล้ว:", exerciseTypeRef.current);
     }
