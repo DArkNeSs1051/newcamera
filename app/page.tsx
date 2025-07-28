@@ -2498,8 +2498,6 @@ const Home = () => {
 
     exerciseList.forEach((item, index) => {
       const sets = parseInt(item.sets, 10) || 1;
-      console.log("item.reps:", item.reps);
-      console.log("item.duration:", item.duration);
 
       for (let i = 1; i <= sets; i++) {
         steps.push({
@@ -2518,17 +2516,22 @@ const Home = () => {
 
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
 
-  // const steps = getExerciseSteps(a);
   const steps = useMemo(() => getExerciseSteps(a), [a]);
-  const currentStep = steps[currentStepIndex];
+  const currentStep = steps[currentStepIndex] ?? null;
 
   const handleDoOneRep = () => {
     setReps((prev) => {
       const newReps = prev + 1;
 
-      const currentStepLocal = steps[currentStepIndex]; // ✅ คำนวณใหม่
-      const expectedReps = currentStepLocal?.repsOrDuration;
+      const currentStepLocal = steps[currentStepIndex];
+      if (!currentStepLocal) {
+        console.warn("⚠️ ไม่มี currentStepLocal แล้ว (อาจจบหมดแล้ว)");
+        return prev;
+      }
 
+      const expectedReps = currentStepLocal.repsOrDuration;
+
+      console.log("currentStepLocal:", currentStepLocal);
       console.log("prev:", prev);
       console.log("newReps:", newReps);
       console.log("expectedReps:", expectedReps);
@@ -2537,7 +2540,10 @@ const Home = () => {
         console.log("✅ เซ็ตครบแล้ว:", currentStepLocal);
 
         setTimeout(() => {
-          setCurrentStepIndex((i) => Math.min(i + 1, steps.length - 1));
+          setCurrentStepIndex((i) => {
+            const nextIndex = Math.min(i + 1, steps.length - 1);
+            return nextIndex;
+          });
           setReps(0);
         }, 1000);
 
@@ -2553,7 +2559,7 @@ const Home = () => {
   useEffect(() => {
     if (a.length > 0 && !initialized) {
       setExerciseType(a[0].exercise.toLocaleLowerCase() || "squat");
-      setInitialized(true); // เซ็ตครั้งเดียวเท่านั้น
+      setInitialized(true);
     }
   }, [a, initialized]);
 
