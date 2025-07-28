@@ -233,9 +233,14 @@ const Home = () => {
   const restTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const steps = getExerciseSteps(a);
-  console.log("steps:", steps);
   const currentStep = steps[currentStepIndex];
 
+  // --- เพิ่ม 2 บรรทัดนี้เข้าไป ---
+  const stepsRef = useRef(steps);
+  useEffect(() => {
+    stepsRef.current = steps;
+  }, [steps]);
+  // --------------------------------
   useEffect(() => {
     currentStepRef.current = currentStep;
   }, [currentStep]);
@@ -251,61 +256,38 @@ const Home = () => {
       const newReps = prev + 1;
       const expectedReps = currentStepRep.reps;
 
-      // เมื่อทำจำนวนครั้งครบตามเป้าหมายของเซ็ต
       if (newReps >= expectedReps) {
-        console.log("✅ เซ็ตครบแล้ว:", currentStepRep);
-
-        // --- ส่วนที่เพิ่มเข้ามาสำหรับการพัก ---
-
-        // 1. คำนวณเวลาพัก (สมมติว่า item.rest เป็นนาที)
-        const restMinutes = parseInt(currentStepRep.restTime, 10) || 1;
-        console.log("restMinutes:", restMinutes);
-        const totalRestSeconds = restMinutes * 60;
-        console.log("totalRestSeconds:", totalRestSeconds);
-
-        // 2. เข้าสู่โหมดพักและตั้งค่าเวลานับถอยหลัง
-        setIsResting(true);
-        setRestTime(totalRestSeconds);
-        speak(`ยอดเยี่ยม! พัก ${restMinutes} นาที`); // แจ้งเตือนด้วยเสียง
-
-        // 3. เริ่มต้นการนับถอยหลัง
-        if (restTimerRef.current) clearInterval(restTimerRef.current);
+        // ... (โค้ดส่วนคำนวณเวลาพักเหมือนเดิม) ...
 
         restTimerRef.current = setInterval(() => {
           setRestTime((prevTime) => {
-            // เมื่อนับถอยหลังถึง 0
             if (prevTime <= 1) {
               if (restTimerRef.current) clearInterval(restTimerRef.current);
-
-              // ออกจากโหมดพัก
               setIsResting(false);
 
-              // ไปยังท่าออกกำลังกายถัดไป
               setCurrentStepIndex((i) => {
                 const nextIndex = i + 1;
-                // ตรวจสอบว่าออกกำลังกายครบทุกท่าแล้วหรือยัง
-                if (nextIndex >= steps.length) {
+
+                // --- แก้ไข 2 จุดนี้ ---
+                // 1. เปลี่ยน steps.length เป็น stepsRef.current.length
+                if (nextIndex >= stepsRef.current.length) {
                   speak("สุดยอดมาก คุณออกกำลังกายครบแล้ว");
-                  // สามารถเพิ่มโค้ดสำหรับจบโปรแกรมตรงนี้
-                  return i; // อยู่ที่ท่าสุดท้าย
+                  return i;
                 }
-                // ประกาศท่าถัดไป
-                const nextStep = steps[nextIndex];
+                // 2. เปลี่ยน steps[nextIndex] เป็น stepsRef.current[nextIndex]
+                const nextStep = stepsRef.current[nextIndex];
                 speak(`เตรียมตัวสำหรับท่าถัดไป, ${nextStep.exercise}`);
                 return nextIndex;
               });
 
-              setReps(0); // รีเซ็ตจำนวนครั้งสำหรับเซ็ตใหม่
+              setReps(0);
               return 0;
             }
-            // ลดเวลาลง 1 วินาที
             return prevTime - 1;
           });
         }, 1000);
 
-        // --- จบส่วนที่เพิ่มเข้ามา ---
-
-        return 0; // รีเซ็ต state reps ทันที
+        return 0;
       }
 
       return newReps;
@@ -643,7 +625,7 @@ const Home = () => {
       burpeeStep.current = 4;
       showFeedback("กลับมายืนตรง");
     } else if (burpeeStep.current === 4 && isStanding) {
-      setReps((prev) => prev + 1);
+      handleDoOneRep(currentStepRef.current);
       burpeeStep.current = 0;
       // รีเซ็ตสถานะกระโดด
       jumpDetectedRef.current = false;
@@ -707,7 +689,7 @@ const Home = () => {
       burpeeStep.current = 4;
       showFeedback("กลับมายืนตรง");
     } else if (burpeeStep.current === 4 && isStanding) {
-      setReps((prev) => prev + 1);
+      handleDoOneRep(currentStepRef.current);
       burpeeStep.current = 0;
       jumpDetectedRef.current = false;
       jumpWithArmsUpRef.current = false;
@@ -745,7 +727,6 @@ const Home = () => {
     else if (kneeAngleRef.current > 160 && squatDownPositionRef.current) {
       squatUpPositionRef.current = true;
       squatDownPositionRef.current = false;
-      console.log("llllll");
       // setReps((prev) => prev + 1);
       handleDoOneRep(currentStepRef.current);
       showFeedback("ดีมาก! ทำครบ 1 ครั้ง");
@@ -835,7 +816,7 @@ const Home = () => {
     else if (angle > 160 && lungeDownPositionRef.current) {
       lungeUpPositionRef.current = true;
       lungeDownPositionRef.current = false;
-      setReps((prev) => prev + 1);
+      handleDoOneRep(currentStepRef.current);
       showFeedback(
         `ดีมาก! ทำครบ 1 ครั้ง (${side === "left" ? "ซ้าย" : "ขวา"})`
       );
@@ -948,7 +929,7 @@ const Home = () => {
       russianTwistCenterRef.current = false;
 
       if (lastTwistDirectionRef.current === "right") {
-        setReps((prev) => prev + 1);
+        handleDoOneRep(currentStepRef.current);
         showFeedback("ดีมาก! หมุนซ้าย");
       } else {
         showFeedback("หมุนซ้าย");
@@ -964,7 +945,7 @@ const Home = () => {
       russianTwistCenterRef.current = false;
 
       if (lastTwistDirectionRef.current === "left") {
-        setReps((prev) => prev + 1);
+        handleDoOneRep(currentStepRef.current);
         showFeedback("ดีมาก! หมุนขวา");
       } else {
         showFeedback("หมุนขวา");
@@ -1119,7 +1100,7 @@ const Home = () => {
     ) {
       legRaiseDownPositionRef.current = true;
       legRaiseUpPositionRef.current = false;
-      setReps((prev) => prev + 1);
+      handleDoOneRep(currentStepRef.current);
       showFeedback("ดีมาก! ทำครบ 1 ครั้ง");
     }
 
@@ -1445,7 +1426,7 @@ const Home = () => {
     ) {
       dumbbellUpPositionRef.current = true;
       dumbbellDownPositionRef.current = false;
-      setReps((prev) => prev + 1);
+      handleDoOneRep(currentStepRef.current);
       showFeedback("ดีมาก! ดันขึ้นสำเร็จ");
     }
     // ตรวจสอบท่าลดลง (แขนงอประมาณ 90 องศา)
@@ -1558,7 +1539,7 @@ const Home = () => {
     ) {
       bentOverRowUpPositionRef.current = true;
       bentOverRowDownPositionRef.current = false;
-      setReps((prev) => prev + 1);
+      handleDoOneRep(currentStepRef.current);
       showFeedback("ดีมาก! หนีบรักแร้ เกร็งหลัง");
     }
     // ลดลง
@@ -1662,7 +1643,7 @@ const Home = () => {
     if (isUpPosition && shoulderPressDownPositionRef.current) {
       shoulderPressUpPositionRef.current = true;
       shoulderPressDownPositionRef.current = false;
-      setReps((prev) => prev + 1);
+      handleDoOneRep(currentStepRef.current);
       showFeedback("ดีมาก! ดันขึ้นสำเร็จ 💪");
     }
     // ตรวจจับท่าลดลง
@@ -1784,7 +1765,7 @@ const Home = () => {
     ) {
       bicepCurlUpPositionRef.current = true;
       bicepCurlDownPositionRef.current = false;
-      setReps((prev) => prev + 1);
+      handleDoOneRep(currentStepRef.current);
       showFeedback("ดีมาก! เก็บศอกชิดลำตัว");
     }
     // ตรวจสอบท่าลง (แขนเหยียดลง)
@@ -2012,7 +1993,7 @@ const Home = () => {
     ) {
       lateralRaiseDownPositionRef.current = true;
       lateralRaiseUpPositionRef.current = false;
-      setReps((prev) => prev + 1);
+      handleDoOneRep(currentStepRef.current);
       showFeedback("ดีมาก! ทำครบ 1 ครั้ง");
     }
 
@@ -2148,7 +2129,7 @@ const Home = () => {
     ) {
       gobletSquatUpPositionRef.current = true;
       gobletSquatDownPositionRef.current = false;
-      setReps((prev) => prev + 1);
+      handleDoOneRep(currentStepRef.current);
       showFeedback("ดีมาก! ทำครบ 1 ครั้ง");
     }
 
@@ -2310,7 +2291,7 @@ const Home = () => {
     ) {
       romanianDeadliftUpPositionRef.current = true;
       romanianDeadliftDownPositionRef.current = false;
-      setReps((prev) => prev + 1);
+      handleDoOneRep(currentStepRef.current);
       showFeedback("ดีมาก! ดันสะโพกไปข้างหน้า ยืนตรง");
     }
 
@@ -2431,7 +2412,7 @@ const Home = () => {
       if (downPositionRef.current === true) {
         // แก้ไขเงื่อนความตรงนี้
         if (exerciseTypeRef.current === "push up") {
-          setReps((prev) => prev + 1);
+          handleDoOneRep(currentStepRef.current);
           showFeedback("ดีมาก!");
         }
         // เพิ่มเงื่อนความสำหรับ burpee-expert เพื่อไม่ให้นับเมื่อทำเพียงท่า push up
