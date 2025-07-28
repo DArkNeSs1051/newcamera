@@ -2524,6 +2524,8 @@ const Home = () => {
       const newReps = prev + 1;
 
       const currentStepLocal = steps[currentStepIndex];
+      console.log("currentStepIndex:", currentStepIndex);
+      console.log("currentStepLocal:", currentStepLocal);
       if (!currentStepLocal) {
         console.warn("⚠️ ไม่มี currentStepLocal แล้ว (อาจจบหมดแล้ว)");
         return prev;
