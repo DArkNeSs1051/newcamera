@@ -226,14 +226,18 @@ const Home = () => {
   };
 
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const currentStepRef = useRef<TExerciseStep | null>(null);
 
   const steps = getExerciseSteps(a);
   console.log("steps:", steps);
   const currentStep = steps[currentStepIndex];
 
+  useEffect(() => {
+    currentStepRef.current = currentStep;
+  }, [currentStep]);
   console.log("steps.length: out", steps.length);
 
-  const handleDoOneRep = (currentStepRep: TExerciseStep) => {
+  const handleDoOneRep = (currentStepRep: TExerciseStep | null) => {
     if (!currentStepRep) {
       console.warn("🚫 steps ยังไม่พร้อม");
       return;
@@ -699,7 +703,7 @@ const Home = () => {
       squatDownPositionRef.current = false;
       console.log("llllll");
       // setReps((prev) => prev + 1);
-      handleDoOneRep(currentStep);
+      handleDoOneRep(currentStepRef.current);
       showFeedback("ดีมาก! ทำครบ 1 ครั้ง");
     }
 
