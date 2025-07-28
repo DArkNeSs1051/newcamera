@@ -2452,7 +2452,8 @@ const Home = () => {
     exercise: string;
     stepNumber: number;
     setNumber: number;
-    repsOrDuration: number;
+    reps: number;
+    duration: number;
     restTime: string;
     totalReps: number; // สำหรับตรวจจับ
   };
@@ -2504,7 +2505,8 @@ const Home = () => {
           exercise: item.exercise,
           stepNumber: index + 1,
           setNumber: i,
-          repsOrDuration: item.reps ? +(item.reps ?? 0) : +(item.duration ?? 0),
+          reps: item.reps ? +item.reps : 0,
+          duration: item.duration ? +item.duration : 0,
           restTime: `${item.rest} นาที`,
           totalReps: reps,
         });
@@ -2517,6 +2519,7 @@ const Home = () => {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
 
   const steps = useMemo(() => getExerciseSteps(a), [a]);
+  console.log("a:", a);
   const currentStep = steps[currentStepIndex] ?? null;
 
   const handleDoOneRep = () => {
@@ -2531,7 +2534,7 @@ const Home = () => {
         return prev;
       }
 
-      const expectedReps = currentStep.repsOrDuration;
+      const expectedReps = currentStep.reps;
 
       console.log("prev:", prev);
       console.log("newReps:", newReps);
@@ -2630,7 +2633,7 @@ const Home = () => {
           <div>ท่าที่: {currentStep.exercise}</div>
           <div>เซ็ต: {currentStep.setNumber}</div>
           <div>
-            ทำไปแล้ว: {reps} / {currentStep.repsOrDuration}
+            ทำไปแล้ว: {reps} / {currentStep.reps}
           </div>
         </div>
       )}
