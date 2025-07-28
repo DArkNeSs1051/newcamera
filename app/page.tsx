@@ -228,6 +228,7 @@ const Home = () => {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
 
   const steps = useMemo(() => getExerciseSteps(a), [a]);
+  console.log("steps:", steps);
   const currentStep = steps[currentStepIndex] ?? null;
 
   const handleDoOneRep = useCallback(() => {
@@ -264,7 +265,7 @@ const Home = () => {
 
       return newReps;
     });
-  }, [steps, currentStep, currentStepIndex]); // <-- เพิ่ม dependency array ตรงนี้
+  }, [steps, currentStep, currentStepIndex]);
 
   const [initialized, setInitialized] = useState(false);
 
