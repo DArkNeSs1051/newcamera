@@ -16,7 +16,7 @@ const Home = () => {
   const [message, setMessage] = useState("กำลังโหลด กรุณารอสักครู่...");
   const [isMobile, setIsMobile] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState(""); // เพิ่มตัวแปรสำหรับข้อความแจ้งเตือน
-  const [soundEnabled, setSoundEnabled] = useState(false); // เปลี่ยนจาก false เป็น true เพื่อเปิดเสียงอัตโนมัติ
+  const [soundEnabled, setSoundEnabled] = useState(true); // เปลี่ยนจาก false เป็น true เพื่อเปิดเสียงอัตโนมัติ
   const feedbackTimeoutRef = useRef<NodeJS.Timeout | null>(null); // เพิ่มตัวแปรสำหรับจัดการเวลาแสดงข้อความ
 
   // สร้างตัวแปรสำหรับเก็บค่าต่างๆ
