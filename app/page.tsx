@@ -166,15 +166,32 @@ const Home = () => {
     totalReps: number; // สำหรับตรวจจับ
   };
 
+  type TB = {
+    id: string;
+    name: string;
+    category: string;
+    equipment: string;
+    difficulty: string;
+    muscleGroups?: string[];
+    videoUrl: string;
+    image: string;
+    instruction?: string[];
+    description?: string;
+  };
+
   const [a, setA] = useState<TExercise[]>([]);
+  const [b, setB] = useState<TB[]>([]);
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       try {
         const data = JSON.parse(event.data);
+
         if (data?.type === "FROM_APP") {
           console.log("data.payload:", data.payload);
+          console.log("data.payload:", data.video);
           setA(data.payload);
+          setB(data.video);
           // console.log("📥 ได้รับจากแอป:", data.payload);
         }
       } catch (e) {
@@ -195,13 +212,6 @@ const Home = () => {
       );
     }
   }, []);
-
-  const optionSet = useMemo(() => {
-    return a.map((item) => ({
-      value: item.exercise.toLocaleLowerCase(),
-      label: item.exercise,
-    }));
-  }, [a]);
 
   const getExerciseSteps = (exerciseList: TExercise[]): TExerciseStep[] => {
     const steps: TExerciseStep[] = [];
@@ -325,9 +335,13 @@ const Home = () => {
 
   // ฟังก์ชันสำหรับการพูด
   const speak = (text: string) => {
-    if (soundEnabled) {
+    if (
+      typeof window !== "undefined" &&
+      "speechSynthesis" in window &&
+      soundEnabled
+    ) {
       const msg = new SpeechSynthesisUtterance(text);
-      msg.lang = "th-TH"; // ตั้งค่าภาษาเป็นภาษาไทย
+      msg.lang = "th-TH"; // ภาษาไทย
       window.speechSynthesis.speak(msg);
     }
   };
@@ -2566,19 +2580,19 @@ const Home = () => {
       }, 2000); // รอ 2 วินาทีหลังจากโหลดเสร็จ
 
       // เริ่มต้น TensorFlow.js
-      await tf.ready();
+      // await tf.ready();
 
       // ตั้งค่ากล้อง
-      await setupCamera();
+      // await setupCamera();
 
       // เริ่มต้นตัวตรวจจับท่าทาง
-      await initDetector();
+      // await initDetector();
 
       // เริ่มการประมาณท่าทาง
-      getPoses();
+      // getPoses();
 
       // เริ่มการวาดภาพ
-      draw();
+      // draw();
     };
 
     init();
@@ -2614,10 +2628,38 @@ const Home = () => {
     exerciseTypeRef.current = exerciseType;
   }, [exerciseType]);
 
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const target = b.find((i) => i.name === currentStepRef.current?.exercise);
+    if (target?.videoUrl) {
+      setVideoUrl(target.videoUrl);
+    }
+  }, [b]);
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   return (
-    <div className="relative flex flex-col items-center justify-start p-4 md:p-6 bg-gray-900 text-white w-full min-h-screen font-sans">
+    <div className="relative flex flex-col items-center justify-start p-4 md:p-6 bg-gray-900 text-white w-full min-h-screen font-sans gap-4">
+      {/* ==============================================
+          ปุ่มสำหรับเปิดวิดีโอสาธิต
+          ==============================================
+      */}
+      <div className="w-full max-w-lg mt-4 flex justify-end">
+        {videoUrl ? (
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="px-5 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 focus:ring-green-500 transition-transform transform hover:scale-105"
+          >
+            🎬 ดูวิดีโอสาธิต
+          </button>
+        ) : (
+          <div className="h-[40px]"></div> // จองพื้นที่ให้ layout ไม่กระโดด
+        )}
+      </div>
+
       {/* ส่วนวิดีโอและ Canvas */}
-      <div className="relative w-full max-w-lg mb-6 shadow-2xl rounded-xl">
+      <div className="relative w-full max-w-lg shadow-2xl rounded-xl">
         <video ref={videoRef} className="hidden" autoPlay playsInline muted />
         <canvas
           ref={canvasRef}
@@ -2632,22 +2674,16 @@ const Home = () => {
           </div>
         )}
 
-        {/* ===============================================================
-      ย้าย Dashboard มาไว้ตรงนี้ และเปลี่ยนเป็น Overlay
-      ===============================================================
-    */}
+        {/* Dashboard Overlay */}
         {currentStep && (
           <div className="absolute top-0 left-0 w-full p-3 bg-gray-900/60 backdrop-blur-sm rounded-t-xl border-b border-gray-700">
             <div className="flex justify-between items-center">
-              {/* ฝั่งซ้าย: ชื่อท่า */}
               <div>
                 <p className="text-xs text-green-400 uppercase">ท่าปัจจุบัน</p>
                 <h2 className="text-xl font-bold capitalize tracking-tight">
                   {currentStep.exercise}
                 </h2>
               </div>
-
-              {/* ฝั่งขวา: จำนวนเซ็ตและครั้ง */}
               <div className="flex items-center gap-4 text-right">
                 <div>
                   <p className="text-xs text-gray-400 uppercase">เซ็ต</p>
@@ -2667,9 +2703,9 @@ const Home = () => {
         )}
       </div>
 
-      {/* --- ส่วนหน้าจอพัก (Cooldown Overlay) ยังคงอยู่ที่เดิม --- */}
+      {/* Cooldown Overlay */}
       {isResting && (
-        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm transition-opacity duration-300">
+        <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm transition-opacity duration-300">
           <p className="text-2xl font-bold uppercase tracking-wider text-green-400 animate-pulse">
             พักสักครู่
           </p>
@@ -2679,6 +2715,45 @@ const Home = () => {
           <p className="text-xl uppercase tracking-wider text-gray-400">
             วินาที
           </p>
+        </div>
+      )}
+
+      {/* ==============================================
+      Modal สำหรับแสดงวิดีโอ
+      ==============================================
+   */}
+      {isModalOpen && videoUrl && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+          onClick={() => setIsModalOpen(false)} // ปิด Modal เมื่อคลิกที่พื้นหลัง
+        >
+          <div
+            className="relative bg-gray-900 rounded-lg shadow-xl w-full max-w-2xl border border-gray-700"
+            onClick={(e) => e.stopPropagation()} // ป้องกันการปิดเมื่อคลิกที่ตัววิดีโอ
+          >
+            {/* ปุ่มปิด Modal */}
+            <button
+              onClick={() => setIsModalOpen(false)}
+              className="absolute -top-4 -right-4 z-10 w-10 h-10 bg-red-600 text-white text-2xl font-bold rounded-full flex items-center justify-center hover:bg-red-700 transition-transform transform hover:scale-110"
+              aria-label="Close"
+            >
+              &times;
+            </button>
+
+            {/* วิดีโอ */}
+            <div className="p-2">
+              <video
+                className="w-full h-auto rounded"
+                controls
+                autoPlay
+                muted
+                loop
+              >
+                <source src={videoUrl} type="video/mp4" />
+                เบราว์เซอร์ของคุณไม่รองรับวิดีโอ
+              </video>
+            </div>
+          </div>
         </div>
       )}
     </div>
