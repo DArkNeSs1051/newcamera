@@ -2523,24 +2523,22 @@ const Home = () => {
     setReps((prev) => {
       const newReps = prev + 1;
 
-      const currentStepLocal = steps[currentStepIndex];
       console.log("steps:", steps);
       console.log("currentStepIndex:", currentStepIndex);
-      console.log("currentStepLocal:", currentStepLocal);
-      if (!currentStepLocal) {
+      console.log("currentStepLocal:", currentStep);
+      if (!currentStep) {
         console.warn("⚠️ ไม่มี currentStepLocal แล้ว (อาจจบหมดแล้ว)");
         return prev;
       }
 
-      const expectedReps = currentStepLocal.repsOrDuration;
+      const expectedReps = currentStep.repsOrDuration;
 
-      console.log("currentStepLocal:", currentStepLocal);
       console.log("prev:", prev);
       console.log("newReps:", newReps);
       console.log("expectedReps:", expectedReps);
 
       if (newReps >= expectedReps) {
-        console.log("✅ เซ็ตครบแล้ว:", currentStepLocal);
+        console.log("✅ เซ็ตครบแล้ว:", currentStep);
 
         setTimeout(() => {
           setCurrentStepIndex((i) => {
