@@ -2524,6 +2524,7 @@ const Home = () => {
       const newReps = prev + 1;
 
       const currentStepLocal = steps[currentStepIndex];
+      console.log("steps:", steps);
       console.log("currentStepIndex:", currentStepIndex);
       console.log("currentStepLocal:", currentStepLocal);
       if (!currentStepLocal) {
