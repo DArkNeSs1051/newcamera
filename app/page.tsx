@@ -2580,19 +2580,19 @@ const Home = () => {
       }, 2000); // รอ 2 วินาทีหลังจากโหลดเสร็จ
 
       // เริ่มต้น TensorFlow.js
-      // await tf.ready();
+      await tf.ready();
 
       // ตั้งค่ากล้อง
-      // await setupCamera();
+      await setupCamera();
 
       // เริ่มต้นตัวตรวจจับท่าทาง
-      // await initDetector();
+      await initDetector();
 
       // เริ่มการประมาณท่าทาง
-      // getPoses();
+      getPoses();
 
       // เริ่มการวาดภาพ
-      // draw();
+      draw();
     };
 
     init();
