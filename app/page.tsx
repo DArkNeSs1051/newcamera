@@ -2561,8 +2561,8 @@ const Home = () => {
   const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
-    if (a.length > 0 && !initialized) {
-      setExerciseType(a[0].exercise.toLocaleLowerCase() || "squat");
+    if (a.length > 0 && a[0]?.exercise && !initialized) {
+      setExerciseType(a[0].exercise.toLocaleLowerCase());
       setInitialized(true);
     }
   }, [a, initialized]);
