@@ -2609,98 +2609,100 @@ const Home = () => {
     exerciseTypeRef.current = exerciseType;
   }, [exerciseType]);
 
-  <div className="flex flex-col items-center justify-start p-4 md:p-6 bg-gray-900 text-white w-full min-h-screen font-sans">
-    {/* ส่วนเลือกท่าออกกำลังกาย */}
-    <div className="w-full max-w-lg mb-4">
-      <label
-        htmlFor="exercise-select"
-        className="block mb-2 text-sm font-medium text-gray-400"
-      >
-        เลือกท่าออกกำลังกาย
-      </label>
-      <select
-        id="exercise-select"
-        value={exerciseType}
-        onChange={(e) => {
-          setExerciseType(e.target.value);
-          setReps(0);
-          setPlankTime(0);
-          setSidePlankTime(0);
-          if (plankTimerRef.current) {
-            clearInterval(plankTimerRef.current);
-            plankTimerRef.current = null;
-          }
-          if (sidePlankTimerRef.current) {
-            clearInterval(sidePlankTimerRef.current);
-            sidePlankTimerRef.current = null;
-          }
-          plankStartedRef.current = false;
-          sidePlankStartedRef.current = false;
-        }}
-        className="w-full px-4 py-3 rounded-lg bg-gray-800 border border-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition"
-      >
-        {optionSet.map((v) => (
-          <option key={v.value} value={v.value}>
-            {v.label}
-          </option>
-        ))}
-      </select>
-    </div>
+  return (
+    <div className="flex flex-col items-center justify-start p-4 md:p-6 bg-gray-900 text-white w-full min-h-screen font-sans">
+      {/* ส่วนเลือกท่าออกกำลังกาย */}
+      <div className="w-full max-w-lg mb-4">
+        <label
+          htmlFor="exercise-select"
+          className="block mb-2 text-sm font-medium text-gray-400"
+        >
+          เลือกท่าออกกำลังกาย
+        </label>
+        <select
+          id="exercise-select"
+          value={exerciseType}
+          onChange={(e) => {
+            setExerciseType(e.target.value);
+            setReps(0);
+            setPlankTime(0);
+            setSidePlankTime(0);
+            if (plankTimerRef.current) {
+              clearInterval(plankTimerRef.current);
+              plankTimerRef.current = null;
+            }
+            if (sidePlankTimerRef.current) {
+              clearInterval(sidePlankTimerRef.current);
+              sidePlankTimerRef.current = null;
+            }
+            plankStartedRef.current = false;
+            sidePlankStartedRef.current = false;
+          }}
+          className="w-full px-4 py-3 rounded-lg bg-gray-800 border border-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition"
+        >
+          {optionSet.map((v) => (
+            <option key={v.value} value={v.value}>
+              {v.label}
+            </option>
+          ))}
+        </select>
+      </div>
 
-    {/* ส่วนวิดีโอและ Canvas */}
-    <div className="relative w-full max-w-lg mb-6 shadow-2xl rounded-xl">
-      <video ref={videoRef} className="hidden" autoPlay playsInline muted />
-      <canvas
-        ref={canvasRef}
-        className="w-full h-auto border-2 border-gray-700 rounded-xl"
-      />
+      {/* ส่วนวิดีโอและ Canvas */}
+      <div className="relative w-full max-w-lg mb-6 shadow-2xl rounded-xl">
+        <video ref={videoRef} className="hidden" autoPlay playsInline muted />
+        <canvas
+          ref={canvasRef}
+          className="w-full h-auto border-2 border-gray-700 rounded-xl"
+        />
 
-      {loading && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black bg-opacity-75 rounded-xl text-white">
-          <div className="w-12 h-12 border-4 border-t-green-500 border-gray-600 rounded-full animate-spin mb-4"></div>
-          <p className="text-xl">กำลังโหลดโมเดล...</p>
+        {loading && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black bg-opacity-75 rounded-xl text-white">
+            <div className="w-12 h-12 border-4 border-t-green-500 border-gray-600 rounded-full animate-spin mb-4"></div>
+            <p className="text-xl">กำลังโหลดโมเดล...</p>
+          </div>
+        )}
+      </div>
+
+      {/* ส่วนแสดงผลข้อมูล (Dashboard) */}
+      {currentStep && (
+        <div className="w-full max-w-lg p-4 bg-gray-800/50 border border-gray-700 rounded-xl backdrop-blur-sm">
+          <div className="mb-4">
+            <p className="text-sm text-green-400 uppercase tracking-wider">
+              ท่าปัจจุบัน
+            </p>
+            <h2 className="text-2xl md:text-3xl font-bold tracking-tight capitalize">
+              {currentStep.exercise}
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 text-center">
+            {/* การ์ดแสดงเซ็ต */}
+            <div className="p-4 bg-gray-900/70 rounded-lg">
+              <p className="text-sm text-gray-400 uppercase tracking-wider">
+                เซ็ต
+              </p>
+              <p className="text-3xl md:text-4xl font-bold">
+                {currentStep.setNumber}
+              </p>
+            </div>
+
+            {/* การ์ดแสดงจำนวนครั้ง */}
+            <div className="p-4 bg-gray-900/70 rounded-lg">
+              <p className="text-sm text-gray-400 uppercase tracking-wider">
+                จำนวนครั้ง
+              </p>
+              <p className="text-3xl md:text-4xl font-bold">
+                <span className="text-green-400">{reps}</span>
+                <span className="text-gray-500 text-2xl mx-1">/</span>
+                <span className="text-gray-400">{currentStep.reps}</span>
+              </p>
+            </div>
+          </div>
         </div>
       )}
     </div>
-
-    {/* ส่วนแสดงผลข้อมูล (Dashboard) */}
-    {currentStep && (
-      <div className="w-full max-w-lg p-4 bg-gray-800/50 border border-gray-700 rounded-xl backdrop-blur-sm">
-        <div className="mb-4">
-          <p className="text-sm text-green-400 uppercase tracking-wider">
-            ท่าปัจจุบัน
-          </p>
-          <h2 className="text-2xl md:text-3xl font-bold tracking-tight capitalize">
-            {currentStep.exercise}
-          </h2>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4 text-center">
-          {/* การ์ดแสดงเซ็ต */}
-          <div className="p-4 bg-gray-900/70 rounded-lg">
-            <p className="text-sm text-gray-400 uppercase tracking-wider">
-              เซ็ต
-            </p>
-            <p className="text-3xl md:text-4xl font-bold">
-              {currentStep.setNumber}
-            </p>
-          </div>
-
-          {/* การ์ดแสดงจำนวนครั้ง */}
-          <div className="p-4 bg-gray-900/70 rounded-lg">
-            <p className="text-sm text-gray-400 uppercase tracking-wider">
-              จำนวนครั้ง
-            </p>
-            <p className="text-3xl md:text-4xl font-bold">
-              <span className="text-green-400">{reps}</span>
-              <span className="text-gray-500 text-2xl mx-1">/</span>
-              <span className="text-gray-400">{currentStep.reps}</span>
-            </p>
-          </div>
-        </div>
-      </div>
-    )}
-  </div>;
+  );
 };
 
 export default Home;
