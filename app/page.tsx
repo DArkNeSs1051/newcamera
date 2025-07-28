@@ -3,7 +3,7 @@
 import * as poseDetection from "@tensorflow-models/pose-detection";
 import * as tf from "@tensorflow/tfjs";
 import "@tensorflow/tfjs-backend-webgl";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const Home = () => {
   const version = "1.0.5"; // กำหนดเวอร์ชันของแอปพลิเคชัน
@@ -228,10 +228,9 @@ const Home = () => {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
 
   const steps = useMemo(() => getExerciseSteps(a), [a]);
-  console.log("steps:", steps);
   const currentStep = steps[currentStepIndex] ?? null;
 
-  const handleDoOneRep = () => {
+  const handleDoOneRep = useCallback(() => {
     setReps((prev) => {
       const newReps = prev + 1;
 
@@ -265,7 +264,7 @@ const Home = () => {
 
       return newReps;
     });
-  };
+  }, [steps, currentStep, currentStepIndex]); // <-- เพิ่ม dependency array ตรงนี้
 
   const [initialized, setInitialized] = useState(false);
 
