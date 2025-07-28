@@ -257,7 +257,27 @@ const Home = () => {
       const expectedReps = currentStepRep.reps;
 
       if (newReps >= expectedReps) {
-        // ... (โค้ดส่วนคำนวณเวลาพักเหมือนเดิม) ...
+        // 1. คำนวณเวลาพัก (สมมติว่า item.rest เป็นนาที)
+
+        const restMinutes = parseInt(currentStepRep.restTime, 10) || 1;
+
+        console.log("restMinutes:", restMinutes);
+
+        const totalRestSeconds = restMinutes * 60;
+
+        console.log("totalRestSeconds:", totalRestSeconds);
+
+        // 2. เข้าสู่โหมดพักและตั้งค่าเวลานับถอยหลัง
+
+        setIsResting(true);
+
+        setRestTime(totalRestSeconds);
+
+        speak(`ยอดเยี่ยม! พัก ${restMinutes} นาที`); // แจ้งเตือนด้วยเสียง
+
+        // 3. เริ่มต้นการนับถอยหลัง
+
+        if (restTimerRef.current) clearInterval(restTimerRef.current);
 
         restTimerRef.current = setInterval(() => {
           setRestTime((prevTime) => {
