@@ -231,8 +231,10 @@ const Home = () => {
   console.log("steps:", steps);
   const currentStep = steps[currentStepIndex];
 
+  console.log("steps.length: out", steps.length);
+
   const handleDoOneRep = () => {
-    console.log("steps.length:", steps.length);
+    console.log("steps.length: in", steps.length);
     if (!steps.length || !currentStep) {
       console.warn("🚫 steps ยังไม่พร้อม");
       return;
