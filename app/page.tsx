@@ -227,6 +227,10 @@ const Home = () => {
 
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const currentStepRef = useRef<TExerciseStep | null>(null);
+  // เพิ่ม State เหล่านี้เข้าไป
+  const [isResting, setIsResting] = useState(false);
+  const [restTime, setRestTime] = useState(0);
+  const restTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const steps = getExerciseSteps(a);
   console.log("steps:", steps);
@@ -235,35 +239,71 @@ const Home = () => {
   useEffect(() => {
     currentStepRef.current = currentStep;
   }, [currentStep]);
-  console.log("steps.length: out", steps.length);
 
   const handleDoOneRep = (currentStepRep: TExerciseStep | null) => {
-    if (!currentStepRep) {
-      console.warn("🚫 steps ยังไม่พร้อม");
+    // ป้องกันการนับซ้อนระหว่างที่กำลังพัก
+    if (!currentStepRep || isResting) {
+      if (!currentStepRep) console.warn("🚫 steps ยังไม่พร้อม");
       return;
     }
 
     setReps((prev) => {
       const newReps = prev + 1;
-
-      console.log("steps:", steps);
-      console.log("currentStepIndex:", currentStepIndex);
-      console.log("currentStepLocal:", currentStepRep);
-
       const expectedReps = currentStepRep.reps;
 
+      // เมื่อทำจำนวนครั้งครบตามเป้าหมายของเซ็ต
       if (newReps >= expectedReps) {
         console.log("✅ เซ็ตครบแล้ว:", currentStepRep);
 
-        setTimeout(() => {
-          setCurrentStepIndex((i) => {
-            const nextIndex = Math.min(i + 1, steps.length - 1);
-            return nextIndex;
+        // --- ส่วนที่เพิ่มเข้ามาสำหรับการพัก ---
+
+        // 1. คำนวณเวลาพัก (สมมติว่า item.rest เป็นนาที)
+        const restMinutes = parseInt(currentStepRep.restTime, 10) || 1;
+        const totalRestSeconds = restMinutes * 60;
+
+        // 2. เข้าสู่โหมดพักและตั้งค่าเวลานับถอยหลัง
+        setIsResting(true);
+        setRestTime(totalRestSeconds);
+        speak(`ยอดเยี่ยม! พัก ${restMinutes} นาที`); // แจ้งเตือนด้วยเสียง
+
+        // 3. เริ่มต้นการนับถอยหลัง
+        if (restTimerRef.current) clearInterval(restTimerRef.current);
+
+        restTimerRef.current = setInterval(() => {
+          setRestTime((prevTime) => {
+            // เมื่อนับถอยหลังถึง 0
+            if (prevTime <= 1) {
+              if (restTimerRef.current) clearInterval(restTimerRef.current);
+
+              // ออกจากโหมดพัก
+              setIsResting(false);
+
+              // ไปยังท่าออกกำลังกายถัดไป
+              setCurrentStepIndex((i) => {
+                const nextIndex = i + 1;
+                // ตรวจสอบว่าออกกำลังกายครบทุกท่าแล้วหรือยัง
+                if (nextIndex >= steps.length) {
+                  speak("สุดยอดมาก คุณออกกำลังกายครบแล้ว");
+                  // สามารถเพิ่มโค้ดสำหรับจบโปรแกรมตรงนี้
+                  return i; // อยู่ที่ท่าสุดท้าย
+                }
+                // ประกาศท่าถัดไป
+                const nextStep = steps[nextIndex];
+                speak(`เตรียมตัวสำหรับท่าถัดไป, ${nextStep.exercise}`);
+                return nextIndex;
+              });
+
+              setReps(0); // รีเซ็ตจำนวนครั้งสำหรับเซ็ตใหม่
+              return 0;
+            }
+            // ลดเวลาลง 1 วินาที
+            return prevTime - 1;
           });
-          setReps(0);
         }, 1000);
 
-        return 0;
+        // --- จบส่วนที่เพิ่มเข้ามา ---
+
+        return 0; // รีเซ็ต state reps ทันที
       }
 
       return newReps;
@@ -2569,102 +2609,98 @@ const Home = () => {
     exerciseTypeRef.current = exerciseType;
   }, [exerciseType]);
 
-  return (
-    <div className="flex flex-col items-center justify-center p-2 md:p-8 gap-2 md:gap-4 bg-black w-full min-h-screen">
-      <h1 className="text-xl md:text-3xl font-bold mb-2 md:mb-4">
-        ระบบตรวจจับท่าออกกำลังกาย
-      </h1>
-      {/* <div className="bg-amber-500 p-4">
-        {steps.map((i, index) => {
-          return (
-            <div key={i.exercise + index} className="flex flex-wrap gap-2">
-              <div>{i.exercise}</div>
-              <div>{i.repsOrDuration}</div>
-              <div>{i.restTime}</div>
-              <div>{i.setNumber}</div>
-              <div>{i.stepNumber}</div>
-            </div>
-          );
-        })}
-      </div> */}
-      <div className="flex flex-wrap justify-center gap-2 mb-2 md:mb-4 w-full max-w-md md:max-w-lg">
-        <select
-          value={exerciseType}
-          onChange={(e) => {
-            setExerciseType(e.target.value);
-            setReps(0);
-            setPlankTime(0);
-            setSidePlankTime(0);
-            if (plankTimerRef.current) {
-              clearInterval(plankTimerRef.current);
-              plankTimerRef.current = null;
-            }
-            if (sidePlankTimerRef.current) {
-              clearInterval(sidePlankTimerRef.current);
-              sidePlankTimerRef.current = null;
-            }
-            plankStartedRef.current = false;
-            sidePlankStartedRef.current = false;
-          }}
-          className="px-4 py-2 rounded-lg bg-gray-200 text-black w-full md:w-auto"
-        >
-          {optionSet.map((v) => (
-            <option key={v.value} value={v.value}>
-              {v.label}
-            </option>
-          ))}
-        </select>
-      </div>
+  <div className="flex flex-col items-center justify-start p-4 md:p-6 bg-gray-900 text-white w-full min-h-screen font-sans">
+    {/* ส่วนเลือกท่าออกกำลังกาย */}
+    <div className="w-full max-w-lg mb-4">
+      <label
+        htmlFor="exercise-select"
+        className="block mb-2 text-sm font-medium text-gray-400"
+      >
+        เลือกท่าออกกำลังกาย
+      </label>
+      <select
+        id="exercise-select"
+        value={exerciseType}
+        onChange={(e) => {
+          setExerciseType(e.target.value);
+          setReps(0);
+          setPlankTime(0);
+          setSidePlankTime(0);
+          if (plankTimerRef.current) {
+            clearInterval(plankTimerRef.current);
+            plankTimerRef.current = null;
+          }
+          if (sidePlankTimerRef.current) {
+            clearInterval(sidePlankTimerRef.current);
+            sidePlankTimerRef.current = null;
+          }
+          plankStartedRef.current = false;
+          sidePlankStartedRef.current = false;
+        }}
+        className="w-full px-4 py-3 rounded-lg bg-gray-800 border border-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition"
+      >
+        {optionSet.map((v) => (
+          <option key={v.value} value={v.value}>
+            {v.label}
+          </option>
+        ))}
+      </select>
+    </div>
 
-      <div className="relative w-full max-w-md md:max-w-lg">
-        <video ref={videoRef} className="hidden" autoPlay playsInline muted />
-        <canvas
-          ref={canvasRef}
-          className="w-full h-auto border-2 md:border-4 border-blue-500 rounded-lg shadow-lg"
-        />
+    {/* ส่วนวิดีโอและ Canvas */}
+    <div className="relative w-full max-w-lg mb-6 shadow-2xl rounded-xl">
+      <video ref={videoRef} className="hidden" autoPlay playsInline muted />
+      <canvas
+        ref={canvasRef}
+        className="w-full h-auto border-2 border-gray-700 rounded-xl"
+      />
 
-        {loading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 text-white text-lg md:text-xl">
-            กำลังโหลด กรุณารอสักครู่...
-          </div>
-        )}
-      </div>
-
-      {currentStep && (
-        <div className="bg-blue-400 px-4">
-          <div>ท่าที่: {currentStep.exercise}</div>
-          <div>เซ็ต: {currentStep.setNumber}</div>
-          <div>
-            ทำไปแล้ว: {reps} / {currentStep.reps}
-          </div>
+      {loading && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black bg-opacity-75 rounded-xl text-white">
+          <div className="w-12 h-12 border-4 border-t-green-500 border-gray-600 rounded-full animate-spin mb-4"></div>
+          <p className="text-xl">กำลังโหลดโมเดล...</p>
         </div>
       )}
-
-      <div className="mt-2 md:mt-4 p-3 md:p-4 bg-white rounded-lg shadow-md w-full max-w-md md:max-w-lg">
-        <h2 className="text-xl md:text-2xl font-semibold text-black">
-          {exerciseType === "plank"
-            ? `เวลา Plank: ${plankTime} วินาที`
-            : exerciseType === "side plank"
-            ? `เวลา Side Plank: ${sidePlankTime} วินาที (ด้าน${
-                sidePlankSideRef.current === "left" ? "ซ้าย" : "ขวา"
-              })`
-            : `จำนวน ${exerciseType} ที่ทำได้: ${reps}`}
-        </h2>
-        <p className="mt-1 md:mt-2 text-sm md:text-base text-black">
-          {exerciseType === "plank" || exerciseType === "side plank"
-            ? "ระบบจะจับเวลาและตรวจสอบท่าทางของคุณอัตโนมัติ"
-            : "ระบบจะนับจำนวนครั้งและตรวจสอบท่าทางของคุณอัตโนมัติ"}
-        </p>
-
-        {isMobile && (
-          <p className="mt-1 text-sm text-red-600 font-medium">
-            คำแนะนำ: วางโทรศัพท์ในแนวตั้งและถอยห่างจากกล้องประมาณ 2-3 เมตร
-          </p>
-        )}
-      </div>
-      <div className="text-sm">Version {version}</div>
     </div>
-  );
+
+    {/* ส่วนแสดงผลข้อมูล (Dashboard) */}
+    {currentStep && (
+      <div className="w-full max-w-lg p-4 bg-gray-800/50 border border-gray-700 rounded-xl backdrop-blur-sm">
+        <div className="mb-4">
+          <p className="text-sm text-green-400 uppercase tracking-wider">
+            ท่าปัจจุบัน
+          </p>
+          <h2 className="text-2xl md:text-3xl font-bold tracking-tight capitalize">
+            {currentStep.exercise}
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 text-center">
+          {/* การ์ดแสดงเซ็ต */}
+          <div className="p-4 bg-gray-900/70 rounded-lg">
+            <p className="text-sm text-gray-400 uppercase tracking-wider">
+              เซ็ต
+            </p>
+            <p className="text-3xl md:text-4xl font-bold">
+              {currentStep.setNumber}
+            </p>
+          </div>
+
+          {/* การ์ดแสดงจำนวนครั้ง */}
+          <div className="p-4 bg-gray-900/70 rounded-lg">
+            <p className="text-sm text-gray-400 uppercase tracking-wider">
+              จำนวนครั้ง
+            </p>
+            <p className="text-3xl md:text-4xl font-bold">
+              <span className="text-green-400">{reps}</span>
+              <span className="text-gray-500 text-2xl mx-1">/</span>
+              <span className="text-gray-400">{currentStep.reps}</span>
+            </p>
+          </div>
+        </div>
+      </div>
+    )}
+  </div>;
 };
 
 export default Home;
