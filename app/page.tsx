@@ -2465,6 +2465,7 @@ const Home = () => {
       try {
         const data = JSON.parse(event.data);
         if (data?.type === "FROM_APP") {
+          console.log("data.payload:", data.payload);
           setA(data.payload);
           // console.log("📥 ได้รับจากแอป:", data.payload);
         }
