@@ -2615,45 +2615,7 @@ const Home = () => {
   }, [exerciseType]);
 
   return (
-    // เพิ่ม "relative" ที่ class ของ div หลักเพื่อให้ overlay ทำงานเต็มหน้าจอ
     <div className="relative flex flex-col items-center justify-start p-4 md:p-6 bg-gray-900 text-white w-full min-h-screen font-sans">
-      {/* ส่วนเลือกท่าออกกำลังกาย */}
-      <div className="w-full max-w-lg mb-4">
-        <label
-          htmlFor="exercise-select"
-          className="block mb-2 text-sm font-medium text-gray-400"
-        >
-          เลือกท่าออกกำลังกาย
-        </label>
-        <select
-          id="exercise-select"
-          value={exerciseType}
-          onChange={(e) => {
-            setExerciseType(e.target.value);
-            setReps(0);
-            setPlankTime(0);
-            setSidePlankTime(0);
-            if (plankTimerRef.current) {
-              clearInterval(plankTimerRef.current);
-              plankTimerRef.current = null;
-            }
-            if (sidePlankTimerRef.current) {
-              clearInterval(sidePlankTimerRef.current);
-              sidePlankTimerRef.current = null;
-            }
-            plankStartedRef.current = false;
-            sidePlankStartedRef.current = false;
-          }}
-          className="w-full px-4 py-3 rounded-lg bg-gray-800 border border-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition"
-        >
-          {optionSet.map((v) => (
-            <option key={v.value} value={v.value}>
-              {v.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
       {/* ส่วนวิดีโอและ Canvas */}
       <div className="relative w-full max-w-lg mb-6 shadow-2xl rounded-xl">
         <video ref={videoRef} className="hidden" autoPlay playsInline muted />
@@ -2662,50 +2624,50 @@ const Home = () => {
           className="w-full h-auto border-2 border-gray-700 rounded-xl"
         />
 
+        {/* Loading Overlay */}
         {loading && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black bg-opacity-75 rounded-xl text-white">
             <div className="w-12 h-12 border-4 border-t-green-500 border-gray-600 rounded-full animate-spin mb-4"></div>
             <p className="text-xl">กำลังโหลดโมเดล...</p>
           </div>
         )}
+
+        {/* ===============================================================
+      ย้าย Dashboard มาไว้ตรงนี้ และเปลี่ยนเป็น Overlay
+      ===============================================================
+    */}
+        {currentStep && (
+          <div className="absolute top-0 left-0 w-full p-3 bg-gray-900/60 backdrop-blur-sm rounded-t-xl border-b border-gray-700">
+            <div className="flex justify-between items-center">
+              {/* ฝั่งซ้าย: ชื่อท่า */}
+              <div>
+                <p className="text-xs text-green-400 uppercase">ท่าปัจจุบัน</p>
+                <h2 className="text-xl font-bold capitalize tracking-tight">
+                  {currentStep.exercise}
+                </h2>
+              </div>
+
+              {/* ฝั่งขวา: จำนวนเซ็ตและครั้ง */}
+              <div className="flex items-center gap-4 text-right">
+                <div>
+                  <p className="text-xs text-gray-400 uppercase">เซ็ต</p>
+                  <p className="text-2xl font-bold">{currentStep.setNumber}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 uppercase">จำนวนครั้ง</p>
+                  <p className="text-2xl font-bold">
+                    <span className="text-green-400">{reps}</span>
+                    <span className="text-gray-500 mx-1">/</span>
+                    <span>{currentStep.reps}</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* ส่วนแสดงผลข้อมูล (Dashboard) */}
-      {currentStep && (
-        <div className="w-full max-w-lg p-4 bg-gray-800/50 border border-gray-700 rounded-xl backdrop-blur-sm">
-          <div className="mb-4">
-            <p className="text-sm text-green-400 uppercase tracking-wider">
-              ท่าปัจจุบัน
-            </p>
-            <h2 className="text-2xl md:text-3xl font-bold tracking-tight capitalize">
-              {currentStep.exercise}
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4 text-center">
-            <div className="p-4 bg-gray-900/70 rounded-lg">
-              <p className="text-sm text-gray-400 uppercase tracking-wider">
-                เซ็ต
-              </p>
-              <p className="text-3xl md:text-4xl font-bold">
-                {currentStep.setNumber}
-              </p>
-            </div>
-            <div className="p-4 bg-gray-900/70 rounded-lg">
-              <p className="text-sm text-gray-400 uppercase tracking-wider">
-                จำนวนครั้ง
-              </p>
-              <p className="text-3xl md:text-4xl font-bold">
-                <span className="text-green-400">{reps}</span>
-                <span className="text-gray-500 text-2xl mx-1">/</span>
-                <span className="text-gray-400">{currentStep.reps}</span>
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* --- ส่วนหน้าจอพัก (Cooldown Overlay) --- */}
+      {/* --- ส่วนหน้าจอพัก (Cooldown Overlay) ยังคงอยู่ที่เดิม --- */}
       {isResting && (
         <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm transition-opacity duration-300">
           <p className="text-2xl font-bold uppercase tracking-wider text-green-400 animate-pulse">
