@@ -259,7 +259,9 @@ const Home = () => {
 
         // 1. คำนวณเวลาพัก (สมมติว่า item.rest เป็นนาที)
         const restMinutes = parseInt(currentStepRep.restTime, 10) || 1;
+        console.log("restMinutes:", restMinutes);
         const totalRestSeconds = restMinutes * 60;
+        console.log("totalRestSeconds:", totalRestSeconds);
 
         // 2. เข้าสู่โหมดพักและตั้งค่าเวลานับถอยหลัง
         setIsResting(true);
@@ -724,6 +726,8 @@ const Home = () => {
 
   // ฟังก์ชันสำหรับการตรวจสอบท่า Squat
   const detectSquat = () => {
+    if (isResting) return;
+
     if (!posesRef.current || posesRef.current.length === 0) return;
 
     updateKneeAngle();
@@ -2610,7 +2614,8 @@ const Home = () => {
   }, [exerciseType]);
 
   return (
-    <div className="flex flex-col items-center justify-start p-4 md:p-6 bg-gray-900 text-white w-full min-h-screen font-sans">
+    // เพิ่ม "relative" ที่ class ของ div หลักเพื่อให้ overlay ทำงานเต็มหน้าจอ
+    <div className="relative flex flex-col items-center justify-start p-4 md:p-6 bg-gray-900 text-white w-full min-h-screen font-sans">
       {/* ส่วนเลือกท่าออกกำลังกาย */}
       <div className="w-full max-w-lg mb-4">
         <label
@@ -2677,7 +2682,6 @@ const Home = () => {
           </div>
 
           <div className="grid grid-cols-2 gap-4 text-center">
-            {/* การ์ดแสดงเซ็ต */}
             <div className="p-4 bg-gray-900/70 rounded-lg">
               <p className="text-sm text-gray-400 uppercase tracking-wider">
                 เซ็ต
@@ -2686,8 +2690,6 @@ const Home = () => {
                 {currentStep.setNumber}
               </p>
             </div>
-
-            {/* การ์ดแสดงจำนวนครั้ง */}
             <div className="p-4 bg-gray-900/70 rounded-lg">
               <p className="text-sm text-gray-400 uppercase tracking-wider">
                 จำนวนครั้ง
@@ -2699,6 +2701,21 @@ const Home = () => {
               </p>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* --- ส่วนหน้าจอพัก (Cooldown Overlay) --- */}
+      {isResting && (
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm transition-opacity duration-300">
+          <p className="text-2xl font-bold uppercase tracking-wider text-green-400 animate-pulse">
+            พักสักครู่
+          </p>
+          <p className="text-8xl font-mono font-bold my-4 text-white">
+            {restTime}
+          </p>
+          <p className="text-xl uppercase tracking-wider text-gray-400">
+            วินาที
+          </p>
         </div>
       )}
     </div>
