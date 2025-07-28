@@ -233,9 +233,8 @@ const Home = () => {
 
   console.log("steps.length: out", steps.length);
 
-  const handleDoOneRep = () => {
-    console.log("steps.length: in", steps.length);
-    if (!steps.length || !currentStep) {
+  const handleDoOneRep = (currentStepRep: TExerciseStep) => {
+    if (!currentStepRep) {
       console.warn("🚫 steps ยังไม่พร้อม");
       return;
     }
@@ -245,12 +244,12 @@ const Home = () => {
 
       console.log("steps:", steps);
       console.log("currentStepIndex:", currentStepIndex);
-      console.log("currentStepLocal:", currentStep);
+      console.log("currentStepLocal:", currentStepRep);
 
-      const expectedReps = currentStep.reps;
+      const expectedReps = currentStepRep.reps;
 
       if (newReps >= expectedReps) {
-        console.log("✅ เซ็ตครบแล้ว:", currentStep);
+        console.log("✅ เซ็ตครบแล้ว:", currentStepRep);
 
         setTimeout(() => {
           setCurrentStepIndex((i) => {
@@ -700,7 +699,7 @@ const Home = () => {
       squatDownPositionRef.current = false;
       console.log("llllll");
       // setReps((prev) => prev + 1);
-      handleDoOneRep();
+      handleDoOneRep(currentStep);
       showFeedback("ดีมาก! ทำครบ 1 ครั้ง");
     }
 
