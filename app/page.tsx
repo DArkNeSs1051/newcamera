@@ -227,7 +227,7 @@ const Home = () => {
 
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
 
-  const steps = useMemo(() => getExerciseSteps(a), [a]);
+  const steps = getExerciseSteps(a);
   console.log("steps:", steps);
   const currentStep = steps[currentStepIndex] ?? null;
 
