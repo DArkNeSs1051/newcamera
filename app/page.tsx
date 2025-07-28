@@ -146,6 +146,136 @@ const Home = () => {
   const legRaiseBackArchWarningRef = useRef<boolean>(false);
   const legRaiseMomentumWarningRef = useRef<boolean>(false);
 
+  type TExercise = {
+    id: string;
+    exercise: string;
+    target: string;
+    sets: string;
+    rest: string;
+    reps?: string;
+    duration?: string;
+  };
+
+  type TExerciseStep = {
+    exercise: string;
+    stepNumber: number;
+    setNumber: number;
+    reps: number;
+    duration: number;
+    restTime: string;
+    totalReps: number; // สำหรับตรวจจับ
+  };
+
+  const [a, setA] = useState<TExercise[]>([]);
+
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data?.type === "FROM_APP") {
+          console.log("data.payload:", data.payload);
+          setA(data.payload);
+          // console.log("📥 ได้รับจากแอป:", data.payload);
+        }
+      } catch (e) {
+        console.error("❌ รับข้อมูลพัง:", e);
+      }
+    };
+
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && (window as any).ReactNativeWebView) {
+      (window as any).ReactNativeWebView.postMessage(
+        JSON.stringify({
+          message: "Hello from Next.js asd", // ✅ stringified
+        })
+      );
+    }
+  }, []);
+
+  const optionSet = useMemo(() => {
+    return a.map((item) => ({
+      value: item.exercise.toLocaleLowerCase(),
+      label: item.exercise,
+    }));
+  }, [a]);
+
+  const getExerciseSteps = (exerciseList: TExercise[]): TExerciseStep[] => {
+    const steps: TExerciseStep[] = [];
+
+    exerciseList.forEach((item, index) => {
+      const sets = parseInt(item.sets, 10) || 1;
+
+      for (let i = 1; i <= sets; i++) {
+        steps.push({
+          exercise: item.exercise,
+          stepNumber: index + 1,
+          setNumber: i,
+          reps: item.reps ? +item.reps : 0,
+          duration: item.duration ? +item.duration : 0,
+          restTime: `${item.rest} นาที`,
+          totalReps: reps,
+        });
+      }
+    });
+
+    return steps;
+  };
+
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+
+  const steps = useMemo(() => getExerciseSteps(a), [a]);
+  console.log("steps:", steps);
+  const currentStep = steps[currentStepIndex] ?? null;
+
+  const handleDoOneRep = () => {
+    setReps((prev) => {
+      const newReps = prev + 1;
+
+      console.log("steps:", steps);
+      console.log("currentStepIndex:", currentStepIndex);
+      console.log("currentStepLocal:", currentStep);
+      if (!currentStep) {
+        console.warn("⚠️ ไม่มี currentStepLocal แล้ว (อาจจบหมดแล้ว)");
+        return prev;
+      }
+
+      const expectedReps = currentStep.reps;
+
+      console.log("prev:", prev);
+      console.log("newReps:", newReps);
+      console.log("expectedReps:", expectedReps);
+
+      if (newReps >= expectedReps) {
+        console.log("✅ เซ็ตครบแล้ว:", currentStep);
+
+        setTimeout(() => {
+          setCurrentStepIndex((i) => {
+            const nextIndex = Math.min(i + 1, steps.length - 1);
+            return nextIndex;
+          });
+          setReps(0);
+        }, 1000);
+
+        return 0;
+      }
+
+      return newReps;
+    });
+  };
+
+  const [initialized, setInitialized] = useState(false);
+
+  useEffect(() => {
+    if (a.length > 0 && a[0]?.exercise && !initialized) {
+      setExerciseType(a[0].exercise.toLocaleLowerCase());
+      setInitialized(true);
+    }
+  }, [a, initialized]);
+
   // ฟังก์ชันสำหรับการพูด
   const speak = (text: string) => {
     if (soundEnabled) {
@@ -2434,139 +2564,7 @@ const Home = () => {
 
   useEffect(() => {
     exerciseTypeRef.current = exerciseType;
-    console.log("exerciseType:", exerciseType);
-    console.log("first");
   }, [exerciseType]);
-
-  type TExercise = {
-    id: string;
-    exercise: string;
-    target: string;
-    sets: string;
-    rest: string;
-    reps?: string;
-    duration?: string;
-  };
-
-  type TExerciseStep = {
-    exercise: string;
-    stepNumber: number;
-    setNumber: number;
-    reps: number;
-    duration: number;
-    restTime: string;
-    totalReps: number; // สำหรับตรวจจับ
-  };
-
-  const [a, setA] = useState<TExercise[]>([]);
-
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data?.type === "FROM_APP") {
-          console.log("data.payload:", data.payload);
-          setA(data.payload);
-          // console.log("📥 ได้รับจากแอป:", data.payload);
-        }
-      } catch (e) {
-        console.error("❌ รับข้อมูลพัง:", e);
-      }
-    };
-
-    window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
-  }, []);
-
-  useEffect(() => {
-    if (typeof window !== "undefined" && (window as any).ReactNativeWebView) {
-      (window as any).ReactNativeWebView.postMessage(
-        JSON.stringify({
-          message: "Hello from Next.js asd", // ✅ stringified
-        })
-      );
-    }
-  }, []);
-
-  const optionSet = useMemo(() => {
-    return a.map((item) => ({
-      value: item.exercise.toLocaleLowerCase(),
-      label: item.exercise,
-    }));
-  }, [a]);
-
-  const getExerciseSteps = (exerciseList: TExercise[]): TExerciseStep[] => {
-    const steps: TExerciseStep[] = [];
-
-    exerciseList.forEach((item, index) => {
-      const sets = parseInt(item.sets, 10) || 1;
-
-      for (let i = 1; i <= sets; i++) {
-        steps.push({
-          exercise: item.exercise,
-          stepNumber: index + 1,
-          setNumber: i,
-          reps: item.reps ? +item.reps : 0,
-          duration: item.duration ? +item.duration : 0,
-          restTime: `${item.rest} นาที`,
-          totalReps: reps,
-        });
-      }
-    });
-
-    return steps;
-  };
-
-  const [currentStepIndex, setCurrentStepIndex] = useState(0);
-
-  const steps = useMemo(() => getExerciseSteps(a), [a]);
-  console.log("a:", a);
-  const currentStep = steps[currentStepIndex] ?? null;
-
-  const handleDoOneRep = () => {
-    setReps((prev) => {
-      const newReps = prev + 1;
-
-      console.log("steps:", steps);
-      console.log("currentStepIndex:", currentStepIndex);
-      console.log("currentStepLocal:", currentStep);
-      if (!currentStep) {
-        console.warn("⚠️ ไม่มี currentStepLocal แล้ว (อาจจบหมดแล้ว)");
-        return prev;
-      }
-
-      const expectedReps = currentStep.reps;
-
-      console.log("prev:", prev);
-      console.log("newReps:", newReps);
-      console.log("expectedReps:", expectedReps);
-
-      if (newReps >= expectedReps) {
-        console.log("✅ เซ็ตครบแล้ว:", currentStep);
-
-        setTimeout(() => {
-          setCurrentStepIndex((i) => {
-            const nextIndex = Math.min(i + 1, steps.length - 1);
-            return nextIndex;
-          });
-          setReps(0);
-        }, 1000);
-
-        return 0;
-      }
-
-      return newReps;
-    });
-  };
-
-  const [initialized, setInitialized] = useState(false);
-
-  useEffect(() => {
-    if (a.length > 0 && a[0]?.exercise && !initialized) {
-      setExerciseType(a[0].exercise.toLocaleLowerCase());
-      setInitialized(true);
-    }
-  }, [a, initialized]);
 
   return (
     <div className="flex flex-col items-center justify-center p-2 md:p-8 gap-2 md:gap-4 bg-black w-full min-h-screen">
