@@ -229,9 +229,10 @@ const Home = () => {
 
   const steps = getExerciseSteps(a);
   console.log("steps:", steps);
-  const currentStep = steps[currentStepIndex] ?? null;
+  const currentStep = steps[currentStepIndex];
 
   const handleDoOneRep = () => {
+    console.log("steps.length:", steps.length);
     if (!steps.length || !currentStep) {
       console.warn("🚫 steps ยังไม่พร้อม");
       return;
