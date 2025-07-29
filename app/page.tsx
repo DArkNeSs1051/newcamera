@@ -161,7 +161,6 @@ const Home = () => {
     stepNumber: number;
     setNumber: number;
     reps: number;
-    duration: number;
     restTime: string;
     totalReps: number; // สำหรับตรวจจับ
   };
@@ -220,15 +219,27 @@ const Home = () => {
       const sets = parseInt(item.sets, 10) || 1;
 
       for (let i = 1; i <= sets; i++) {
-        steps.push({
-          exercise: item.exercise,
-          stepNumber: index + 1,
-          setNumber: i,
-          reps: item.reps ? +item.reps : 0,
-          duration: item.duration ? +item.duration : 0,
-          restTime: `${item.rest} นาที`,
-          totalReps: reps,
-        });
+        if (
+          item.exercise.toLocaleLowerCase() === "plank" ||
+          item.exercise.toLocaleLowerCase() === "side plank"
+        ) {
+          steps.push({
+            exercise: item.exercise,
+            stepNumber: index + 1,
+            setNumber: i,
+            reps: item.reps ? parseInt(item.reps, 10) : 0,
+            restTime: `${item.rest} นาที`,
+            totalReps: reps,
+          });
+        } else
+          steps.push({
+            exercise: item.exercise,
+            stepNumber: index + 1,
+            setNumber: i,
+            reps: item.reps ? +item.reps : 0,
+            restTime: `${item.rest} นาที`,
+            totalReps: reps,
+          });
       }
     });
 
