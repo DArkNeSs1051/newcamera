@@ -162,7 +162,6 @@ const Home = () => {
     setNumber: number;
     reps: number;
     restTime: string;
-    totalReps: number; // สำหรับตรวจจับ
   };
 
   type TB = {
@@ -187,11 +186,8 @@ const Home = () => {
         const data = JSON.parse(event.data);
 
         if (data?.type === "FROM_APP") {
-          console.log("data.payload:", data.payload);
-          console.log("data.payload:", data.video);
           setA(data.payload);
           setB(data.video);
-          // console.log("📥 ได้รับจากแอป:", data.payload);
         }
       } catch (e) {
         console.error("❌ รับข้อมูลพัง:", e);
@@ -227,9 +223,8 @@ const Home = () => {
             exercise: item.exercise,
             stepNumber: index + 1,
             setNumber: i,
-            reps: item.reps ? parseInt(item.reps, 10) : 0,
+            reps: item.reps ? parseInt(item.reps, 10) * 60 : 0,
             restTime: `${item.rest} นาที`,
-            totalReps: reps,
           });
         } else
           steps.push({
@@ -238,7 +233,6 @@ const Home = () => {
             setNumber: i,
             reps: item.reps ? +item.reps : 0,
             restTime: `${item.rest} นาที`,
-            totalReps: reps,
           });
       }
     });
@@ -261,7 +255,6 @@ const Home = () => {
   useEffect(() => {
     stepsRef.current = steps;
   }, [steps]);
-  console.log("stepsRef.current:", stepsRef.current);
   // --------------------------------
   useEffect(() => {
     currentStepRef.current = currentStep;
@@ -283,11 +276,7 @@ const Home = () => {
 
         const restMinutes = parseInt(currentStepRep.restTime, 10) || 1;
 
-        console.log("restMinutes:", restMinutes);
-
         const totalRestSeconds = restMinutes * 60;
-
-        console.log("totalRestSeconds:", totalRestSeconds);
 
         // 2. เข้าสู่โหมดพักและตั้งค่าเวลานับถอยหลัง
 
@@ -2702,7 +2691,12 @@ const Home = () => {
                   <p className="text-2xl font-bold">{currentStep.setNumber}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-400 uppercase">จำนวนครั้ง</p>
+                  <p className="text-xs text-gray-400 uppercase">
+                    {currentStep.exercise.toLocaleLowerCase() === "plank" ||
+                    currentStep.exercise.toLocaleLowerCase() === "side plank"
+                      ? "จำนวนวินาที"
+                      : "จำนวนครั้ง"}
+                  </p>
                   <p className="text-2xl font-bold">
                     <span className="text-green-400">{reps}</span>
                     <span className="text-gray-500 mx-1">/</span>
