@@ -207,7 +207,7 @@ const Home = () => {
     if (typeof window !== "undefined" && (window as any).ReactNativeWebView) {
       (window as any).ReactNativeWebView.postMessage(
         JSON.stringify({
-          message: "Hello from Next.js asd", // ✅ stringified
+          message: "Hello from Next.js", // ✅ stringified
         })
       );
     }
@@ -250,6 +250,7 @@ const Home = () => {
   useEffect(() => {
     stepsRef.current = steps;
   }, [steps]);
+  console.log("stepsRef.current:", stepsRef.current);
   // --------------------------------
   useEffect(() => {
     currentStepRef.current = currentStep;
