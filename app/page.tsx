@@ -267,62 +267,120 @@ const Home = () => {
       return;
     }
 
-    setReps((prev) => {
-      const newReps = prev + 1;
-      const expectedReps = currentStepRep.reps;
+    const isPlank = currentStepRep.exercise.toLowerCase() === "plank";
+    const isSidePlank = currentStepRep.exercise.toLowerCase() === "side plank";
 
-      if (newReps >= expectedReps) {
-        // 1. คำนวณเวลาพัก (สมมติว่า item.rest เป็นนาที)
+    if (isPlank || isSidePlank) {
+      const currentTime = isPlank ? plankTime : sidePlankTime;
+      const expectedTime = currentStepRep.reps;
+
+      if (currentTime >= expectedTime) {
+        if (isPlank) {
+          if (plankTimerRef.current) {
+            clearInterval(plankTimerRef.current);
+            plankTimerRef.current = null;
+          }
+          plankStartedRef.current = false;
+        } else {
+          if (sidePlankTimerRef.current) {
+            clearInterval(sidePlankTimerRef.current);
+            sidePlankTimerRef.current = null;
+          }
+          sidePlankStartedRef.current = false;
+        }
 
         const restMinutes = parseInt(currentStepRep.restTime, 10) || 1;
-
         const totalRestSeconds = restMinutes * 60;
 
-        // 2. เข้าสู่โหมดพักและตั้งค่าเวลานับถอยหลัง
-
         setIsResting(true);
-
         setRestTime(totalRestSeconds);
-
-        speak(`ยอดเยี่ยม! พัก ${restMinutes} นาที`); // แจ้งเตือนด้วยเสียง
-
-        // 3. เริ่มต้นการนับถอยหลัง
+        speak(`เยี่ยมมาก! พัก ${restMinutes} นาที`);
 
         if (restTimerRef.current) clearInterval(restTimerRef.current);
 
         restTimerRef.current = setInterval(() => {
           setRestTime((prevTime) => {
             if (prevTime <= 1) {
-              if (restTimerRef.current) clearInterval(restTimerRef.current);
+              clearInterval(restTimerRef.current!);
               setIsResting(false);
 
               setCurrentStepIndex((i) => {
                 const nextIndex = i + 1;
-
-                // --- แก้ไข 2 จุดนี้ ---
-                // 1. เปลี่ยน steps.length เป็น stepsRef.current.length
                 if (nextIndex >= stepsRef.current.length) {
                   speak("สุดยอดมาก คุณออกกำลังกายครบแล้ว");
                   return i;
                 }
-                // 2. เปลี่ยน steps[nextIndex] เป็น stepsRef.current[nextIndex]
                 const nextStep = stepsRef.current[nextIndex];
                 speak(`เตรียมตัวสำหรับท่าถัดไป, ${nextStep.exercise}`);
                 return nextIndex;
               });
 
+              if (isPlank) setPlankTime(0);
+              if (isSidePlank) setSidePlankTime(0);
               setReps(0);
               return 0;
             }
             return prevTime - 1;
           });
         }, 1000);
-
-        return 0;
       }
+    } else {
+      setReps((prev) => {
+        const newReps = prev + 1;
+        const expectedReps = currentStepRep.reps;
 
-      return newReps;
-    });
+        if (newReps >= expectedReps) {
+          // 1. คำนวณเวลาพัก (สมมติว่า item.rest เป็นนาที)
+
+          const restMinutes = parseInt(currentStepRep.restTime, 10) || 1;
+
+          const totalRestSeconds = restMinutes * 60;
+
+          // 2. เข้าสู่โหมดพักและตั้งค่าเวลานับถอยหลัง
+
+          setIsResting(true);
+
+          setRestTime(totalRestSeconds);
+
+          speak(`ยอดเยี่ยม! พัก ${restMinutes} นาที`); // แจ้งเตือนด้วยเสียง
+
+          // 3. เริ่มต้นการนับถอยหลัง
+
+          if (restTimerRef.current) clearInterval(restTimerRef.current);
+
+          restTimerRef.current = setInterval(() => {
+            setRestTime((prevTime) => {
+              if (prevTime <= 1) {
+                if (restTimerRef.current) clearInterval(restTimerRef.current);
+                setIsResting(false);
+
+                setCurrentStepIndex((i) => {
+                  const nextIndex = i + 1;
+
+                  // 1. เปลี่ยน steps.length เป็น stepsRef.current.length
+                  if (nextIndex >= stepsRef.current.length) {
+                    speak("สุดยอดมาก คุณออกกำลังกายครบแล้ว");
+                    return i;
+                  }
+                  // 2. เปลี่ยน steps[nextIndex] เป็น stepsRef.current[nextIndex]
+                  const nextStep = stepsRef.current[nextIndex];
+                  speak(`เตรียมตัวสำหรับท่าถัดไป, ${nextStep.exercise}`);
+                  return nextIndex;
+                });
+
+                setReps(0);
+                return 0;
+              }
+              return prevTime - 1;
+            });
+          }, 1000);
+
+          return 0;
+        }
+
+        return newReps;
+      });
+    }
   };
 
   const [initialized, setInitialized] = useState(false);
@@ -1250,6 +1308,16 @@ const Home = () => {
           showFeedback("อย่าห่อสะบัก หรือหลังแอ่น ยกก้นขึ้น หรือยกคอลง");
           plankWarningGivenRef.current = true;
         }
+
+        if (
+          plankStartedRef.current &&
+          plankProperFormRef.current &&
+          currentStepRef.current &&
+          currentStepRef.current.exercise.toLowerCase() === "plank" &&
+          plankTime >= currentStepRef.current.reps
+        ) {
+          handleDoOneRep(currentStepRef.current);
+        }
       }
     } else {
       if (plankStartedRef.current) {
@@ -1364,6 +1432,16 @@ const Home = () => {
 
         // รีเซ็ตการแจ้งเตือน
         sidePlankWarningGivenRef.current = false;
+
+        if (
+          sidePlankStartedRef.current &&
+          sidePlankProperFormRef.current &&
+          currentStepRef.current &&
+          currentStepRef.current.exercise.toLowerCase() === "side plank" &&
+          sidePlankTime >= currentStepRef.current.reps
+        ) {
+          handleDoOneRep(currentStepRef.current);
+        }
       } else {
         // ไม่ได้อยู่ในท่า Side Plank แล้ว
         if (sidePlankStartedRef.current) {
