@@ -301,7 +301,7 @@ const Home = () => {
         restTimerRef.current = setInterval(() => {
           setRestTime((prevTime) => {
             if (prevTime <= 1) {
-              clearInterval(restTimerRef.current!);
+              if (restTimerRef.current) clearInterval(restTimerRef.current);
               setIsResting(false);
 
               setCurrentStepIndex((i) => {
