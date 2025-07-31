@@ -2776,7 +2776,14 @@ const Home = () => {
                       : "จำนวนครั้ง"}
                   </p>
                   <p className="text-2xl font-bold">
-                    <span className="text-green-400">{reps}</span>
+                    <span className="text-green-400">
+                      {currentStep.exercise.toLocaleLowerCase() === "plank"
+                        ? plankTime
+                        : currentStep.exercise.toLocaleLowerCase() ===
+                          "side plank"
+                        ? sidePlankTime
+                        : reps}
+                    </span>
                     <span className="text-gray-500 mx-1">/</span>
                     <span>{currentStep.reps}</span>
                   </p>
