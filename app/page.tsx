@@ -220,7 +220,6 @@ const Home = () => {
         (window as any).ReactNativeWebView.postMessage(
           JSON.stringify({
             message: `ชิบหายหมดแล้วรู้ไหม มึงก็นะขยันหาเทส ท่าแปลกๆ ขยันหาให้แก้จริงๆเลยนะ ไอ่สัสเอ้ย`,
-            success: false,
           })
         );
       }
