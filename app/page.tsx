@@ -251,7 +251,7 @@ const Home = () => {
             stepNumber: steps.length + 1, // ใช้ length ของ steps เพื่อให้เลข step ต่อเนื่องกัน
             setNumber: i,
             reps: timePerSide,
-            restTime: `0 นาที`, // พัก 0 นาทีระหว่างเปลี่ยนข้าง
+            restTime: `0:05 นาที`, // พัก 0 นาทีระหว่างเปลี่ยนข้าง
           });
 
           // เพิ่มสเต็ปสำหรับข้างขวา (มีเวลาพักหลังทำจบ)
@@ -314,12 +314,10 @@ const Home = () => {
     const currentStep = currentStepRef.current;
     if (!currentStep) return;
 
-    const restMinutes = parseInt(currentStep.restTime, 10) || 1;
-    const totalRestSeconds = restMinutes * 60;
+    const totalRestSeconds = timeStringToSeconds(currentStep.restTime);
 
     setIsResting(true);
     setRestTime(totalRestSeconds);
-    speak(`ยอดเยี่ยม! พัก ${restMinutes} นาที`);
 
     if (restTimerRef.current) clearInterval(restTimerRef.current);
 
