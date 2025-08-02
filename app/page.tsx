@@ -2879,8 +2879,9 @@ const Home = () => {
                     <span className="text-green-400">
                       {currentStep.exercise.toLocaleLowerCase() === "plank"
                         ? plankTime
-                        : currentStep.exercise.toLocaleLowerCase() ===
-                          "side plank"
+                        : currentStep.exercise
+                            .toLocaleLowerCase()
+                            .includes("side plank")
                         ? sidePlankTime
                         : reps}
                     </span>
