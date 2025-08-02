@@ -65,6 +65,7 @@ const Home = () => {
   // เพิ่มตัวแปรสำหรับการจับเวลา Plank
   const [plankTime, setPlankTime] = useState(0);
   const plankTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const plankTimeRef = useRef(plankTime); // สร้าง ref เพื่อเก็บค่า plankTime
   const plankStartedRef = useRef<boolean>(false);
   const plankProperFormRef = useRef<boolean>(false);
   const plankWarningGivenRef = useRef<boolean>(false);
@@ -315,7 +316,7 @@ const Home = () => {
     let isSetComplete = false;
 
     if (isPlank || isSidePlank) {
-      const currentTime = isPlank ? plankTime : sidePlankTime;
+      const currentTime = isPlank ? plankTimeRef.current : sidePlankTime;
       console.log("currentTime:", currentTime);
       const expectedTime = currentStepRep.reps;
       console.log("expectedTime:", expectedTime);
@@ -1202,7 +1203,6 @@ const Home = () => {
   };
 
   const plankFaultTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const plankTimeRef = useRef(plankTime); // สร้าง ref เพื่อเก็บค่า plankTime
   useEffect(() => {
     plankTimeRef.current = plankTime; // อัปเดต ref ทุกครั้งที่ plankTime เปลี่ยน
   }, [plankTime]);
