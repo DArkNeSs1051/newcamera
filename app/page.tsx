@@ -953,9 +953,10 @@ const Home = () => {
       lungeUpPositionRef.current = true;
       lungeDownPositionRef.current = false;
       handleDoOneRep(currentStepRef.current);
-      showFeedback(
-        `ดีมาก! ทำครบ 1 ครั้ง (${side === "left" ? "ซ้าย" : "ขวา"})`
-      );
+      // showFeedback(
+      //   `ดีมาก! ทำครบ 1 ครั้ง (${side === "left" ? "ซ้าย" : "ขวา"})`
+      // );
+      showFeedback("Hello i sus");
       kneeAlignmentWarningRef.current = false;
 
       // สลับข้าง
