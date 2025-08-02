@@ -211,7 +211,7 @@ const Home = () => {
         (window as any).ReactNativeWebView.postMessage(
           JSON.stringify({
             message: `Count ${repsRef.current} นะรู้ไหมตัวเอง`,
-            success: false,
+            success: true,
           })
         );
       }
