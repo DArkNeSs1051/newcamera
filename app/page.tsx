@@ -1329,7 +1329,7 @@ const Home = () => {
 
         // --- ส่วนที่แก้ไข ---
         // เช็คเมื่อทำครบเวลาที่กำหนดก่อนเป็นอันดับแรก
-        console.log("plankTime:", plankTime);
+        console.log("plankTimeRef.current:", plankTimeRef.current);
         console.log(
           "currentStepRef.current.reps:",
           currentStepRef.current && currentStepRef.current.reps
