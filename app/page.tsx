@@ -73,6 +73,7 @@ const Home = () => {
   // เพิ่มตัวแปรสำหรับการจับเวลา Side Plank
   const [sidePlankTime, setSidePlankTime] = useState(0);
   const sidePlankTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const sidePlankTimeRef = useRef(plankTime); // สร้าง ref เพื่อเก็บค่า sidePlankTime
   const sidePlankStartedRef = useRef<boolean>(false);
   const sidePlankProperFormRef = useRef<boolean>(false);
   const sidePlankWarningGivenRef = useRef<boolean>(false);
@@ -213,28 +214,58 @@ const Home = () => {
     const steps: TExerciseStep[] = [];
 
     exerciseList.forEach((item, index) => {
+      // แปลงจำนวนเซ็ตเป็นตัวเลข ถ้าไม่มีให้เป็น 1
       const sets = parseInt(item.sets, 10) || 1;
 
+      // วนลูปตามจำนวนเซ็ต
       for (let i = 1; i <= sets; i++) {
-        if (
-          item.exercise.toLocaleLowerCase() === "plank" ||
-          item.exercise.toLocaleLowerCase() === "side plank"
-        ) {
+        const exerciseNameLower = item.exercise.toLocaleLowerCase();
+
+        // --- เงื่อนไขสำหรับ Side Plank ---
+        if (exerciseNameLower === "side plank") {
+          // คำนวณเวลารวมเป็นวินาที
+          const totalSeconds = item.reps ? parseInt(item.reps, 10) * 60 : 0;
+          // หาร 2 เพื่อแบ่งเวลาทำแต่ละข้าง
+          const timePerSide = totalSeconds / 2;
+
+          // เพิ่มสเต็ปสำหรับข้างซ้าย (ยังไม่มีเวลาพัก)
+          steps.push({
+            exercise: `${item.exercise}_left`, // เพิ่มคำว่า (ซ้าย)
+            stepNumber: index + 1,
+            setNumber: i,
+            reps: timePerSide,
+            restTime: `0 นาที`,
+          });
+
+          // เพิ่มสเต็ปสำหรับข้างขวา (มีเวลาพักหลังทำจบ)
+          steps.push({
+            exercise: `${item.exercise}_right`, // เพิ่มคำว่า (ขวา)
+            stepNumber: index + 1,
+            setNumber: i,
+            reps: timePerSide,
+            restTime: `${item.rest} นาที`,
+          });
+        }
+        // --- เงื่อนไขสำหรับ Plank (ยังคงเหมือนเดิม) ---
+        else if (exerciseNameLower === "plank") {
           steps.push({
             exercise: item.exercise,
             stepNumber: index + 1,
             setNumber: i,
-            reps: item.reps ? parseInt(item.reps, 10) * 60 : 0,
+            reps: item.reps ? parseInt(item.reps, 10) * 60 : 0, // แปลงนาทีเป็นวินาที
             restTime: `${item.rest} นาที`,
           });
-        } else
+        }
+        // --- สำหรับท่าออกกำลังกายอื่นๆ ---
+        else {
           steps.push({
             exercise: item.exercise,
             stepNumber: index + 1,
             setNumber: i,
-            reps: item.reps ? +item.reps : 0,
+            reps: item.reps ? +item.reps : 0, // แปลง reps เป็นตัวเลข
             restTime: `${item.rest} นาที`,
           });
+        }
       }
     });
 
@@ -316,10 +347,10 @@ const Home = () => {
     let isSetComplete = false;
 
     if (isPlank || isSidePlank) {
-      const currentTime = isPlank ? plankTimeRef.current : sidePlankTime;
-      console.log("currentTime:", currentTime);
+      const currentTime = isPlank
+        ? plankTimeRef.current
+        : sidePlankTimeRef.current;
       const expectedTime = currentStepRep.reps;
-      console.log("expectedTime:", expectedTime);
 
       if (currentTime >= expectedTime) {
         isSetComplete = true;
@@ -351,7 +382,6 @@ const Home = () => {
 
     // ถ้าเป็น Plank หรือ Side Plank ที่ทำครบแล้ว ให้เริ่มพัก
     if (isSetComplete && (isPlank || isSidePlank)) {
-      console.log("sec");
       startRestPeriod();
     }
   };
@@ -1359,134 +1389,177 @@ const Home = () => {
     }
   };
 
-  // ฟังก์ชันสำหรับการตรวจสอบท่า Side Plank
+  const sidePlankFaultTimerRef = useRef<NodeJS.Timeout | null>(null);
+  useEffect(() => {
+    sidePlankTimeRef.current = sidePlankTime; // อัปเดต ref ทุกครั้งที่ sidePlankTime เปลี่ยน
+  }, [sidePlankTime]);
+
+  // useEffect สำหรับอัปเดต state จาก ref (ถ้าจำเป็นต้องแสดงเวลาบน UI)
+  useEffect(() => {
+    // ฟังก์ชันนี้จะถูกเรียกเมื่อ component unmount เพื่อเคลียร์ timer ทั้งหมด
+    return () => {
+      if (sidePlankTimerRef.current) clearInterval(sidePlankTimerRef.current);
+      if (sidePlankFaultTimerRef.current)
+        clearTimeout(sidePlankFaultTimerRef.current);
+    };
+  }, []);
+
+  // --- ฟังก์ชันที่ปรับปรุงใหม่ ---
   const detectSidePlank = () => {
-    if (!posesRef.current || posesRef.current.length === 0) return;
-
-    // ตรวจสอบตำแหน่งของร่างกาย
-    const leftShoulder = posesRef.current[0].keypoints[5];
-    const rightShoulder = posesRef.current[0].keypoints[6];
-    const leftElbow = posesRef.current[0].keypoints[7];
-    const rightElbow = posesRef.current[0].keypoints[8];
-    const leftWrist = posesRef.current[0].keypoints[9];
-    const rightWrist = posesRef.current[0].keypoints[10];
-    const leftHip = posesRef.current[0].keypoints[11];
-    const rightHip = posesRef.current[0].keypoints[12];
-    const leftKnee = posesRef.current[0].keypoints[13];
-    const rightKnee = posesRef.current[0].keypoints[14];
-    const leftAnkle = posesRef.current[0].keypoints[15];
-    const rightAnkle = posesRef.current[0].keypoints[16];
-
+    // 1. ตรวจสอบข้อมูลพื้นฐาน
     if (
-      leftShoulder.score &&
-      rightShoulder.score &&
-      leftElbow.score &&
-      rightElbow.score &&
-      leftHip.score &&
-      rightHip.score &&
-      leftKnee.score &&
-      rightKnee.score &&
-      leftAnkle.score &&
-      rightAnkle.score &&
-      leftShoulder.score > 0.2 &&
-      rightShoulder.score > 0.2 &&
-      leftElbow.score > 0.2 &&
-      rightElbow.score > 0.2 &&
-      leftHip.score > 0.2 &&
-      rightHip.score > 0.2 &&
-      leftKnee.score > 0.2 &&
-      rightKnee.score > 0.2 &&
-      leftAnkle.score > 0.2 &&
-      rightAnkle.score > 0.2
-    ) {
-      // คำนวณมุมของลำตัวเทียบกับแนวดิ่ง
-      const shoulderDiffX = Math.abs(leftShoulder.x - rightShoulder.x);
-      const shoulderDiffY = Math.abs(leftShoulder.y - rightShoulder.y);
-      const hipDiffX = Math.abs(leftHip.x - rightHip.x);
-      const hipDiffY = Math.abs(leftHip.y - rightHip.y);
+      !posesRef.current ||
+      posesRef.current.length === 0 ||
+      !currentStepRef.current
+    )
+      return;
 
-      // ตรวจสอบว่าลำตัวตั้งฉากกับพื้น (ไหล่และสะโพกอยู่ในแนวดิ่ง)
-      const isVerticalTorso =
-        shoulderDiffY > shoulderDiffX * 1.5 && hipDiffY > hipDiffX * 1.5;
-
-      // ตรวจสอบว่าขาเหยียดตรง
-      const leftLegAngle = calculateAngle(leftHip, leftKnee, leftAnkle);
-      const rightLegAngle = calculateAngle(rightHip, rightKnee, rightAnkle);
-      const isStraightLegs =
-        (leftLegAngle > 160 || leftLegAngle < 20) &&
-        (rightLegAngle > 160 || rightLegAngle < 20);
-
-      // ตรวจสอบว่าเป็น Side Plank ด้านซ้าย
-      const isLeftSidePlank =
-        leftElbow.y > leftShoulder.y &&
-        Math.abs(leftElbow.x - leftShoulder.x) < 35 &&
-        leftWrist.y > leftElbow.y;
-
-      // ตรวจสอบว่าเป็น Side Plank ด้านขวา
-      const isRightSidePlank =
-        rightElbow.y > rightShoulder.y &&
-        Math.abs(rightElbow.x - rightShoulder.x) < 35 &&
-        rightWrist.y > rightElbow.y;
-
-      // ตรวจสอบว่าอยู่ในท่า Side Plank ที่ถูกต้อง
-      if (
-        (isLeftSidePlank || isRightSidePlank) &&
-        isVerticalTorso &&
-        isStraightLegs
-      ) {
-        // บันทึกด้านที่กำลังทำ Side Plank
-        sidePlankSideRef.current = isLeftSidePlank ? "left" : "right";
-
-        if (!sidePlankStartedRef.current) {
-          sidePlankStartedRef.current = true;
-          sidePlankProperFormRef.current = true;
-          showFeedback(
-            `เริ่มท่า Side Plank ด้าน${
-              isLeftSidePlank ? "ซ้าย" : "ขวา"
-            } แล้ว เกร็งท้อง ก้นและขาตลอดเวลา`
-          );
-
-          // เริ่มจับเวลา
-          if (sidePlankTimerRef.current) {
-            clearInterval(sidePlankTimerRef.current);
-          }
-
-          setSidePlankTime(0);
-          sidePlankTimerRef.current = setInterval(() => {
-            setSidePlankTime((prev) => prev + 1);
-          }, 1000);
+    // ตรวจสอบว่าเป็น step ของ Side Plank หรือไม่
+    const exerciseName = currentStepRef.current.exercise.toLowerCase();
+    if (!exerciseName.includes("side plank")) {
+      // ถ้าไม่ใช่ท่า side plank แต่ timer ยังทำงานอยู่ ให้เคลียร์ทิ้ง
+      if (sidePlankStartedRef.current) {
+        sidePlankStartedRef.current = false;
+        if (sidePlankTimerRef.current) {
+          clearInterval(sidePlankTimerRef.current);
+          sidePlankTimerRef.current = null;
         }
+      }
+      return;
+    }
 
-        // รีเซ็ตการแจ้งเตือน
-        sidePlankWarningGivenRef.current = false;
+    // 2. กำหนดข้างที่ต้องทำจาก Step ปัจจุบัน
+    const requiredSide = exerciseName.includes("left") ? "left" : "right";
+    const requiredSideThai = requiredSide === "left" ? "ซ้าย" : "ขวา";
 
-        if (
-          sidePlankStartedRef.current &&
-          sidePlankProperFormRef.current &&
-          currentStepRef.current &&
-          currentStepRef.current.exercise.toLowerCase() === "side plank" &&
-          sidePlankTime >= currentStepRef.current.reps
-        ) {
-          handleDoOneRep(currentStepRef.current);
-        }
-      } else {
-        // ไม่ได้อยู่ในท่า Side Plank แล้ว
-        if (sidePlankStartedRef.current) {
-          sidePlankStartedRef.current = false;
-          sidePlankProperFormRef.current = false;
+    // 3. ดึงค่า Keypoints และตรวจสอบ score (เหมือนเดิม)
+    const keypoints = posesRef.current[0].keypoints;
+    const leftShoulder = keypoints[5],
+      rightShoulder = keypoints[6];
+    const leftElbow = keypoints[7],
+      rightElbow = keypoints[8];
+    const leftHip = keypoints[11],
+      rightHip = keypoints[12];
+    const leftKnee = keypoints[13],
+      rightKnee = keypoints[14];
+    const leftAnkle = keypoints[15],
+      rightAnkle = keypoints[16];
 
-          // หยุดจับเวลา
-          if (sidePlankTimerRef.current) {
-            clearInterval(sidePlankTimerRef.current);
+    const allPointsVisible = [
+      leftShoulder,
+      rightShoulder,
+      leftElbow,
+      rightElbow,
+      leftHip,
+      rightHip,
+      leftKnee,
+      rightKnee,
+      leftAnkle,
+      rightAnkle,
+    ].every((p) => !p || (p.score !== undefined && p.score > 0.2));
+
+    if (!allPointsVisible) {
+      // หากจุดสำคัญหายไป และเคยเริ่มจับเวลาแล้ว ให้หยุดเวลาชั่วคราว
+      if (sidePlankStartedRef.current && sidePlankProperFormRef.current) {
+        sidePlankProperFormRef.current = false;
+        if (sidePlankTimerRef.current) clearInterval(sidePlankTimerRef.current);
+        showFeedback(
+          `จัดท่า Side Plank (ด้าน${requiredSideThai}) ให้กล้องเห็นทั้งตัว`
+        );
+      }
+      return;
+    }
+
+    // 4. คำนวณค่าทางเรขาคณิต (เหมือนเดิม)
+    const shoulderDiffX = Math.abs(leftShoulder.x - rightShoulder.x);
+    const shoulderDiffY = Math.abs(leftShoulder.y - rightShoulder.y);
+    const hipDiffX = Math.abs(leftHip.x - rightHip.x);
+    const hipDiffY = Math.abs(leftHip.y - rightHip.y);
+    const isVerticalTorso =
+      shoulderDiffY > shoulderDiffX * 1.5 && hipDiffY > hipDiffX * 1.5;
+    const leftLegAngle = calculateAngle(leftHip, leftKnee, leftAnkle);
+    const rightLegAngle = calculateAngle(rightHip, rightKnee, rightAnkle);
+    const isStraightLegs = leftLegAngle > 160 && rightLegAngle > 160;
+
+    // 5. ตรวจสอบว่าเป็น Side Plank ข้างที่ถูกต้องหรือไม่
+    const isDoingLeft =
+      Math.abs(leftElbow.x - leftShoulder.x) < 50 &&
+      leftElbow.y > leftShoulder.y;
+    const isDoingRight =
+      Math.abs(rightElbow.x - rightShoulder.x) < 50 &&
+      rightElbow.y > rightShoulder.y;
+
+    const isCorrectSideAndForm =
+      isVerticalTorso &&
+      isStraightLegs &&
+      ((requiredSide === "left" && isDoingLeft) ||
+        (requiredSide === "right" && isDoingRight));
+
+    // 6. State Machine: จัดการการเริ่ม, หยุดชั่วคราว, และจบ
+    if (isCorrectSideAndForm) {
+      // --- ผู้ใช้ทำท่าถูกต้อง ---
+      if (sidePlankFaultTimerRef.current) {
+        clearTimeout(sidePlankFaultTimerRef.current);
+        sidePlankFaultTimerRef.current = null;
+        showFeedback("ดีมาก! ทำต่อไป");
+      }
+
+      sidePlankProperFormRef.current = true;
+
+      if (!sidePlankStartedRef.current) {
+        // เริ่มครั้งแรก
+        sidePlankStartedRef.current = true;
+        showFeedback(`เริ่มจับเวลา Side Plank (ด้าน${requiredSideThai})`);
+      }
+
+      // หาก timer ไม่ได้ทำงานอยู่ (อาจจะเพิ่งเริ่ม หรือเพิ่งกลับมาจากท่าที่ผิด) ให้เริ่ม timer
+      if (!sidePlankTimerRef.current) {
+        sidePlankTimerRef.current = setInterval(() => {
+          sidePlankTimeRef.current += 1;
+          setSidePlankTime(sidePlankTimeRef.current);
+
+          // เช็คว่าครบกำหนดเวลาหรือยัง (เหมือนเดิม)
+          if (
+            currentStepRef.current &&
+            sidePlankTimeRef.current >= currentStepRef.current.reps
+          ) {
+            if (sidePlankTimerRef.current)
+              clearInterval(sidePlankTimerRef.current);
             sidePlankTimerRef.current = null;
-          }
 
-          showFeedback(
-            `จบท่า Side Plank ด้าน${
-              sidePlankSideRef.current === "left" ? "ซ้าย" : "ขวา"
-            } แล้ว คุณทำได้ ${sidePlankTime} วินาที`
-          );
+            sidePlankStartedRef.current = false;
+            sidePlankTimeRef.current = 0;
+            setSidePlankTime(0);
+
+            handleDoOneRep(currentStepRef.current);
+          }
+        }, 1000);
+      }
+    } else {
+      // --- ผู้ใช้ทำท่าไม่ถูกต้อง ---
+
+      // จะทำงานเมื่อเคยเริ่มไปแล้ว แต่อยู่ๆฟอร์มก็ผิด และยังไม่มี timer จับเวลาผิดทำงานอยู่
+      if (sidePlankStartedRef.current && sidePlankProperFormRef.current) {
+        sidePlankProperFormRef.current = false;
+
+        // 1. หยุด timer หลักชั่วคราว (เวลาจะค้างไว้)
+        if (sidePlankTimerRef.current) {
+          clearInterval(sidePlankTimerRef.current);
+          sidePlankTimerRef.current = null;
         }
+
+        // 2. เริ่มนับถอยหลัง 10 วินาทีเพื่อรีเซ็ต
+        showFeedback(`ท่าไม่ถูกต้อง! จัดระเบียบร่างกายใหม่ (มีเวลา 10 วินาที)`);
+        sidePlankFaultTimerRef.current = setTimeout(() => {
+          // --- จะทำงานเมื่อครบ 10 วินาทีแล้วยังไม่กลับมาทำท่าที่ถูกต้อง ---
+          showFeedback("หมดเวลาแก้ไข! เริ่มนับเวลาใหม่");
+
+          // รีเซ็ตเวลาของ step ปัจจุบันทั้งหมด
+          sidePlankTimeRef.current = 0;
+          setSidePlankTime(0);
+          sidePlankStartedRef.current = false; // บังคับให้เริ่ม step นี้ใหม่ทั้งหมด
+          sidePlankFaultTimerRef.current = null;
+        }, 10000); // 10 วินาที
       }
     }
   };
