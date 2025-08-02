@@ -364,6 +364,14 @@ const Home = () => {
     const currentStep = currentStepRef.current;
     if (!currentStep) return;
 
+    const isLastStep = currentStepIndex >= stepsRef.current.length - 1;
+    if (isLastStep) {
+      // ✅ ถ้าเป็นท่าสุดท้าย ข้ามการพักและจบเลย
+      speak("สุดยอดมาก คุณออกกำลังกายครบแล้ว");
+      setIsFinished(true);
+      return;
+    }
+
     const totalRestSeconds = parseTimeToSeconds(currentStep.restTime);
 
     setIsResting(true);
@@ -379,21 +387,11 @@ const Home = () => {
 
           setCurrentStepIndex((i) => {
             const nextIndex = i + 1;
-            if (nextIndex >= stepsRef.current.length) {
-              speak("สุดยอดมาก คุณออกกำลังกายครบแล้ว");
-
-              // ✅ ตั้งค่าให้รู้ว่าเสร็จแล้ว
-              setIsFinished(true);
-
-              return i; // ไม่เปลี่ยน index แล้ว
-            }
-
             const nextStep = stepsRef.current[nextIndex];
             speak(`เตรียมตัวสำหรับท่าถัดไป, ${nextStep.exercise}`);
             return nextIndex;
           });
 
-          // ✅ รีเซ็ตค่าท่า
           setReps(0);
           setPlankTime(0);
           setSidePlankTime(0);
