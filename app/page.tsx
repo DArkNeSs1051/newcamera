@@ -10,6 +10,7 @@ const Home = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [reps, setReps] = useState(0);
+  const repsRef = useRef(reps);
   const [exerciseType, setExerciseType] = useState("squat");
   const exerciseTypeRef = useRef(exerciseType);
   const [loading, setLoading] = useState(true);
@@ -147,6 +148,10 @@ const Home = () => {
   const legRaiseFormWarningRef = useRef<boolean>(false);
   const legRaiseBackArchWarningRef = useRef<boolean>(false);
   const legRaiseMomentumWarningRef = useRef<boolean>(false);
+
+  useEffect(() => {
+    repsRef.current = reps;
+  }, [reps]);
 
   type TExercise = {
     id: string;
@@ -953,8 +958,8 @@ const Home = () => {
       lungeUpPositionRef.current = true;
       lungeDownPositionRef.current = false;
       handleDoOneRep(currentStepRef.current);
-      showFeedback(`Count ${reps}`);
-      showFeedback(`นับ ${reps} นะไอ่สัส`);
+      // showFeedback(`Count ${reps}`);
+      showFeedback(`นับ ${repsRef.current} นะไอ่สัส`);
       kneeAlignmentWarningRef.current = false;
 
       // สลับข้าง
