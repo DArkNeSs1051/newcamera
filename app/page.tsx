@@ -959,7 +959,7 @@ const Home = () => {
       lungeDownPositionRef.current = false;
       handleDoOneRep(currentStepRef.current);
       // showFeedback(`Count ${reps}`);
-      showFeedback(`นับ ${repsRef.current} นะไอ่สัส`);
+      showFeedback(`Count ${repsRef.current + 1}`);
       kneeAlignmentWarningRef.current = false;
 
       // สลับข้าง
