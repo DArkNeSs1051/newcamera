@@ -1324,11 +1324,14 @@ const Home = () => {
 
         // --- ส่วนที่แก้ไข ---
         // เช็คเมื่อทำครบเวลาที่กำหนดก่อนเป็นอันดับแรก
+        console.log("plankTime:", plankTime);
+        console.log(
+          "currentStepRef.current.reps:",
+          currentStepRef.current && currentStepRef.current.reps
+        );
         if (
           plankStartedRef.current &&
           currentStepRef.current &&
-          !isResting && // เพิ่มการตรวจสอบว่าไม่ได้กำลังพัก
-          currentStepRef.current.exercise.toLowerCase() === "plank" &&
           plankTime >= currentStepRef.current.reps
         ) {
           console.log("first");
