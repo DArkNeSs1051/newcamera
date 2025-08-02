@@ -209,11 +209,11 @@ const Home = () => {
     if (typeof window !== "undefined" && (window as any).ReactNativeWebView) {
       (window as any).ReactNativeWebView.postMessage(
         JSON.stringify({
-          message: "Hello from Next.js", // ✅ stringified
+          message: `Count ${repsRef.current} + 1`, // ✅ stringified
         })
       );
     }
-  }, []);
+  }, [repsRef.current]);
 
   const timeStringToSeconds = (timeStr: string) => {
     const parts = timeStr.split(":").map(Number);
