@@ -1202,6 +1202,10 @@ const Home = () => {
   };
 
   const plankFaultTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const plankTimeRef = useRef(plankTime); // สร้าง ref เพื่อเก็บค่า plankTime
+  useEffect(() => {
+    plankTimeRef.current = plankTime; // อัปเดต ref ทุกครั้งที่ plankTime เปลี่ยน
+  }, [plankTime]);
 
   // ฟังก์ชันสำหรับการตรวจสอบท่า Plank
   const detectPlank = () => {
@@ -1333,7 +1337,7 @@ const Home = () => {
         if (
           plankStartedRef.current &&
           currentStepRef.current &&
-          plankTime >= currentStepRef.current.reps
+          plankTimeRef.current >= currentStepRef.current.reps // <<-- อ่านจาก ref ที่มีค่าล่าสุด
         ) {
           console.log("first");
           handleDoOneRep(currentStepRef.current);
