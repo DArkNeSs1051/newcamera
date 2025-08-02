@@ -1229,6 +1229,8 @@ const Home = () => {
     }
   };
 
+  let plankLostTime: number | null = null;
+
   // ฟังก์ชันสำหรับการตรวจสอบท่า Plank
   const detectPlank = () => {
     const poses = posesRef.current;
@@ -1253,7 +1255,6 @@ const Home = () => {
     if (pts.some((p) => !p || (p.score !== undefined && p.score < 0.2))) return;
     const [ls, rs, le, re, lh, rh, lk, rk, la, ra] = pts as any[];
 
-    // คำนวณมุม torso และขา สำหรับทั้งสองฝั่ง
     const calcAngle = (A: any, B: any, C: any) =>
       Math.atan2(A.y - B.y, A.x - B.x) * (180 / Math.PI);
 
@@ -1274,7 +1275,6 @@ const Home = () => {
       Math.abs(legR) > 150 ||
       Math.abs(legR) < 20;
 
-    // คำนวณ back angle จาก midpoint
     const midX = (ls.x + rs.x) / 2;
     const midY = (ls.y + rs.y) / 2;
     const hipX = (lh.x + rh.x) / 2;
@@ -1285,12 +1285,27 @@ const Home = () => {
       { x: hipX + 1, y: hipY }
     );
 
-    if (isTorsoStraight && isLegStraight) {
-      const backOk =
-        Math.abs(backAngleRef.current) < 20 ||
-        Math.abs(backAngleRef.current) > 160;
-      if (backOk) {
-        if (!plankStartedRef.current) {
+    const backOk =
+      Math.abs(backAngleRef.current) < 20 ||
+      Math.abs(backAngleRef.current) > 160;
+
+    if (isTorsoStraight && isLegStraight && backOk) {
+      // กลับมาทำท่าได้ถูกต้อง
+      if (!plankStartedRef.current) {
+        const now = Date.now();
+        if (plankLostTime && now - plankLostTime <= 10000) {
+          // กลับมาใน 10 วิ => นับต่อ
+          plankStartedRef.current = true;
+          plankProperFormRef.current = true;
+          plankWarningGivenRef.current = false;
+
+          showFeedback("กลับเข้าสู่ท่า Plank ต่อจากเดิม");
+
+          plankTimerRef.current = setInterval(() => {
+            setPlankTime((prev) => prev + 1);
+          }, 1000);
+        } else {
+          // เกิน 10 วิ => เริ่มใหม่
           plankStartedRef.current = true;
           plankProperFormRef.current = true;
           plankWarningGivenRef.current = false;
@@ -1302,32 +1317,37 @@ const Home = () => {
             setPlankTime((prev) => prev + 1);
           }, 1000);
         }
-      } else {
-        plankProperFormRef.current = false;
-        if (!plankWarningGivenRef.current) {
-          showFeedback("อย่าห่อสะบัก หรือหลังแอ่น ยกก้นขึ้น หรือยกคอลง");
-          plankWarningGivenRef.current = true;
-        }
+        plankLostTime = null;
+      }
 
-        if (
-          plankStartedRef.current &&
-          plankProperFormRef.current &&
-          currentStepRef.current &&
-          currentStepRef.current.exercise.toLowerCase() === "plank" &&
-          plankTime >= currentStepRef.current.reps
-        ) {
-          handleDoOneRep(currentStepRef.current);
-        }
+      if (
+        plankStartedRef.current &&
+        currentStepRef.current &&
+        currentStepRef.current.exercise.toLowerCase() === "plank" &&
+        plankTime >= currentStepRef.current.reps
+      ) {
+        handleDoOneRep(currentStepRef.current);
       }
     } else {
+      // ท่าไม่ถูก
       if (plankStartedRef.current) {
-        plankStartedRef.current = false;
-        plankProperFormRef.current = false;
-        if (plankTimerRef.current) {
-          clearInterval(plankTimerRef.current);
-          plankTimerRef.current = null;
+        if (!plankLostTime) {
+          plankLostTime = Date.now(); // บันทึกเวลาหลุดจากท่า
+          showFeedback("ออกจากท่า Plank แล้ว (มีเวลา 10 วินาทีในการกลับมา)");
         }
-        showFeedback(`จบท่า Plank แล้ว ทำได้ ${plankTime} วินาที`);
+
+        // ถ้าเกิน 10 วินาทีให้หยุด
+        if (Date.now() - plankLostTime > 10000) {
+          plankStartedRef.current = false;
+          plankProperFormRef.current = false;
+
+          if (plankTimerRef.current) {
+            clearInterval(plankTimerRef.current);
+            plankTimerRef.current = null;
+          }
+
+          showFeedback(`จบท่า Plank แล้ว ทำได้ ${plankTime} วินาที`);
+        }
       }
     }
   };
