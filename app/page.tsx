@@ -1311,6 +1311,7 @@ const Home = () => {
         // 2. ถ้ายังไม่ได้เริ่ม Plank ให้เริ่มใหม่ทั้งหมด
         if (!plankStartedRef.current) {
           plankStartedRef.current = true;
+          console.log("asdasdasd");
           setPlankTime(0);
           showFeedback("เริ่มท่า Plank: เกร็งท้อง ก้น และขาตลอดเวลา");
         }
