@@ -547,7 +547,7 @@ const Home = () => {
         detectExpertBurpee();
       } else if (exerciseTypeRef.current === "squat") {
         detectSquat();
-      } else if (exerciseTypeRef.current === "leg lunges") {
+      } else if (exerciseTypeRef.current === "leg lunge") {
         detectLunges();
       } else if (exerciseTypeRef.current === "russian twist") {
         detectRussianTwist();
