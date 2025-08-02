@@ -319,6 +319,7 @@ const Home = () => {
   useEffect(() => {
     stepsRef.current = steps;
   }, [steps]);
+  console.log("stepsRef.current:", stepsRef.current);
   // --------------------------------
   useEffect(() => {
     currentStepRef.current = currentStep;
