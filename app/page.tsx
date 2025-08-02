@@ -206,12 +206,22 @@ const Home = () => {
   }, []);
 
   useEffect(() => {
-    if (typeof window !== "undefined" && (window as any).ReactNativeWebView) {
-      (window as any).ReactNativeWebView.postMessage(
-        JSON.stringify({
-          message: `Count ${repsRef.current + 1} นะไอ่สัส`, // ✅ stringified
-        })
-      );
+    if (repsRef.current && !isResting) {
+      if (typeof window !== "undefined" && (window as any).ReactNativeWebView) {
+        (window as any).ReactNativeWebView.postMessage(
+          JSON.stringify({
+            message: `Count ${repsRef.current + 1} นะไอ่สัส`, // ✅ stringified
+          })
+        );
+      }
+    } else if (isResting) {
+      if (typeof window !== "undefined" && (window as any).ReactNativeWebView) {
+        (window as any).ReactNativeWebView.postMessage(
+          JSON.stringify({
+            message: `โถ่ ไอ่ชิบหาย บอกว่าพักอยู่ไง`, // ✅ stringified
+          })
+        );
+      }
     }
   }, [repsRef.current]);
 
