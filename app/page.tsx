@@ -309,22 +309,28 @@ const Home = () => {
     currentStepRef.current = currentStep;
   }, [currentStep]);
 
-  function parseTimeToSeconds(input: string): number {
-    // ถ้าเจอรูปแบบ mm:ss หรือ hh:mm:ss
-    if (input.includes(":")) {
-      const parts = input.split(":").map(Number).reverse();
+  const parseTimeToSeconds = (input: string) => {
+    const cleanInput = input.trim().replace(/[^0-9:.]/g, ""); // ลบพวก " นาที", "วิ" ออก
+
+    if (cleanInput.includes(":")) {
+      const parts = cleanInput
+        .split(":")
+        .map((p) => parseFloat(p))
+        .reverse();
       let seconds = 0;
       for (let i = 0; i < parts.length; i++) {
-        seconds += parts[i] * Math.pow(60, i); // วินาที + นาที + ชั่วโมง
+        if (!isNaN(parts[i])) {
+          seconds += parts[i] * Math.pow(60, i); // วินาที + นาที + ชั่วโมง
+        }
       }
-      return seconds;
+      return Math.round(seconds);
     }
 
-    // ถ้าเป็นแบบ "1 นาที" หรือ "0.05 นาที"
+    // ถ้าไม่ใช่รูปแบบ hh:mm:ss ให้ลองหาเลขทศนิยม
     const match = input.match(/[\d.]+/);
     const minutes = match ? parseFloat(match[0]) : 1;
     return Math.round(minutes * 60);
-  }
+  };
 
   // ฟังก์ชันสำหรับเริ่มการพักโดยเฉพาะ
   const startRestPeriod = () => {
