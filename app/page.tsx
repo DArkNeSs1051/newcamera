@@ -316,7 +316,9 @@ const Home = () => {
 
     if (isPlank || isSidePlank) {
       const currentTime = isPlank ? plankTime : sidePlankTime;
+      console.log("currentTime:", currentTime);
       const expectedTime = currentStepRep.reps;
+      console.log("expectedTime:", expectedTime);
 
       if (currentTime >= expectedTime) {
         isSetComplete = true;
@@ -348,6 +350,7 @@ const Home = () => {
 
     // ถ้าเป็น Plank หรือ Side Plank ที่ทำครบแล้ว ให้เริ่มพัก
     if (isSetComplete && (isPlank || isSidePlank)) {
+      console.log("sec");
       startRestPeriod();
     }
   };
@@ -1328,6 +1331,7 @@ const Home = () => {
           currentStepRef.current.exercise.toLowerCase() === "plank" &&
           plankTime >= currentStepRef.current.reps
         ) {
+          console.log("first");
           handleDoOneRep(currentStepRef.current);
           return; // <<-- เพิ่ม return ตรงนี้สำคัญมาก! เพื่อออกจากฟังก์ชันทันที
         }
