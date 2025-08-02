@@ -309,12 +309,29 @@ const Home = () => {
     currentStepRef.current = currentStep;
   }, [currentStep]);
 
+  function parseTimeToSeconds(input: string): number {
+    // ถ้าเจอรูปแบบ mm:ss หรือ hh:mm:ss
+    if (input.includes(":")) {
+      const parts = input.split(":").map(Number).reverse();
+      let seconds = 0;
+      for (let i = 0; i < parts.length; i++) {
+        seconds += parts[i] * Math.pow(60, i); // วินาที + นาที + ชั่วโมง
+      }
+      return seconds;
+    }
+
+    // ถ้าเป็นแบบ "1 นาที" หรือ "0.05 นาที"
+    const match = input.match(/[\d.]+/);
+    const minutes = match ? parseFloat(match[0]) : 1;
+    return Math.round(minutes * 60);
+  }
+
   // ฟังก์ชันสำหรับเริ่มการพักโดยเฉพาะ
   const startRestPeriod = () => {
     const currentStep = currentStepRef.current;
     if (!currentStep) return;
 
-    const totalRestSeconds = timeStringToSeconds(currentStep.restTime);
+    const totalRestSeconds = parseTimeToSeconds(currentStep.restTime);
 
     setIsResting(true);
     setRestTime(totalRestSeconds);
