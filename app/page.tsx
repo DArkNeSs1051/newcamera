@@ -1518,6 +1518,7 @@ const Home = () => {
 
     if (detectedSide) {
       if (detectedSide === expectedSide) {
+        console.log("detectedSide:", detectedSide);
         // **ท่าถูกต้อง และถูกด้าน**
         if (sidePlankFaultTimerRef.current) {
           clearTimeout(sidePlankFaultTimerRef.current);
@@ -1536,13 +1537,14 @@ const Home = () => {
         }
 
         if (!sidePlankTimerRef.current) {
+          console.log("first");
           sidePlankTimerRef.current = setInterval(() => {
             setSidePlankTime((prev) => prev + 1);
           }, 1000);
         }
 
         // เช็คเมื่อทำครบเวลา
-        if (sidePlankTime >= currentStep.reps) {
+        if (sidePlankTimeRef.current >= currentStep.reps) {
           handleDoOneRep(currentStep);
         }
       } else {
