@@ -210,7 +210,8 @@ const Home = () => {
       if (typeof window !== "undefined" && (window as any).ReactNativeWebView) {
         (window as any).ReactNativeWebView.postMessage(
           JSON.stringify({
-            message: `Count ${repsRef.current} นะรู้ไหมตัวเอง`, // ✅ stringified
+            message: `Count ${repsRef.current} นะรู้ไหมตัวเอง`,
+            success: false,
           })
         );
       }
@@ -218,7 +219,16 @@ const Home = () => {
       if (typeof window !== "undefined" && (window as any).ReactNativeWebView) {
         (window as any).ReactNativeWebView.postMessage(
           JSON.stringify({
-            message: `ชิบหายหมดแล้วรู้ไหม มึงก็นะขยันหาเทส ท่าแปลกๆ ขยันหาให้แก้จริงๆเลยนะ ไอ่สัสเอ้ย`, // ✅ stringified
+            message: `ชิบหายหมดแล้วรู้ไหม มึงก็นะขยันหาเทส ท่าแปลกๆ ขยันหาให้แก้จริงๆเลยนะ ไอ่สัสเอ้ย`,
+            success: false,
+          })
+        );
+      }
+    } else if (isFinished) {
+      if (typeof window !== "undefined" && (window as any).ReactNativeWebView) {
+        (window as any).ReactNativeWebView.postMessage(
+          JSON.stringify({
+            success: true,
           })
         );
       }
@@ -348,14 +358,14 @@ const Home = () => {
     return Math.round(minutes * 60);
   };
 
+  const [isFinished, setIsFinished] = useState(false); // เพิ่ม state ใหม่
+
   // ฟังก์ชันสำหรับเริ่มการพักโดยเฉพาะ
   const startRestPeriod = () => {
     const currentStep = currentStepRef.current;
     if (!currentStep) return;
 
     const totalRestSeconds = parseTimeToSeconds(currentStep.restTime);
-    console.log("currentStep.restTime):", currentStep.restTime);
-    console.log("totalRestSeconds:", totalRestSeconds);
 
     setIsResting(true);
     setRestTime(totalRestSeconds);
@@ -368,19 +378,23 @@ const Home = () => {
           if (restTimerRef.current) clearInterval(restTimerRef.current);
           setIsResting(false);
 
-          // ไปยังท่าถัดไป
           setCurrentStepIndex((i) => {
             const nextIndex = i + 1;
             if (nextIndex >= stepsRef.current.length) {
               speak("สุดยอดมาก คุณออกกำลังกายครบแล้ว");
-              return i;
+
+              // ✅ ตั้งค่าให้รู้ว่าเสร็จแล้ว
+              setIsFinished(true);
+
+              return i; // ไม่เปลี่ยน index แล้ว
             }
+
             const nextStep = stepsRef.current[nextIndex];
             speak(`เตรียมตัวสำหรับท่าถัดไป, ${nextStep.exercise}`);
             return nextIndex;
           });
 
-          // รีเซ็ตค่าสำหรับท่าใหม่
+          // ✅ รีเซ็ตค่าท่า
           setReps(0);
           setPlankTime(0);
           setSidePlankTime(0);
@@ -2929,6 +2943,19 @@ const Home = () => {
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {isFinished && (
+          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black bg-opacity-90 text-center p-6 rounded-xl">
+            <h2 className="text-3xl font-bold text-green-400 mb-4 animate-bounce">
+              🎉 ยินดีด้วย!
+            </h2>
+            <p className="text-lg text-white mb-6">
+              คุณออกกำลังกายครบทุกท่าแล้ว
+              <br />
+              โปรดกลับมาเล่นใหม่อีกครั้งในวันพรุ่งนี้
+            </p>
           </div>
         )}
       </div>
