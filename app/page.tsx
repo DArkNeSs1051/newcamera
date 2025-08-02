@@ -210,7 +210,7 @@ const Home = () => {
       if (typeof window !== "undefined" && (window as any).ReactNativeWebView) {
         (window as any).ReactNativeWebView.postMessage(
           JSON.stringify({
-            message: `Count ${repsRef.current + 1} นะรู้ไหมตัวเอง`, // ✅ stringified
+            message: `Count ${repsRef.current} นะรู้ไหมตัวเอง`, // ✅ stringified
           })
         );
       }
