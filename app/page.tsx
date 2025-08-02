@@ -224,6 +224,7 @@ const Home = () => {
         // --- เงื่อนไขสำหรับ Side Plank ---
         if (exerciseNameLower === "side plank") {
           // คำนวณเวลารวมเป็นวินาที
+          console.log("item.reps:", item.reps);
           const totalSeconds = item.reps ? parseInt(item.reps, 10) * 60 : 0;
           // หาร 2 เพื่อแบ่งเวลาทำแต่ละข้าง
           const timePerSide = totalSeconds / 2;
