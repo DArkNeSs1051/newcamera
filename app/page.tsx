@@ -225,7 +225,11 @@ const Home = () => {
         if (exerciseNameLower === "side plank") {
           // คำนวณเวลารวมเป็นวินาที
           console.log("item.reps:", item.reps);
-          const totalSeconds = item.reps ? parseInt(item.reps, 10) * 60 : 0;
+          const reps = item.reps?.toString() || "0";
+          const [min, sec] = reps.split(".").map(Number);
+          const totalSeconds = min * 60 + (sec || 0);
+          // const totalSeconds = item.reps ? parseInt(item.reps, 10) * 60 : 0;
+          console.log("totalSeconds:", totalSeconds);
           // หาร 2 เพื่อแบ่งเวลาทำแต่ละข้าง
           const timePerSide = totalSeconds / 2;
 
@@ -249,11 +253,15 @@ const Home = () => {
         }
         // --- เงื่อนไขสำหรับ Plank (ยังคงเหมือนเดิม) ---
         else if (exerciseNameLower === "plank") {
+          const reps = item.reps?.toString() || "0";
+          const [min, sec] = reps.split(".").map(Number);
+          const totalSeconds = min * 60 + (sec || 0);
+
           steps.push({
             exercise: item.exercise,
             stepNumber: index + 1,
             setNumber: i,
-            reps: item.reps ? parseInt(item.reps, 10) * 60 : 0, // แปลงนาทีเป็นวินาที
+            reps: totalSeconds,
             restTime: `${item.rest} นาที`,
           });
         }
