@@ -210,7 +210,7 @@ const Home = () => {
       if (typeof window !== "undefined" && (window as any).ReactNativeWebView) {
         (window as any).ReactNativeWebView.postMessage(
           JSON.stringify({
-            message: `Count ${repsRef.current + 1} นะไอ่สัส`, // ✅ stringified
+            message: `Count ${repsRef.current + 1} นะรู้ไหมตัวเอง`, // ✅ stringified
           })
         );
       }
@@ -218,12 +218,12 @@ const Home = () => {
       if (typeof window !== "undefined" && (window as any).ReactNativeWebView) {
         (window as any).ReactNativeWebView.postMessage(
           JSON.stringify({
-            message: `โถ่ ไอ่ชิบหาย บอกว่าพักอยู่ไง`, // ✅ stringified
+            message: `ชิบหายหมดแล้วรู้ไหม มึงก็นะขยันหาเทส ท่าแปลกๆ ขยันหาให้แก้จริงๆเลยนะ ไอ่สัสเอ้ย`, // ✅ stringified
           })
         );
       }
     }
-  }, [repsRef.current]);
+  }, [reps]);
 
   const timeStringToSeconds = (timeStr: string) => {
     const parts = timeStr.split(":").map(Number);
