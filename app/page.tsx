@@ -1229,7 +1229,7 @@ const Home = () => {
     }
   };
 
-  let plankLostTime: number | null = null;
+  const plankFaultTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // ฟังก์ชันสำหรับการตรวจสอบท่า Plank
   const detectPlank = () => {
@@ -1285,70 +1285,82 @@ const Home = () => {
       { x: hipX + 1, y: hipY }
     );
 
-    const backOk =
-      Math.abs(backAngleRef.current) < 20 ||
-      Math.abs(backAngleRef.current) > 160;
+    // --- ส่วนที่ปรับปรุงใหม่ ---
 
-    if (isTorsoStraight && isLegStraight && backOk) {
-      // กลับมาทำท่าได้ถูกต้อง
-      if (!plankStartedRef.current) {
-        const now = Date.now();
-        if (plankLostTime && now - plankLostTime <= 10000) {
-          // กลับมาใน 10 วิ => นับต่อ
+    // ฟังก์ชันสำหรับจัดการเมื่อท่าทางผิด (ใช้ซ้ำได้)
+    const handlePlankFault = () => {
+      // ถ้าเคยเริ่ม Plank ไปแล้ว และยังไม่มีการจับเวลาผิดท่า
+      if (plankStartedRef.current && !plankFaultTimerRef.current) {
+        // 1. หยุด Timer นับเวลาหลัก
+        if (plankTimerRef.current) {
+          clearInterval(plankTimerRef.current);
+          plankTimerRef.current = null;
+        }
+        plankProperFormRef.current = false;
+
+        // 2. แจ้งเตือน (ถ้ายังไม่เคยเตือน)
+        if (!plankWarningGivenRef.current) {
+          showFeedback("ท่าไม่ถูกต้อง! จัดระเบียบร่างกาย");
+          plankWarningGivenRef.current = true;
+        }
+
+        // 3. เริ่ม Timer 10 วินาทีเพื่อรีเซ็ต
+        plankFaultTimerRef.current = setTimeout(() => {
+          showFeedback("ท่าไม่ถูกต้องนานเกินไป... เริ่มใหม่");
+          plankStartedRef.current = false;
+          setPlankTime(0); // รีเซ็ตเวลา
+          plankFaultTimerRef.current = null; // เคลียร์ timeout ref
+        }, 10000); // 10 วินาที
+      }
+    };
+
+    // เงื่อนไขหลัก: อยู่ในฟอร์ม Plank (ลำตัวและขาตรง)
+    if (isTorsoStraight && isLegStraight) {
+      const backOk =
+        Math.abs(backAngleRef.current) < 20 ||
+        Math.abs(backAngleRef.current) > 160;
+
+      if (backOk) {
+        // **ท่าถูกต้อง**
+        // 1. ถ้ามี Timer จับเวลาผิดท่าอยู่ ให้ยกเลิกซะ
+        if (plankFaultTimerRef.current) {
+          clearTimeout(plankFaultTimerRef.current);
+          plankFaultTimerRef.current = null;
+          showFeedback("กลับสู่ท่าที่ถูกต้อง! นับเวลาต่อ...");
+        }
+        plankProperFormRef.current = true;
+        plankWarningGivenRef.current = false; // รีเซ็ตสถานะการเตือน
+
+        // 2. ถ้ายังไม่ได้เริ่ม Plank ให้เริ่มใหม่ทั้งหมด
+        if (!plankStartedRef.current) {
           plankStartedRef.current = true;
-          plankProperFormRef.current = true;
-          plankWarningGivenRef.current = false;
-
-          showFeedback("กลับเข้าสู่ท่า Plank ต่อจากเดิม");
-
-          plankTimerRef.current = setInterval(() => {
-            setPlankTime((prev) => prev + 1);
-          }, 1000);
-        } else {
-          // เกิน 10 วิ => เริ่มใหม่
-          plankStartedRef.current = true;
-          plankProperFormRef.current = true;
-          plankWarningGivenRef.current = false;
           setPlankTime(0);
           showFeedback("เริ่มท่า Plank: เกร็งท้อง ก้น และขาตลอดเวลา");
+        }
 
-          if (plankTimerRef.current) clearInterval(plankTimerRef.current);
+        // 3. ถ้า Timer หลักยังไม่ทำงาน (อาจเพราะเพิ่งกลับมาจากท่าผิด) ให้เริ่มนับต่อ
+        if (!plankTimerRef.current) {
           plankTimerRef.current = setInterval(() => {
             setPlankTime((prev) => prev + 1);
           }, 1000);
         }
-        plankLostTime = null;
-      }
 
-      if (
-        plankStartedRef.current &&
-        currentStepRef.current &&
-        currentStepRef.current.exercise.toLowerCase() === "plank" &&
-        plankTime >= currentStepRef.current.reps
-      ) {
-        handleDoOneRep(currentStepRef.current);
+        // เช็คเมื่อทำครบเวลาที่กำหนด
+        if (
+          plankStartedRef.current &&
+          currentStepRef.current &&
+          currentStepRef.current.exercise.toLowerCase() === "plank" &&
+          plankTime >= currentStepRef.current.reps
+        ) {
+          handleDoOneRep(currentStepRef.current);
+        }
+      } else {
+        // **ท่าไม่ถูกต้อง (หลังแอ่น/งอ)**
+        handlePlankFault();
       }
     } else {
-      // ท่าไม่ถูก
-      if (plankStartedRef.current) {
-        if (!plankLostTime) {
-          plankLostTime = Date.now(); // บันทึกเวลาหลุดจากท่า
-          showFeedback("ออกจากท่า Plank แล้ว (มีเวลา 10 วินาทีในการกลับมา)");
-        }
-
-        // ถ้าเกิน 10 วินาทีให้หยุด
-        if (Date.now() - plankLostTime > 10000) {
-          plankStartedRef.current = false;
-          plankProperFormRef.current = false;
-
-          if (plankTimerRef.current) {
-            clearInterval(plankTimerRef.current);
-            plankTimerRef.current = null;
-          }
-
-          showFeedback(`จบท่า Plank แล้ว ทำได้ ${plankTime} วินาที`);
-        }
-      }
+      // **หลุดจากฟอร์ม Plank โดยสิ้นเชิง**
+      handlePlankFault();
     }
   };
 
