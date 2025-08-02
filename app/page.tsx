@@ -332,6 +332,8 @@ const Home = () => {
     if (!currentStep) return;
 
     const totalRestSeconds = parseTimeToSeconds(currentStep.restTime);
+    console.log("currentStep.restTime):", currentStep.restTime);
+    console.log("totalRestSeconds:", totalRestSeconds);
 
     setIsResting(true);
     setRestTime(totalRestSeconds);
