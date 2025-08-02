@@ -1255,13 +1255,16 @@ const Home = () => {
     if (pts.some((p) => !p || (p.score !== undefined && p.score < 0.2))) return;
     const [ls, rs, le, re, lh, rh, lk, rk, la, ra] = pts as any[];
 
-    const calcAngle = (A: any, B: any, C: any) =>
+    const calcAngle = (A: any, B: any) =>
       Math.atan2(A.y - B.y, A.x - B.x) * (180 / Math.PI);
 
-    const torsoL = calcAngle(ls, lh, lk);
-    const torsoR = calcAngle(rs, rh, rk);
-    const legL = calcAngle(lh, lk, la);
-    const legR = calcAngle(rh, rk, ra);
+    const torsoL = calcAngle(ls, lh);
+    const torsoR = calcAngle(rs, rh);
+    const legL = calcAngle(lh, lk);
+    const legR = calcAngle(rh, rk);
+
+    const upperArmAngleL = calcAngle(ls, le);
+    const upperArmAngleR = calcAngle(rs, re);
 
     const isTorsoStraight =
       Math.abs(torsoL) > 170 ||
@@ -1281,36 +1284,32 @@ const Home = () => {
     const hipY = (lh.y + rh.y) / 2;
     backAngleRef.current = calcAngle(
       { x: midX, y: midY },
-      { x: hipX, y: hipY },
-      { x: hipX + 1, y: hipY }
+      { x: hipX, y: hipY }
     );
 
     // --- ส่วนที่ปรับปรุงใหม่ ---
 
     // ฟังก์ชันสำหรับจัดการเมื่อท่าทางผิด (ใช้ซ้ำได้)
-    const handlePlankFault = () => {
-      // ถ้าเคยเริ่ม Plank ไปแล้ว และยังไม่มีการจับเวลาผิดท่า
+    const handlePlankFault = (reason: string) => {
       if (plankStartedRef.current && !plankFaultTimerRef.current) {
-        // 1. หยุด Timer นับเวลาหลัก
         if (plankTimerRef.current) {
           clearInterval(plankTimerRef.current);
           plankTimerRef.current = null;
         }
         plankProperFormRef.current = false;
 
-        // 2. แจ้งเตือน (ถ้ายังไม่เคยเตือน)
         if (!plankWarningGivenRef.current) {
-          showFeedback("ท่าไม่ถูกต้อง! จัดระเบียบร่างกาย");
+          showFeedback(reason); // แสดงเหตุผลที่ท่าผิด
           plankWarningGivenRef.current = true;
         }
 
-        // 3. เริ่ม Timer 10 วินาทีเพื่อรีเซ็ต
         plankFaultTimerRef.current = setTimeout(() => {
           showFeedback("ท่าไม่ถูกต้องนานเกินไป... เริ่มใหม่");
           plankStartedRef.current = false;
-          setPlankTime(0); // รีเซ็ตเวลา
-          plankFaultTimerRef.current = null; // เคลียร์ timeout ref
-        }, 10000); // 10 วินาที
+          setPlankTime(0);
+
+          plankFaultTimerRef.current = null;
+        }, 10000);
       }
     };
 
@@ -1320,7 +1319,13 @@ const Home = () => {
         Math.abs(backAngleRef.current) < 20 ||
         Math.abs(backAngleRef.current) > 160;
 
-      if (backOk) {
+      const armsAreVertical =
+        Math.abs(upperArmAngleL) > 75 &&
+        Math.abs(upperArmAngleL) < 105 &&
+        Math.abs(upperArmAngleR) > 75 &&
+        Math.abs(upperArmAngleR) < 105;
+
+      if (backOk && armsAreVertical) {
         // **ท่าถูกต้อง**
         // 1. ถ้ามี Timer จับเวลาผิดท่าอยู่ ให้ยกเลิกซะ
         if (plankFaultTimerRef.current) {
@@ -1355,12 +1360,18 @@ const Home = () => {
           handleDoOneRep(currentStepRef.current);
         }
       } else {
-        // **ท่าไม่ถูกต้อง (หลังแอ่น/งอ)**
-        handlePlankFault();
+        // **ท่าไม่ถูกต้อง (หลังแอ่น/งอ หรือ แขนไม่ตั้งฉาก)**
+        let faultReason = "ท่าไม่ถูกต้อง! จัดระเบียบร่างกาย";
+        if (!backOk) {
+          faultReason = "หลังไม่อยู่ในแนวตรง! อย่าให้สะโพกตกหรือยกสูงไป";
+        } else if (!armsAreVertical) {
+          faultReason = "จัดตำแหน่งไหล่ให้อยู่เหนือข้อศอก";
+        }
+        handlePlankFault(faultReason);
       }
     } else {
       // **หลุดจากฟอร์ม Plank โดยสิ้นเชิง**
-      handlePlankFault();
+      handlePlankFault("ลำตัวและขาไม่ตรง");
     }
   };
 
