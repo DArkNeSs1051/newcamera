@@ -3,10 +3,9 @@
 import * as poseDetection from "@tensorflow-models/pose-detection";
 import * as tf from "@tensorflow/tfjs";
 import "@tensorflow/tfjs-backend-webgl";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const Home = () => {
-  const version = "1.0.5"; // กำหนดเวอร์ชันของแอปพลิเคชัน
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [reps, setReps] = useState(0);
@@ -328,7 +327,6 @@ const Home = () => {
   useEffect(() => {
     stepsRef.current = steps;
   }, [steps]);
-  console.log("stepsRef.current:", stepsRef.current);
   // --------------------------------
   useEffect(() => {
     currentStepRef.current = currentStep;
@@ -404,14 +402,10 @@ const Home = () => {
 
   // handleDoOneRep ที่ปรับปรุงใหม่
   const handleDoOneRep = (currentStepRep: TExerciseStep | null) => {
-    // ป้องกันการทำงานซ้อนขณะพัก
-    if (!currentStepRep || isResting) {
-      return;
-    }
+    if (!currentStepRep || isResting) return;
 
     const isPlank = currentStepRep.exercise.toLowerCase() === "plank";
     const isSidePlank = currentStepRep.exercise.toLowerCase() === "side plank";
-    let isSetComplete = false;
 
     if (isPlank || isSidePlank) {
       const currentTime = isPlank
@@ -420,36 +414,30 @@ const Home = () => {
       const expectedTime = currentStepRep.reps;
 
       if (currentTime >= expectedTime) {
-        isSetComplete = true;
         // หยุด Timer ของท่าออกกำลังกาย
         if (isPlank) {
           if (plankTimerRef.current) clearInterval(plankTimerRef.current);
           plankTimerRef.current = null;
           plankStartedRef.current = false;
         } else {
-          // Side Plank
           if (sidePlankTimerRef.current)
             clearInterval(sidePlankTimerRef.current);
           sidePlankTimerRef.current = null;
           sidePlankStartedRef.current = false;
         }
+
+        startRestPeriod(); // เริ่มพักหลังจากครบ
       }
     } else {
-      // สำหรับท่าที่นับจำนวนครั้ง (Reps)
+      // ท่าที่นับจำนวนครั้ง
       setReps((prevReps) => {
         const newReps = prevReps + 1;
         if (newReps >= currentStepRep.reps) {
-          isSetComplete = true; // ตั้งค่าสถานะว่าครบเซ็ต
-          startRestPeriod(); // เริ่มพัก
-          return 0; // รีเซ็ตจำนวนครั้ง
+          startRestPeriod(); // เริ่มพักหลังจากครบจำนวน
+          return 0; // รีเซ็ต
         }
         return newReps;
       });
-    }
-
-    // ถ้าเป็น Plank หรือ Side Plank ที่ทำครบแล้ว ให้เริ่มพัก
-    if (isSetComplete && (isPlank || isSidePlank)) {
-      startRestPeriod();
     }
   };
 
@@ -1411,7 +1399,6 @@ const Home = () => {
         // 2. ถ้ายังไม่ได้เริ่ม Plank ให้เริ่มใหม่ทั้งหมด
         if (!plankStartedRef.current) {
           plankStartedRef.current = true;
-          console.log("asdasdasd");
           setPlankTime(0);
           showFeedback("เริ่มท่า Plank: เกร็งท้อง ก้น และขาตลอดเวลา");
         }
@@ -1425,17 +1412,11 @@ const Home = () => {
 
         // --- ส่วนที่แก้ไข ---
         // เช็คเมื่อทำครบเวลาที่กำหนดก่อนเป็นอันดับแรก
-        console.log("plankTimeRef.current:", plankTimeRef.current);
-        console.log(
-          "currentStepRef.current.reps:",
-          currentStepRef.current && currentStepRef.current.reps
-        );
         if (
           plankStartedRef.current &&
           currentStepRef.current &&
           plankTimeRef.current >= currentStepRef.current.reps // <<-- อ่านจาก ref ที่มีค่าล่าสุด
         ) {
-          console.log("first");
           handleDoOneRep(currentStepRef.current);
           return; // <<-- เพิ่ม return ตรงนี้สำคัญมาก! เพื่อออกจากฟังก์ชันทันที
         }
@@ -1567,7 +1548,6 @@ const Home = () => {
 
     if (detectedSide) {
       if (detectedSide === expectedSide) {
-        console.log("detectedSide:", detectedSide);
         // **ท่าถูกต้อง และถูกด้าน**
         if (sidePlankFaultTimerRef.current) {
           clearTimeout(sidePlankFaultTimerRef.current);
@@ -1586,7 +1566,6 @@ const Home = () => {
         }
 
         if (!sidePlankTimerRef.current) {
-          console.log("first");
           sidePlankTimerRef.current = setInterval(() => {
             setSidePlankTime((prev) => prev + 1);
           }, 1000);
@@ -2867,148 +2846,380 @@ const Home = () => {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  type FitnessLevel = "Excellent" | "Very Good" | "Good" | "Fair" | "Poor";
+  type OverallLevel = "Advance" | "Intermediate" | "Beginner";
+  type ExerciseType = "reps" | "time";
+
+  interface TestResults {
+    pushUp: number;
+    squat: number;
+    burpee: number;
+    plank: number;
+  }
+
+  interface EvaluationResult {
+    scores: {
+      pushUp: number;
+      squat: number;
+      burpee: number;
+      plank: number;
+    };
+    totalScore: number;
+    fitnessLevel: OverallLevel;
+  }
+
+  interface TestStep {
+    name: string;
+    key: keyof TestResults;
+    type: ExerciseType;
+    duration: number; // วินาที
+  }
+
+  const testSteps: TestStep[] = [
+    { name: "Push-up", key: "pushUp", type: "reps", duration: 60 },
+    { name: "Squat", key: "squat", type: "reps", duration: 60 },
+    { name: "Burpee", key: "burpee", type: "reps", duration: 60 },
+    { name: "Plank", key: "plank", type: "time", duration: 60 },
+  ];
+
+  const getScore = (
+    value: number,
+    ranges: [number, number, number, number]
+  ) => {
+    if (value >= ranges[0]) return 5; // Excellent
+    if (value >= ranges[1]) return 4; // Very Good
+    if (value >= ranges[2]) return 3; // Good
+    if (value >= ranges[3]) return 2; // Fair
+    return 1; // Poor
+  };
+
+  const evaluateFitness = (results: TestResults) => {
+    const pushUpScore = getScore(results.pushUp, [35, 30, 20, 10]);
+    const squatScore = getScore(results.squat, [45, 38, 30, 20]);
+    const burpeeScore = getScore(results.burpee, [20, 16, 12, 8]);
+    const plankScore = getScore(results.plank, [120, 90, 60, 30]);
+
+    const totalScore = pushUpScore + squatScore + burpeeScore + plankScore;
+
+    let fitnessLevel: OverallLevel = "Beginner";
+    if (totalScore >= 17) fitnessLevel = "Advance";
+    else if (totalScore >= 13) fitnessLevel = "Intermediate";
+
+    return {
+      scores: {
+        pushUp: pushUpScore,
+        squat: squatScore,
+        burpee: burpeeScore,
+        plank: plankScore,
+      },
+      totalScore,
+      fitnessLevel,
+    };
+  };
+
+  const runFitnessTest = (
+    onUpdate: (msg: string) => void,
+    onFinish: (results: EvaluationResult) => void
+  ) => {
+    const testResults: TestResults = {
+      pushUp: 0,
+      squat: 0,
+      burpee: 0,
+      plank: 0,
+    };
+
+    let currentStepIndex = 0;
+
+    const doNextStep = () => {
+      if (currentStepIndex >= testSteps.length) {
+        // จบทุกท่า → ประเมินผล
+        const result = evaluateFitness(testResults);
+        onFinish(result);
+        return;
+      }
+
+      const current = testSteps[currentStepIndex];
+      const next = testSteps[currentStepIndex + 1];
+      let counter = 0;
+
+      onUpdate(`เริ่มทำท่า: ${current.name} (${current.duration} วินาที)`);
+
+      const interval = setInterval(() => {
+        counter++;
+
+        if (current.type === "reps") {
+          // สำหรับเดโม: สมมุติทำได้ 1 ครั้งต่อวินาที
+          testResults[current.key] += 1;
+        } else if (current.type === "time") {
+          // Plank: บันทึกเวลา
+          testResults[current.key] = counter;
+        }
+
+        if (counter >= current.duration) {
+          clearInterval(interval);
+
+          if (next) {
+            // พักก่อนทำท่าถัดไป
+            let rest = 20;
+            onUpdate(`พัก ${rest} วิ | ต่อไป: ${next.name}`);
+
+            const restInterval = setInterval(() => {
+              rest--;
+              if (rest <= 0) {
+                clearInterval(restInterval);
+                currentStepIndex++;
+                doNextStep(); // ทำท่าถัดไป
+              }
+            }, 1000);
+          } else {
+            currentStepIndex++;
+            doNextStep(); // ไม่มีพัก ถ้าท่าสุดท้าย
+          }
+        }
+      }, 1000);
+    };
+
+    doNextStep(); // เริ่มการทดสอบ
+  };
+
+  const isFitnessTestMode = "fitness";
+
+  const [isTestFinished, setIsTestFinished] = useState(false);
+  const [currentExerciseName, setCurrentExerciseName] = useState("");
+  const [nextExerciseName, setNextExerciseName] = useState("");
+  const [timer, setTimer] = useState(60);
+  const [totalScore, setTotalScore] = useState(0);
+  const [fitnessLevel, setFitnessLevel] = useState("");
+
+  useEffect(() => {
+    if (isFitnessTestMode) {
+      runFitnessTest(
+        (msg) => {
+          const parts = msg.split("|");
+          const main = parts[0].trim();
+          const next = parts[1]?.trim();
+
+          if (main.includes("พัก")) {
+            setIsResting(true);
+            setNextExerciseName(next?.replace("ต่อไป:", "").trim() || "");
+          } else {
+            setIsResting(false);
+            setCurrentExerciseName(main.replace("เริ่มทำท่า:", "").trim());
+          }
+        },
+        (result) => {
+          setIsTestFinished(true);
+          setTotalScore(result.totalScore);
+          setFitnessLevel(result.fitnessLevel);
+        }
+      );
+    }
+  }, [isFitnessTestMode]);
+
   return (
     <div className="relative flex flex-col items-center justify-start p-4 md:p-6 bg-gray-900 text-white w-full min-h-screen font-sans gap-4">
-      {/* ==============================================
-          ปุ่มสำหรับเปิดวิดีโอสาธิต
-          ==============================================
-      */}
-      <div className="w-full max-w-lg mt-4 flex justify-end">
-        {videoUrl ? (
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="px-5 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 focus:ring-green-500 transition-transform transform hover:scale-105"
-          >
-            🎬 ดูวิดีโอสาธิต
-          </button>
-        ) : (
-          <div className="h-[40px]"></div> // จองพื้นที่ให้ layout ไม่กระโดด
-        )}
-      </div>
+      {isFitnessTestMode ? (
+        // ==========================
+        // 🔥 FITNESS TEST MODE UI
+        // ==========================
+        <div className="w-full max-w-lg text-center flex flex-col items-center justify-center gap-6 mt-10">
+          <p className="text-2xl text-green-400 font-bold animate-pulse">
+            โหมดทดสอบความฟิต
+          </p>
 
-      {/* ส่วนวิดีโอและ Canvas */}
-      <div className="relative w-full max-w-lg shadow-2xl rounded-xl">
-        <video ref={videoRef} className="hidden" autoPlay playsInline muted />
-        <canvas
-          ref={canvasRef}
-          className="w-full h-auto border-2 border-gray-700 rounded-xl"
-        />
-
-        {/* Loading Overlay */}
-        {loading && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black bg-opacity-75 rounded-xl text-white">
-            <div className="w-12 h-12 border-4 border-t-green-500 border-gray-600 rounded-full animate-spin mb-4"></div>
-            <p className="text-xl">กำลังโหลดโมเดล...</p>
-          </div>
-        )}
-
-        {/* Dashboard Overlay */}
-        {currentStep && (
-          <div className="absolute top-0 left-0 w-full p-3 bg-gray-900/60 backdrop-blur-sm rounded-t-xl border-b border-gray-700">
-            <div className="flex justify-between items-center">
-              <div>
-                <p className="text-xs text-green-400 uppercase">ท่าปัจจุบัน</p>
-                <h2 className="text-xl font-bold capitalize tracking-tight">
-                  {currentStep.exercise}
-                </h2>
-              </div>
-              <div className="flex items-center gap-4 text-right">
-                <div>
-                  <p className="text-xs text-gray-400 uppercase">เซ็ต</p>
-                  <p className="text-2xl font-bold">{currentStep.setNumber}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-400 uppercase">
-                    {currentStep.exercise.toLocaleLowerCase() === "plank" ||
-                    currentStep.exercise.toLocaleLowerCase() === "side plank"
-                      ? "จำนวนวินาที"
-                      : "จำนวนครั้ง"}
-                  </p>
-                  <p className="text-2xl font-bold">
-                    <span className="text-green-400">
-                      {currentStep.exercise.toLocaleLowerCase() === "plank"
-                        ? plankTime
-                        : currentStep.exercise
-                            .toLocaleLowerCase()
-                            .includes("side plank")
-                        ? sidePlankTime
-                        : reps}
-                    </span>
-                    <span className="text-gray-500 mx-1">/</span>
-                    <span>{currentStep.reps}</span>
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {isFinished && (
-          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black bg-opacity-90 text-center p-6 rounded-xl">
-            <h2 className="text-3xl font-bold text-green-400 mb-4 animate-bounce">
-              🎉 ยินดีด้วย!
-            </h2>
-            <p className="text-lg text-white mb-6">
-              คุณออกกำลังกายครบทุกท่าแล้ว
-              <br />
-              โปรดกลับมาเล่นใหม่อีกครั้งในวันพรุ่งนี้
+          <div className="text-xl">
+            <p className="text-gray-300 mb-1">ท่าปัจจุบัน:</p>
+            <p className="text-3xl font-bold text-white">
+              {currentExerciseName}
             </p>
           </div>
-        )}
-      </div>
 
-      {/* Cooldown Overlay */}
-      {isResting && (
-        <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm transition-opacity duration-300">
-          <p className="text-2xl font-bold uppercase tracking-wider text-green-400 animate-pulse">
-            พักสักครู่
-          </p>
-          <p className="text-8xl font-mono font-bold my-4 text-white">
-            {restTime}
-          </p>
-          <p className="text-xl uppercase tracking-wider text-gray-400">
-            วินาที
-          </p>
-        </div>
-      )}
-
-      {/* ==============================================
-      Modal สำหรับแสดงวิดีโอ
-      ==============================================
-   */}
-      {isModalOpen && videoUrl && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
-          onClick={() => setIsModalOpen(false)} // ปิด Modal เมื่อคลิกที่พื้นหลัง
-        >
-          <div
-            className="relative bg-gray-900 rounded-lg shadow-xl w-full max-w-2xl border border-gray-700"
-            onClick={(e) => e.stopPropagation()} // ป้องกันการปิดเมื่อคลิกที่ตัววิดีโอ
-          >
-            {/* ปุ่มปิด Modal */}
-            <button
-              onClick={() => setIsModalOpen(false)}
-              className="absolute -top-4 -right-4 z-10 w-10 h-10 bg-red-600 text-white text-2xl font-bold rounded-full flex items-center justify-center hover:bg-red-700 transition-transform transform hover:scale-110"
-              aria-label="Close"
-            >
-              &times;
-            </button>
-
-            {/* วิดีโอ */}
-            <div className="p-2">
-              <video
-                className="w-full h-auto rounded"
-                controls
-                autoPlay
-                muted
-                loop
-              >
-                <source src={videoUrl} type="video/mp4" />
-                เบราว์เซอร์ของคุณไม่รองรับวิดีโอ
-              </video>
-            </div>
+          <div className="flex flex-col items-center gap-2">
+            <p className="text-gray-400 text-sm">เวลา</p>
+            <p className="text-6xl font-mono font-bold text-green-300">
+              {timer}s
+            </p>
           </div>
+
+          {isResting ? (
+            <p className="text-yellow-400 font-semibold text-xl">
+              พักก่อนเริ่มท่าถัดไป...
+            </p>
+          ) : nextExerciseName ? (
+            <p className="text-gray-400 text-sm">
+              ท่าถัดไป: {nextExerciseName}
+            </p>
+          ) : null}
+
+          {isTestFinished && (
+            <div className="mt-10 text-center">
+              <h2 className="text-3xl font-bold text-green-400 mb-2">
+                ✅ เสร็จสิ้นแล้ว!
+              </h2>
+              <p className="text-lg text-white">
+                คุณได้คะแนนรวม: <strong>{totalScore}</strong> / 20
+              </p>
+              <p className="text-xl font-semibold text-blue-400 mt-2">
+                ระดับ: {fitnessLevel}
+              </p>
+            </div>
+          )}
         </div>
+      ) : (
+        <>
+          {/* ==============================================
+              ปุ่มสำหรับเปิดวิดีโอสาธิต
+              ==============================================
+          */}
+          <div className="w-full max-w-lg mt-4 flex justify-end">
+            {videoUrl ? (
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="px-5 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 focus:ring-green-500 transition-transform transform hover:scale-105"
+              >
+                🎬 ดูวิดีโอสาธิต
+              </button>
+            ) : (
+              <div className="h-[40px]"></div> // จองพื้นที่ให้ layout ไม่กระโดด
+            )}
+          </div>
+
+          {/* ส่วนวิดีโอและ Canvas */}
+          <div className="relative w-full max-w-lg shadow-2xl rounded-xl">
+            <video
+              ref={videoRef}
+              className="hidden"
+              autoPlay
+              playsInline
+              muted
+            />
+            <canvas
+              ref={canvasRef}
+              className="w-full h-auto border-2 border-gray-700 rounded-xl"
+            />
+
+            {/* Loading Overlay */}
+            {loading && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black bg-opacity-75 rounded-xl text-white">
+                <div className="w-12 h-12 border-4 border-t-green-500 border-gray-600 rounded-full animate-spin mb-4"></div>
+                <p className="text-xl">กำลังโหลดโมเดล...</p>
+              </div>
+            )}
+
+            {/* Dashboard Overlay */}
+            {currentStep && (
+              <div className="absolute top-0 left-0 w-full p-3 bg-gray-900/60 backdrop-blur-sm rounded-t-xl border-b border-gray-700">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="text-xs text-green-400 uppercase">
+                      ท่าปัจจุบัน
+                    </p>
+                    <h2 className="text-xl font-bold capitalize tracking-tight">
+                      {currentStep.exercise}
+                    </h2>
+                  </div>
+                  <div className="flex items-center gap-4 text-right">
+                    <div>
+                      <p className="text-xs text-gray-400 uppercase">เซ็ต</p>
+                      <p className="text-2xl font-bold">
+                        {currentStep.setNumber}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-400 uppercase">
+                        {currentStep.exercise.toLocaleLowerCase() === "plank" ||
+                        currentStep.exercise.toLocaleLowerCase() ===
+                          "side plank"
+                          ? "จำนวนวินาที"
+                          : "จำนวนครั้ง"}
+                      </p>
+                      <p className="text-2xl font-bold">
+                        <span className="text-green-400">
+                          {currentStep.exercise.toLocaleLowerCase() === "plank"
+                            ? plankTime
+                            : currentStep.exercise
+                                .toLocaleLowerCase()
+                                .includes("side plank")
+                            ? sidePlankTime
+                            : reps}
+                        </span>
+                        <span className="text-gray-500 mx-1">/</span>
+                        <span>{currentStep.reps}</span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {isFinished && (
+              <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black bg-opacity-90 text-center p-6 rounded-xl">
+                <h2 className="text-3xl font-bold text-green-400 mb-4 animate-bounce">
+                  🎉 ยินดีด้วย!
+                </h2>
+                <p className="text-lg text-white mb-6">
+                  คุณออกกำลังกายครบทุกท่าแล้ว
+                  <br />
+                  โปรดกลับมาเล่นใหม่อีกครั้งในวันพรุ่งนี้
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Cooldown Overlay */}
+          {isResting && (
+            <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm transition-opacity duration-300">
+              <p className="text-2xl font-bold uppercase tracking-wider text-green-400 animate-pulse">
+                พักสักครู่
+              </p>
+              <p className="text-8xl font-mono font-bold my-4 text-white">
+                {restTime}
+              </p>
+              <p className="text-xl uppercase tracking-wider text-gray-400">
+                วินาที
+              </p>
+            </div>
+          )}
+
+          {/* ==============================================
+          Modal สำหรับแสดงวิดีโอ
+          ==============================================
+       */}
+          {isModalOpen && videoUrl && (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+              onClick={() => setIsModalOpen(false)} // ปิด Modal เมื่อคลิกที่พื้นหลัง
+            >
+              <div
+                className="relative bg-gray-900 rounded-lg shadow-xl w-full max-w-2xl border border-gray-700"
+                onClick={(e) => e.stopPropagation()} // ป้องกันการปิดเมื่อคลิกที่ตัววิดีโอ
+              >
+                {/* ปุ่มปิด Modal */}
+                <button
+                  onClick={() => setIsModalOpen(false)}
+                  className="absolute -top-4 -right-4 z-10 w-10 h-10 bg-red-600 text-white text-2xl font-bold rounded-full flex items-center justify-center hover:bg-red-700 transition-transform transform hover:scale-110"
+                  aria-label="Close"
+                >
+                  &times;
+                </button>
+
+                {/* วิดีโอ */}
+                <div className="p-2">
+                  <video
+                    className="w-full h-auto rounded"
+                    controls
+                    autoPlay
+                    muted
+                    loop
+                  >
+                    <source src={videoUrl} type="video/mp4" />
+                    เบราว์เซอร์ของคุณไม่รองรับวิดีโอ
+                  </video>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
