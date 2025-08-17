@@ -507,6 +507,12 @@ const Home = () => {
 
       if (phaseOk && matchOk && toKey !== "plank") {
         ft.onRep(toKey as "pushup" | "squat" | "burpee"); // 1 call = +1 ครั้ง
+        console.log("[FT] rep ignored", {
+          toKey,
+          ftExercise: ft.exercise,
+          ftPhase: ft.phase,
+          exerciseTypeRef: exerciseTypeRef.current,
+        });
       } else {
         // ดีบักดูเหตุผลว่าทำไมไม่นับ
         console.log("[FT] rep ignored", {
