@@ -412,6 +412,22 @@ const Home = () => {
     }, 1000);
   };
 
+  const ftPhaseRef = useRef<any>(null);
+  const ftExerciseRef = useRef<any>(null);
+  const ftOnRepRef = useRef(ft.onRep); // กัน onRep stale ด้วย
+
+  useEffect(() => {
+    ftPhaseRef.current = ft.phase;
+  }, [ft.phase]);
+
+  useEffect(() => {
+    ftExerciseRef.current = ft.exercise;
+  }, [ft.exercise]);
+
+  useEffect(() => {
+    ftOnRepRef.current = ft.onRep;
+  }, [ft.onRep]);
+
   // handleDoOneRep ที่ปรัปรุงใหม่
   const _handleDoOneRepBase = (currentStepRep: TExerciseStep | null) => {
     console.log("first");
@@ -469,11 +485,8 @@ const Home = () => {
   }, [isFitnessTest]);
 
   const handleDoOneRep = (currentStepRep: TExerciseStep | null) => {
-    console.log("isFitnessTest:", isFitnessTest);
     if (isFitnessTestRef.current) {
-      console.log("isFitnessTest:", isFitnessTest);
       const name = (exerciseTypeRef.current || "").toLowerCase();
-      console.log("name:", name);
 
       const toKey = name.includes("push up")
         ? "pushup"
@@ -484,20 +497,12 @@ const Home = () => {
         : name.includes("plank")
         ? "plank"
         : null;
-      console.log("toKey:", toKey);
-      const phaseOk = ft.phase === "active";
+      const phaseOk = ftPhaseRef.current === "active";
       console.log("phaseOk:", phaseOk);
-      const matchOk = toKey === ft.exercise; // ต้องตรง stage ปัจจุบันของ fitness test
-      console.log("matchOk:", matchOk);
+      const matchOk = toKey === ftExerciseRef.current; // ต้องตรง stage ปัจจุบันของ fitness test
 
       if (phaseOk && matchOk && toKey !== "plank") {
-        ft.onRep(toKey as "pushup" | "squat" | "burpee"); // 1 call = +1 ครั้ง
-        console.log("[FT] rep ignored", {
-          toKey,
-          ftExercise: ft.exercise,
-          ftPhase: ft.phase,
-          exerciseTypeRef: exerciseTypeRef.current,
-        });
+        ftOnRepRef.current?.(toKey as "pushup" | "squat" | "burpee");
       } else {
         // ดีบักดูเหตุผลว่าทำไมไม่นับ
         console.log("[FT] rep ignored", {
