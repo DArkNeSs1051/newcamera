@@ -3,7 +3,8 @@
 import * as poseDetection from "@tensorflow-models/pose-detection";
 import * as tf from "@tensorflow/tfjs";
 import "@tensorflow/tfjs-backend-webgl";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useFitnessTestMachine } from "@/components/fitness-test";
 
 const Home = () => {
   const version = "1.0.5"; // กำหนดเวอร์ชันของแอปพลิเคชัน
@@ -148,6 +149,15 @@ const Home = () => {
   const legRaiseFormWarningRef = useRef<boolean>(false);
   const legRaiseBackArchWarningRef = useRef<boolean>(false);
   const legRaiseMomentumWarningRef = useRef<boolean>(false);
+
+  const [isFitnessTest, setIsFitnessTest] = useState(false);
+  const [sex, setSex] = useState<"male" | "female">("male");
+
+  // แนะนำ knee offset สำหรับผู้หญิงที่ทำ knee push-up (5–10 ครั้ง)
+  const ft = useFitnessTestMachine({
+    sex,
+    kneePushupOffset: sex === "female" ? 7 : 0,
+  });
 
   useEffect(() => {
     repsRef.current = reps;
@@ -402,8 +412,8 @@ const Home = () => {
     }, 1000);
   };
 
-  // handleDoOneRep ที่ปรับปรุงใหม่
-  const handleDoOneRep = (currentStepRep: TExerciseStep | null) => {
+  // handleDoOneRep ที่ปรัปรุงใหม่
+  const _handleDoOneRepBase = (currentStepRep: TExerciseStep | null) => {
     // ป้องกันการทำงานซ้อนขณะพัก
     if (!currentStepRep || isResting) {
       return;
@@ -451,6 +461,32 @@ const Home = () => {
     if (isSetComplete && (isPlank || isSidePlank)) {
       startRestPeriod();
     }
+  };
+
+  const handleDoOneRep = (currentStepRep: TExerciseStep | null) => {
+    // ถ้าอยู่ในโหมด Fitness Test ให้ส่งไปนับใน ft แทน
+    if (isFitnessTest) {
+      const name = (exerciseTypeRef.current || "").toLowerCase();
+
+      const toKey = name.includes("push up")
+        ? "pushup"
+        : name.includes("squat")
+        ? "squat"
+        : name.includes("burpee")
+        ? "burpee"
+        : name.includes("plank")
+        ? "plank"
+        : null;
+
+      // ใน Fitness Test: นับเฉพาะท่าที่เป็น rep ภายใน 60 วินาที
+      if (toKey && ft.phase === "active" && toKey !== "plank") {
+        ft.onRep(toKey as "pushup" | "squat" | "burpee");
+      }
+      return; // ไม่ไปยุ่ง flow ชุด/เซ็ตเดิม
+    }
+
+    // โหมดปกติ: ใช้ logic เดิม
+    _handleDoOneRepBase(currentStepRep);
   };
 
   const [initialized, setInitialized] = useState(false);
@@ -1303,6 +1339,14 @@ const Home = () => {
     plankTimeRef.current = plankTime; // อัปเดต ref ทุกครั้งที่ plankTime เปลี่ยน
   }, [plankTime]);
 
+  // ใช้กับโหมด fitness test: นับเวลาที่ฟอร์ม plank หลุดต่อเนื่อง
+  const ftOffMsRef = useRef(0);
+  const ftLastTsRef = useRef<number | null>(null);
+
+  const nowTs = performance.now();
+  const deltaMs = ftLastTsRef.current ? nowTs - ftLastTsRef.current : 0;
+  ftLastTsRef.current = nowTs;
+
   // ฟังก์ชันสำหรับการตรวจสอบท่า Plank
   const detectPlank = () => {
     const poses = posesRef.current;
@@ -1397,6 +1441,40 @@ const Home = () => {
         Math.abs(upperArmAngleR) > 75 &&
         Math.abs(upperArmAngleR) < 105;
 
+      // ===== PATCH: Fitness Test (Plank) =====
+      if (isFitnessTest && ft.phase === "active" && ft.exercise === "plank") {
+        const goodForm =
+          (Math.abs(torsoL) > 170 ||
+            Math.abs(torsoL) < 10 ||
+            Math.abs(torsoR) > 170 ||
+            Math.abs(torsoR) < 10) && // isTorsoStraight
+          (Math.abs(legL) > 150 ||
+            Math.abs(legL) < 20 ||
+            Math.abs(legR) > 150 ||
+            Math.abs(legR) < 20) && // isLegStraight
+          backOk &&
+          armsAreVertical;
+
+        if (goodForm) {
+          // ฟอร์มถูกต้อง: แจ้งไปยัง fitness test และรีเซ็ตตัวนับ "ฟอร์มหลุด"
+          ft.setPlankHold(true);
+          ftOffMsRef.current = 0;
+        } else {
+          // ฟอร์มหลุด: แจ้ง false และสะสมเวลาที่หลุด
+          ft.setPlankHold(false);
+          ftOffMsRef.current += deltaMs;
+
+          // ถ้าหลุดต่อเนื่องเกิน 2 วินาที ให้จบ plank ใน fitness test
+          if (ftOffMsRef.current >= 2000) {
+            ft.finishPlank();
+            return; // กันไม่ให้ logic plank เดิมทำงานซ้ำ
+          }
+        }
+
+        return; // โหมด fitness test ให้ฮุคเป็นคนจัดการเวลาเอง
+      }
+      // ===== END PATCH =====
+
       if (backOk && armsAreVertical) {
         // **ท่าถูกต้อง**
         // 1. ถ้ามี Timer จับเวลาผิดท่าอยู่ ให้ยกเลิกซะ
@@ -1411,7 +1489,6 @@ const Home = () => {
         // 2. ถ้ายังไม่ได้เริ่ม Plank ให้เริ่มใหม่ทั้งหมด
         if (!plankStartedRef.current) {
           plankStartedRef.current = true;
-          console.log("asdasdasd");
           setPlankTime(0);
           showFeedback("เริ่มท่า Plank: เกร็งท้อง ก้น และขาตลอดเวลา");
         }
@@ -1425,17 +1502,11 @@ const Home = () => {
 
         // --- ส่วนที่แก้ไข ---
         // เช็คเมื่อทำครบเวลาที่กำหนดก่อนเป็นอันดับแรก
-        console.log("plankTimeRef.current:", plankTimeRef.current);
-        console.log(
-          "currentStepRef.current.reps:",
-          currentStepRef.current && currentStepRef.current.reps
-        );
         if (
           plankStartedRef.current &&
           currentStepRef.current &&
           plankTimeRef.current >= currentStepRef.current.reps // <<-- อ่านจาก ref ที่มีค่าล่าสุด
         ) {
-          console.log("first");
           handleDoOneRep(currentStepRef.current);
           return; // <<-- เพิ่ม return ตรงนี้สำคัญมาก! เพื่อออกจากฟังก์ชันทันที
         }
@@ -2867,6 +2938,21 @@ const Home = () => {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  useEffect(() => {
+    if (!isFitnessTest) return;
+
+    const map: Record<"pushup" | "squat" | "burpee" | "plank", string> = {
+      pushup: "push up",
+      squat: "squat",
+      burpee: "burpee no push up", // เลือกแบบไม่วิดพื้น
+      plank: "plank",
+    };
+
+    const nextName = map[ft.exercise];
+    setExerciseType(nextName);
+    exerciseTypeRef.current = nextName;
+  }, [isFitnessTest, ft.exercise]);
+
   return (
     <div className="relative flex flex-col items-center justify-start p-4 md:p-6 bg-gray-900 text-white w-full min-h-screen font-sans gap-4">
       {/* ==============================================
@@ -2953,6 +3039,136 @@ const Home = () => {
               <br />
               โปรดกลับมาเล่นใหม่อีกครั้งในวันพรุ่งนี้
             </p>
+          </div>
+        )}
+      </div>
+
+      {/* === Fitness Test Panel === */}
+      <div className="mt-4 w-full max-w-lg rounded-xl border border-gray-700 bg-gray-900 text-gray-100 p-4">
+        {!isFitnessTest ? (
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-lg font-semibold">Fitness Test</div>
+            <div className="flex items-center gap-2">
+              <select
+                value={sex}
+                onChange={(e) => setSex(e.target.value as "male" | "female")}
+                className="bg-gray-800 border border-gray-700 rounded-lg px-2 py-1"
+              >
+                <option value="male">ชาย</option>
+                <option value="female">หญิง</option>
+              </select>
+              <button
+                onClick={() => {
+                  setIsFitnessTest(true);
+                  ft.start();
+                }}
+                className="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500"
+              >
+                เริ่ม Fitness Test
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="font-medium capitalize">
+                กำลังทำ: {exerciseTypeRef.current}
+              </div>
+              {ft.exercise !== "plank" ? (
+                <div className="text-2xl tabular-nums">{ft.timeLeft}s</div>
+              ) : (
+                <div className="text-2xl tabular-nums">{ft.plankSec}s</div>
+              )}
+            </div>
+
+            {ft.exercise !== "plank" ? (
+              <div className="flex items-center justify-between text-sm">
+                <span>นับได้</span>
+                <span className="text-xl">
+                  {ft.exercise === "pushup" && ft.counts.pushup}
+                  {ft.exercise === "squat" && ft.counts.squat}
+                  {ft.exercise === "burpee" && ft.counts.burpee}
+                </span>
+              </div>
+            ) : (
+              <div className="text-sm">
+                ฟอร์ม Plank:{" "}
+                <span
+                  className={ft.plankHold ? "text-green-400" : "text-red-400"}
+                >
+                  {ft.plankHold ? "ดี" : "หลุด"}
+                </span>
+              </div>
+            )}
+
+            {ft.phase === "rest" && (
+              <div className="text-center">
+                พัก {ft.restLeft}s แล้วจะไปท่าถัดไปอัตโนมัติ
+              </div>
+            )}
+
+            {ft.phase === "summary" && (
+              <div className="pt-2 border-t border-gray-700">
+                <div className="font-semibold mb-1">สรุปผล</div>
+                <ul className="text-sm space-y-1">
+                  <li>
+                    Push-up: {ft.counts.pushup} → {ft.scorePerExercise.pushup}{" "}
+                    คะแนน
+                  </li>
+                  <li>
+                    Squat: {ft.counts.squat} → {ft.scorePerExercise.squat} คะแนน
+                  </li>
+                  <li>
+                    Burpee: {ft.counts.burpee} → {ft.scorePerExercise.burpee}{" "}
+                    คะแนน
+                  </li>
+                  <li>
+                    Plank: {ft.plankSec}s → {ft.scorePerExercise.plank} คะแนน
+                  </li>
+                </ul>
+                <div className="mt-2">
+                  รวม: <b>{ft.total}</b> คะแนน → ระดับ <b>{ft.level}</b>
+                </div>
+
+                <div className="mt-3 flex gap-2">
+                  <button
+                    onClick={() => ft.start()}
+                    className="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500"
+                  >
+                    เริ่มใหม่
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsFitnessTest(false);
+                    }}
+                    className="px-3 py-2 rounded-lg bg-gray-700 hover:bg-gray-600"
+                  >
+                    ปิดโหมด
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {ft.phase !== "summary" && (
+              <div className="flex gap-2">
+                {ft.exercise === "plank" && (
+                  <button
+                    onClick={() => ft.finishPlank()}
+                    className="px-3 py-2 rounded-lg bg-gray-700"
+                  >
+                    จบ Plank
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    ft.stop();
+                  }}
+                  className="px-3 py-2 rounded-lg bg-gray-700"
+                >
+                  หยุดและสรุป
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
