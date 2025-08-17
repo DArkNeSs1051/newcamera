@@ -465,7 +465,7 @@ const Home = () => {
   };
 
   useEffect(() => {
-    isFitnessTestRef.current === isFitnessTest;
+    isFitnessTestRef.current = isFitnessTest;
   }, [isFitnessTest]);
 
   const handleDoOneRep = (currentStepRep: TExerciseStep | null) => {
