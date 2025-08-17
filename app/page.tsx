@@ -413,6 +413,7 @@ const Home = () => {
 
   // handleDoOneRep ที่ปรัปรุงใหม่
   const _handleDoOneRepBase = (currentStepRep: TExerciseStep | null) => {
+    console.log("first");
     // ป้องกันการทำงานซ้อนขณะพัก
     if (!currentStepRep || isResting) {
       return;
@@ -462,34 +463,8 @@ const Home = () => {
     }
   };
 
-  // const handleDoOneRep = (currentStepRep: TExerciseStep | null) => {
-  //   // ถ้าอยู่ในโหมด Fitness Test ให้ส่งไปนับใน ft แทน
-  //   if (isFitnessTest) {
-  //     const name = (exerciseTypeRef.current || "").toLowerCase();
-
-  //     const toKey = name.includes("push up")
-  //       ? "pushup"
-  //       : name.includes("squat")
-  //       ? "squat"
-  //       : name.includes("burpee")
-  //       ? "burpee"
-  //       : name.includes("plank")
-  //       ? "plank"
-  //       : null;
-
-  //     // ใน Fitness Test: นับเฉพาะท่าที่เป็น rep ภายใน 60 วินาที
-  //     if (toKey && ft.phase === "active" && toKey !== "plank") {
-  //       console.log("toKey:", toKey);
-  //       ft.onRep(toKey as "pushup" | "squat" | "burpee");
-  //     }
-  //     return; // ไม่ไปยุ่ง flow ชุด/เซ็ตเดิม
-  //   }
-
-  //   // โหมดปกติ: ใช้ logic เดิม
-  //   _handleDoOneRepBase(currentStepRep);
-  // };
-
   const handleDoOneRep = (currentStepRep: TExerciseStep | null) => {
+    console.log("isFitnessTest:", isFitnessTest);
     if (isFitnessTest) {
       console.log("isFitnessTest:", isFitnessTest);
       const name = (exerciseTypeRef.current || "").toLowerCase();
