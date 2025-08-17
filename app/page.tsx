@@ -828,12 +828,10 @@ const Home = () => {
 
     const isStanding = standingPositionRef.current;
     const isSquatting = squatPositionRef.current;
-    const isPushup = downPositionRef.current || upPositionRef.current;
     let isJumping = jumpDetectedRef.current;
     let isArmsUp = jumpWithArmsUpRef.current;
 
     // ตรวจสอบว่าอยู่ในท่า Push Up หรือไม่
-    pushupPositionRef.current = isPushup;
 
     // เคลียร์ Timeout เก่าถ้ามี
     if (resetTimeoutRef.current) {
@@ -847,13 +845,10 @@ const Home = () => {
     } else if (burpeeStep.current === 1 && isSquatting) {
       burpeeStep.current = 2;
       showFeedback("ทำท่า Push Up แล้วกลับมานั่งยอง");
-    } else if (burpeeStep.current === 2 && isPushup) {
+    } else if (burpeeStep.current === 2 && isJumping && isArmsUp) {
       burpeeStep.current = 3;
-      showFeedback("กระโดดพร้อมยกแขนขึ้นเหนือศีรษะ");
-    } else if (burpeeStep.current === 3 && isJumping && isArmsUp) {
-      burpeeStep.current = 4;
       showFeedback("กลับมายืนตรง");
-    } else if (burpeeStep.current === 4 && isStanding) {
+    } else if (burpeeStep.current === 3 && isStanding) {
       handleDoOneRep(currentStepRef.current);
       burpeeStep.current = 0;
       // รีเซ็ตสถานะกระโดด
