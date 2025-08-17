@@ -492,7 +492,7 @@ const Home = () => {
         ? "pushup"
         : name.includes("squat")
         ? "squat"
-        : name.includes("burpee")
+        : name.includes("burpee no push up")
         ? "burpee"
         : name.includes("plank")
         ? "plank"
