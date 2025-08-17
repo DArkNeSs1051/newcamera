@@ -338,7 +338,6 @@ const Home = () => {
   useEffect(() => {
     stepsRef.current = steps;
   }, [steps]);
-  console.log("stepsRef.current:", stepsRef.current);
   // --------------------------------
   useEffect(() => {
     currentStepRef.current = currentStep;
@@ -510,7 +509,7 @@ const Home = () => {
         ft.onRep(toKey as "pushup" | "squat" | "burpee"); // 1 call = +1 ครั้ง
       } else {
         // ดีบักดูเหตุผลว่าทำไมไม่นับ
-        console.debug("[FT] rep ignored", {
+        console.log("[FT] rep ignored", {
           toKey,
           ftExercise: ft.exercise,
           ftPhase: ft.phase,
@@ -1673,7 +1672,6 @@ const Home = () => {
 
     if (detectedSide) {
       if (detectedSide === expectedSide) {
-        console.log("detectedSide:", detectedSide);
         // **ท่าถูกต้อง และถูกด้าน**
         if (sidePlankFaultTimerRef.current) {
           clearTimeout(sidePlankFaultTimerRef.current);
@@ -1692,7 +1690,6 @@ const Home = () => {
         }
 
         if (!sidePlankTimerRef.current) {
-          console.log("first");
           sidePlankTimerRef.current = setInterval(() => {
             setSidePlankTime((prev) => prev + 1);
           }, 1000);
