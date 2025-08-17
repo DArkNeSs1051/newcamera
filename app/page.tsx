@@ -491,7 +491,9 @@ const Home = () => {
 
   const handleDoOneRep = (currentStepRep: TExerciseStep | null) => {
     if (isFitnessTest) {
+      console.log("isFitnessTest:", isFitnessTest);
       const name = (exerciseTypeRef.current || "").toLowerCase();
+      console.log("name:", name);
 
       const toKey = name.includes("push up")
         ? "pushup"
@@ -502,8 +504,11 @@ const Home = () => {
         : name.includes("plank")
         ? "plank"
         : null;
+      console.log("toKey:", toKey);
       const phaseOk = ft.phase === "active";
+      console.log("phaseOk:", phaseOk);
       const matchOk = toKey === ft.exercise; // ต้องตรง stage ปัจจุบันของ fitness test
+      console.log("matchOk:", matchOk);
 
       if (phaseOk && matchOk && toKey !== "plank") {
         ft.onRep(toKey as "pushup" | "squat" | "burpee"); // 1 call = +1 ครั้ง
