@@ -151,6 +151,7 @@ const Home = () => {
   const legRaiseMomentumWarningRef = useRef<boolean>(false);
 
   const [isFitnessTest, setIsFitnessTest] = useState(false);
+  const isFitnessTestRef = useRef<boolean>(false);
   const [sex, setSex] = useState<"male" | "female">("male");
 
   // แนะนำ knee offset สำหรับผู้หญิงที่ทำ knee push-up (5–10 ครั้ง)
@@ -463,9 +464,13 @@ const Home = () => {
     }
   };
 
+  useEffect(() => {
+    isFitnessTestRef.current === isFitnessTest;
+  }, [isFitnessTest]);
+
   const handleDoOneRep = (currentStepRep: TExerciseStep | null) => {
     console.log("isFitnessTest:", isFitnessTest);
-    if (isFitnessTest) {
+    if (isFitnessTestRef.current) {
       console.log("isFitnessTest:", isFitnessTest);
       const name = (exerciseTypeRef.current || "").toLowerCase();
       console.log("name:", name);
