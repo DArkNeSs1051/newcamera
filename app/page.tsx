@@ -430,7 +430,6 @@ const Home = () => {
 
   // handleDoOneRep ที่ปรัปรุงใหม่
   const _handleDoOneRepBase = (currentStepRep: TExerciseStep | null) => {
-    console.log("first");
     // ป้องกันการทำงานซ้อนขณะพัก
     if (!currentStepRep || isResting) {
       return;
@@ -497,25 +496,33 @@ const Home = () => {
         : name.includes("plank")
         ? "plank"
         : null;
+
       const phaseOk = ftPhaseRef.current === "active";
-      console.log("phaseOk:", phaseOk);
-      const matchOk = toKey === ftExerciseRef.current; // ต้องตรง stage ปัจจุบันของ fitness test
+      const matchOk = toKey === ftExerciseRef.current;
+
+      console.log("[FT] pose event", {
+        rawName: exerciseTypeRef.current,
+        mapped: toKey,
+        phaseOk,
+        matchOk,
+        ftExerciseCurrent: ftExerciseRef.current,
+        ftPhaseCurrent: ftPhaseRef.current,
+      });
 
       if (phaseOk && matchOk && toKey !== "plank") {
+        console.log("[FT] count rep for", toKey);
         ftOnRepRef.current?.(toKey as "pushup" | "squat" | "burpee");
+      } else if (toKey === "plank") {
+        // แทนที่จะนับ rep ให้ยิงสัญญาณ hold ผ่านที่คุณเชื่อมไว้จาก Pose (แนะนำให้มี event แยก)
+        console.log(
+          "[FT] plank rep ignored (plank uses hold, not rep). Ensure pose emits 'plank:hold' events."
+        );
       } else {
-        // ดีบักดูเหตุผลว่าทำไมไม่นับ
-        console.log("[FT] rep ignored", {
-          toKey,
-          ftExercise: ft.exercise,
-          ftPhase: ft.phase,
-          exerciseTypeRef: exerciseTypeRef.current,
-        });
+        console.log("[FT] rep ignored (phase/match mismatch)");
       }
-      return; // ไม่ยุ่ง flow เก่า
+      return;
     }
 
-    // โหมดปกติ: ใช้ logic เดิม
     _handleDoOneRepBase(currentStepRep);
   };
 
