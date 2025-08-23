@@ -514,12 +514,12 @@ const Home = () => {
     if (isFitnessTestRef.current) {
       const name = (exerciseTypeRef.current || "").toLowerCase();
 
-      const toKey = name.includes("push up")
+      const toKey = name.includes("burpee no push up") // <--- ตรวจสอบอันนี้ก่อน
+        ? "burpee"
+        : name.includes("push up")
         ? "pushup"
         : name.includes("squat")
         ? "squat"
-        : name.includes("burpee no push up")
-        ? "burpee"
         : name.includes("plank")
         ? "plank"
         : null;
