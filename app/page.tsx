@@ -879,7 +879,7 @@ const Home = () => {
     } else if (burpeeStep.current === 1 && isSquatting) {
       burpeeStep.current = 2;
       showFeedback("ทำท่า Push Up แล้วกลับมานั่งยอง");
-    } else if (burpeeStep.current === 2 && isJumping) {
+    } else if (burpeeStep.current === 2 && isJumping && isArmsUp) {
       burpeeStep.current = 3;
       showFeedback("กลับมายืนตรง");
     } else if (burpeeStep.current === 3 && isStanding) {
