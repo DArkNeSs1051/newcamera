@@ -428,6 +428,33 @@ const Home = () => {
     ftOnRepRef.current = ft.onRep;
   }, [ft.onRep]);
 
+  // ในคอมโพเนนต์ Home ของไฟล์ page.tsx
+
+  // ... ต่อจาก ref ของ ft ที่มีอยู่
+  const ftSetPlankHoldRef = useRef(ft.setPlankHold);
+  const ftFinishPlankRef = useRef(ft.finishPlank);
+
+  useEffect(() => {
+    ftPhaseRef.current = ft.phase;
+  }, [ft.phase]);
+
+  // ...
+
+  useEffect(() => {
+    ftOnRepRef.current = ft.onRep;
+  }, [ft.onRep]);
+
+  // เพิ่ม useEffect สองอันนี้เข้าไป
+  useEffect(() => {
+    ftSetPlankHoldRef.current = ft.setPlankHold;
+  }, [ft.setPlankHold]);
+
+  useEffect(() => {
+    ftFinishPlankRef.current = ft.finishPlank;
+  }, [ft.finishPlank]);
+
+  // ...
+
   // handleDoOneRep ที่ปรัปรุงใหม่
   const _handleDoOneRepBase = (currentStepRep: TExerciseStep | null) => {
     // ป้องกันการทำงานซ้อนขณะพัก
@@ -852,7 +879,7 @@ const Home = () => {
     } else if (burpeeStep.current === 1 && isSquatting) {
       burpeeStep.current = 2;
       showFeedback("ทำท่า Push Up แล้วกลับมานั่งยอง");
-    } else if (burpeeStep.current === 2 && isJumping && isArmsUp) {
+    } else if (burpeeStep.current === 2 && isJumping) {
       burpeeStep.current = 3;
       showFeedback("กลับมายืนตรง");
     } else if (burpeeStep.current === 3 && isStanding) {
@@ -1474,7 +1501,11 @@ const Home = () => {
         Math.abs(upperArmAngleR) < 105;
 
       // ===== PATCH: Fitness Test (Plank) =====
-      if (isFitnessTest && ft.phase === "active" && ft.exercise === "plank") {
+      if (
+        isFitnessTestRef.current &&
+        ftPhaseRef.current === "active" &&
+        ftExerciseRef.current === "plank"
+      ) {
         const goodForm =
           (Math.abs(torsoL) > 170 ||
             Math.abs(torsoL) < 10 ||
@@ -1488,22 +1519,22 @@ const Home = () => {
           armsAreVertical;
 
         if (goodForm) {
-          // ฟอร์มถูกต้อง: แจ้งไปยัง fitness test และรีเซ็ตตัวนับ "ฟอร์มหลุด"
-          ft.setPlankHold(true);
+          // เรียกใช้ฟังก์ชันผ่าน ref
+          ftSetPlankHoldRef.current(true);
           ftOffMsRef.current = 0;
         } else {
-          // ฟอร์มหลุด: แจ้ง false และสะสมเวลาที่หลุด
-          ft.setPlankHold(false);
+          // เรียกใช้ฟังก์ชันผ่าน ref
+          ftSetPlankHoldRef.current(false);
           ftOffMsRef.current += deltaMs;
 
-          // ถ้าหลุดต่อเนื่องเกิน 2 วินาที ให้จบ plank ใน fitness test
           if (ftOffMsRef.current >= 2000) {
-            ft.finishPlank();
-            return; // กันไม่ให้ logic plank เดิมทำงานซ้ำ
+            // เรียกใช้ฟังก์ชันผ่าน ref
+            ftFinishPlankRef.current();
+            return;
           }
         }
 
-        return; // โหมด fitness test ให้ฮุคเป็นคนจัดการเวลาเอง
+        return;
       }
       // ===== END PATCH =====
 
