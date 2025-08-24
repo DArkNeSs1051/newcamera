@@ -83,7 +83,7 @@ const TABLE: Record<Sex, Record<Exercise, Band[]>> = {
 const levelFromTotal = (sum: number) =>
   sum >= 17 ? "Advance" : sum >= 13 ? "Intermediate" : "Beginner";
 
-type Phase = "idle" | "active" | "rest" | "summary";
+type Phase = "idle" | "countdown" | "active" | "rest" | "summary";
 
 export function useFitnessTestMachine(opts: {
   sex: Sex;
@@ -97,6 +97,7 @@ export function useFitnessTestMachine(opts: {
 
   const [timeLeft, setTimeLeft] = useState(WORK_SEC);
   const [restLeft, setRestLeft] = useState(REST_SEC);
+  const [countdownLeft, setCountdownLeft] = useState(5); // <<< 2. เพิ่ม state สำหรับนับถอยหลัง
 
   const [counts, setCounts] = useState<{
     pushup: number;
@@ -123,7 +124,18 @@ export function useFitnessTestMachine(opts: {
   // เริ่มการทำงานของเฟส active/rest ตามประเภทท่า
   useEffect(() => {
     clearTimer();
-    if (phase === "active") {
+    if (phase === "countdown") {
+      timerRef.current = window.setInterval(() => {
+        setCountdownLeft((t) => {
+          if (t <= 1) {
+            clearTimer();
+            setPhase("active"); // เมื่อนับถอยหลังเสร็จ ให้เริ่ม phase active
+            return 0;
+          }
+          return t - 1;
+        });
+      }, 1000);
+    } else if (phase === "active") {
       if (ex === "plank") {
         // นับเวลาที่ฟอร์มถูกต้อง
         timerRef.current = window.setInterval(() => {
@@ -169,7 +181,8 @@ export function useFitnessTestMachine(opts: {
 
   const start = useCallback(() => {
     // reset ทุกอย่าง
-    setPhase("active");
+    setPhase("countdown"); // <<< เปลี่ยนจาก "active" เป็น "countdown"
+    setCountdownLeft(5); // <<< ตั้งค่าเวลานับถอยหลัง
     setIdx(0);
     setCounts({ pushup: 0, squat: 0, burpee: 0 });
     setPlankSec(0);
@@ -238,6 +251,7 @@ export function useFitnessTestMachine(opts: {
     index: idx,
     timeLeft,
     restLeft,
+    countdownLeft, // <<< 5. ส่ง countdownLeft ออกไปให้ UI ใช้
     counts,
     plankSec,
     plankHold,

@@ -3142,105 +3142,128 @@ const Home = () => {
           </div>
         ) : (
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="font-medium capitalize">
-                กำลังทำ: {exerciseTypeRef.current}
-              </div>
-              {ft.exercise !== "plank" ? (
-                <div className="text-2xl tabular-nums">{ft.timeLeft}s</div>
-              ) : (
-                <div className="text-2xl tabular-nums">{ft.plankSec}s</div>
-              )}
-            </div>
-
-            {ft.exercise !== "plank" ? (
-              <div className="flex items-center justify-between text-sm">
-                <span>นับได้</span>
-                <span className="text-xl">
-                  {ft.exercise === "pushup" && ft.counts.pushup}
-                  {ft.exercise === "squat" && ft.counts.squat}
-                  {ft.exercise === "burpee" && ft.counts.burpee}
-                </span>
-              </div>
-            ) : (
-              <div className="text-sm">
-                ฟอร์ม Plank:{" "}
-                <span
-                  className={ft.plankHold ? "text-green-400" : "text-red-400"}
-                >
-                  {ft.plankHold ? "ดี" : "หลุด"}
-                </span>
-              </div>
-            )}
-
-            {ft.phase === "rest" && (
-              <div className="text-center">
-                พัก {ft.restLeft}s แล้วจะไปท่าถัดไปอัตโนมัติ
-              </div>
-            )}
-
-            {ft.phase === "summary" && (
-              <div className="pt-2 border-t border-gray-700">
-                <div className="font-semibold mb-1">สรุปผล</div>
-                <ul className="text-sm space-y-1">
-                  <li>
-                    Push-up: {ft.counts.pushup} → {ft.scorePerExercise.pushup}{" "}
-                    คะแนน
-                  </li>
-                  <li>
-                    Squat: {ft.counts.squat} → {ft.scorePerExercise.squat} คะแนน
-                  </li>
-                  <li>
-                    Burpee: {ft.counts.burpee} → {ft.scorePerExercise.burpee}{" "}
-                    คะแนน
-                  </li>
-                  <li>
-                    Plank: {ft.plankSec}s → {ft.scorePerExercise.plank} คะแนน
-                  </li>
-                </ul>
-                <div className="mt-2">
-                  รวม: <b>{ft.total}</b> คะแนน → ระดับ <b>{ft.level}</b>
+            {/* VVV เพิ่ม UI สำหรับ Countdown VVV */}
+            {ft.phase === "countdown" && (
+              <div className="text-center py-4">
+                <div className="text-xl font-medium text-gray-400">
+                  เตรียมตัว
                 </div>
+                <div className="text-7xl font-bold tabular-nums text-white animate-ping-once">
+                  {ft.countdownLeft}
+                </div>
+                <div className="text-lg text-gray-300 mt-2">
+                  ท่าแรก:{" "}
+                  <span className="capitalize font-semibold">
+                    {ft.exercise}
+                  </span>
+                </div>
+              </div>
+            )}
 
-                <div className="mt-3 flex gap-2">
-                  <button
-                    onClick={() => ft.start()}
-                    className="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500"
+            {/* {ft.phase !== "countdown" && ft.phase !== "summary" && ( */}
+            <>
+              <div className="flex items-center justify-between">
+                <div className="font-medium capitalize">
+                  กำลังทำ: {exerciseTypeRef.current}
+                </div>
+                {ft.exercise !== "plank" ? (
+                  <div className="text-2xl tabular-nums">{ft.timeLeft}s</div>
+                ) : (
+                  <div className="text-2xl tabular-nums">{ft.plankSec}s</div>
+                )}
+              </div>
+
+              {ft.exercise !== "plank" ? (
+                <div className="flex items-center justify-between text-sm">
+                  <span>นับได้</span>
+                  <span className="text-xl">
+                    {ft.exercise === "pushup" && ft.counts.pushup}
+                    {ft.exercise === "squat" && ft.counts.squat}
+                    {ft.exercise === "burpee" && ft.counts.burpee}
+                  </span>
+                </div>
+              ) : (
+                <div className="text-sm">
+                  ฟอร์ม Plank:{" "}
+                  <span
+                    className={ft.plankHold ? "text-green-400" : "text-red-400"}
                   >
-                    เริ่มใหม่
-                  </button>
+                    {ft.plankHold ? "ดี" : "หลุด"}
+                  </span>
+                </div>
+              )}
+
+              {ft.phase === "rest" && (
+                <div className="text-center">
+                  พัก {ft.restLeft}s แล้วจะไปท่าถัดไปอัตโนมัติ
+                </div>
+              )}
+
+              {ft.phase === "summary" && (
+                <div className="pt-2 border-t border-gray-700">
+                  <div className="font-semibold mb-1">สรุปผล</div>
+                  <ul className="text-sm space-y-1">
+                    <li>
+                      Push-up: {ft.counts.pushup} → {ft.scorePerExercise.pushup}{" "}
+                      คะแนน
+                    </li>
+                    <li>
+                      Squat: {ft.counts.squat} → {ft.scorePerExercise.squat}{" "}
+                      คะแนน
+                    </li>
+                    <li>
+                      Burpee: {ft.counts.burpee} → {ft.scorePerExercise.burpee}{" "}
+                      คะแนน
+                    </li>
+                    <li>
+                      Plank: {ft.plankSec}s → {ft.scorePerExercise.plank} คะแนน
+                    </li>
+                  </ul>
+                  <div className="mt-2">
+                    รวม: <b>{ft.total}</b> คะแนน → ระดับ <b>{ft.level}</b>
+                  </div>
+
+                  <div className="mt-3 flex gap-2">
+                    <button
+                      onClick={() => ft.start()}
+                      className="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500"
+                    >
+                      เริ่มใหม่
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsFitnessTest(false);
+                      }}
+                      className="px-3 py-2 rounded-lg bg-gray-700 hover:bg-gray-600"
+                    >
+                      ปิดโหมด
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {ft.phase !== "summary" && ft.phase !== "countdown" && (
+                <div className="flex gap-2">
+                  {ft.exercise === "plank" && (
+                    <button
+                      onClick={() => ft.finishPlank()}
+                      className="px-3 py-2 rounded-lg bg-gray-700"
+                    >
+                      จบ Plank
+                    </button>
+                  )}
                   <button
                     onClick={() => {
-                      setIsFitnessTest(false);
+                      ft.stop();
                     }}
-                    className="px-3 py-2 rounded-lg bg-gray-700 hover:bg-gray-600"
-                  >
-                    ปิดโหมด
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {ft.phase !== "summary" && (
-              <div className="flex gap-2">
-                {ft.exercise === "plank" && (
-                  <button
-                    onClick={() => ft.finishPlank()}
                     className="px-3 py-2 rounded-lg bg-gray-700"
                   >
-                    จบ Plank
+                    หยุดและสรุป
                   </button>
-                )}
-                <button
-                  onClick={() => {
-                    ft.stop();
-                  }}
-                  className="px-3 py-2 rounded-lg bg-gray-700"
-                >
-                  หยุดและสรุป
-                </button>
-              </div>
-            )}
+                </div>
+              )}
+            </>
+            {/* )} */}
           </div>
         )}
       </div>
