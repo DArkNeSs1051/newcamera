@@ -1411,6 +1411,7 @@ const Home = () => {
   // ใช้กับโหมด fitness test: นับเวลาที่ฟอร์ม plank หลุดต่อเนื่อง
   const ftOffMsRef = useRef(0);
   const ftLastTsRef = useRef<number | null>(null);
+  const ftPlankFaultTimerRef = useRef<NodeJS.Timeout | null>(null); // <<< เพิ่มบรรทัดนี้
 
   const nowTs = performance.now();
   const deltaMs = ftLastTsRef.current ? nowTs - ftLastTsRef.current : 0;
@@ -1510,41 +1511,41 @@ const Home = () => {
         Math.abs(upperArmAngleR) > 75 &&
         Math.abs(upperArmAngleR) < 105;
 
-      // ===== PATCH: Fitness Test (Plank) =====
+      // ===== PATCH: Fitness Test (Plank) - โค้ดส่วนที่แก้ไขใหม่ทั้งหมด =====
       if (
         isFitnessTestRef.current &&
         ftPhaseRef.current === "active" &&
         ftExerciseRef.current === "plank"
       ) {
         const goodForm =
-          (Math.abs(torsoL) > 170 ||
-            Math.abs(torsoL) < 10 ||
-            Math.abs(torsoR) > 170 ||
-            Math.abs(torsoR) < 10) && // isTorsoStraight
-          (Math.abs(legL) > 150 ||
-            Math.abs(legL) < 20 ||
-            Math.abs(legR) > 150 ||
-            Math.abs(legR) < 20) && // isLegStraight
-          backOk &&
-          armsAreVertical;
+          isTorsoStraight && isLegStraight && backOk && armsAreVertical;
 
         if (goodForm) {
-          // เรียกใช้ฟังก์ชันผ่าน ref
-          ftSetPlankHoldRef.current(true);
-          ftOffMsRef.current = 0;
-        } else {
-          // เรียกใช้ฟังก์ชันผ่าน ref
-          ftSetPlankHoldRef.current(false);
-          ftOffMsRef.current += deltaMs;
+          // --- ท่าถูกต้อง ---
+          ftSetPlankHoldRef.current(true); // บอกให้ hook นับเวลาต่อ
 
-          if (ftOffMsRef.current >= 2000) {
-            // เรียกใช้ฟังก์ชันผ่าน ref
-            ftFinishPlankRef.current();
-            return;
+          // ถ้ามี timer จับเวลาท่าผิดอยู่ ให้ยกเลิกไป
+          if (ftPlankFaultTimerRef.current) {
+            clearTimeout(ftPlankFaultTimerRef.current);
+            ftPlankFaultTimerRef.current = null;
+            showFeedback("กลับสู่ท่าที่ถูกต้อง! นับเวลาต่อ...");
+          }
+        } else {
+          // --- ท่าไม่ถูกต้อง ---
+          ftSetPlankHoldRef.current(false); // บอกให้ hook หยุดนับเวลา
+
+          // ถ้ายังไม่ได้เริ่มจับเวลาท่าผิด ให้เริ่มจับเวลา 5 วินาที
+          if (!ftPlankFaultTimerRef.current) {
+            showFeedback("ฟอร์มไม่ถูกต้อง! แก้ไขภายใน 5 วินาที");
+
+            ftPlankFaultTimerRef.current = setTimeout(() => {
+              showFeedback("ฟอร์มไม่ถูกต้องนานเกินไป จบการทดสอบท่า Plank");
+              ftFinishPlankRef.current(); // เรียกฟังก์ชันเพื่อไปหน้าสรุปผล
+              ftPlankFaultTimerRef.current = null; // เคลียร์ ref
+            }, 5000); // 5 วินาที
           }
         }
-
-        return;
+        return; // จบการทำงานในส่วนของ fitness test
       }
       // ===== END PATCH =====
 
