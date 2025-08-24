@@ -11,7 +11,7 @@ type Sex = "male" | "female";
 type Exercise = "pushup" | "squat" | "burpee" | "plank";
 
 const SEQUENCE: Exercise[] = ["pushup", "squat", "burpee", "plank"];
-const WORK_SEC = 15;
+const WORK_SEC = 60;
 const REST_SEC = 15;
 
 type Band = { min: number; max: number; score: 1 | 2 | 3 | 4 | 5 };
