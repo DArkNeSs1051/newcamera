@@ -3026,6 +3026,26 @@ const Home = () => {
     exerciseTypeRef.current = nextName;
   }, [isFitnessTest, ft.exercise]);
 
+  // page.tsx (ส่วนที่ render สรุปผล)
+  const breakdown = {
+    pushup:
+      (ft as any)?.summary?.byExercise?.pushup ??
+      (ft as any)?.results?.pushup?.reps ??
+      (ft as any)?.reps?.pushup,
+    squat:
+      (ft as any)?.summary?.byExercise?.squat ??
+      (ft as any)?.results?.squat?.reps ??
+      (ft as any)?.reps?.squat,
+    burpee:
+      (ft as any)?.summary?.byExercise?.burpee ??
+      (ft as any)?.results?.burpee?.reps ??
+      (ft as any)?.reps?.burpee,
+    plankSeconds:
+      (ft as any)?.summary?.byExercise?.plankSeconds ??
+      (ft as any)?.results?.plank?.seconds ??
+      (ft as any)?.plankSeconds,
+  };
+
   return (
     <div className="relative flex flex-col items-center justify-start p-4 md:p-6 bg-gray-900 text-white w-full min-h-screen font-sans gap-4">
       {/* ==============================================
@@ -3344,8 +3364,17 @@ const Home = () => {
       {(isResting || (isFitnessTest && ft.phase === "rest")) && (
         <RestOverlay seconds={isFitnessTest ? ft.restLeft : restTime} />
       )}
-      {isFitnessTest && ft.phase === "summary" && (
+
+      {/* {isFitnessTest && ft.phase === "summary" && (
         <SummaryOverlay total={ft.total} level={ft.level} />
+      )} */}
+
+      {isFitnessTest && ft.phase === "summary" && (
+        <SummaryOverlay
+          total={ft.total}
+          level={ft.level}
+          breakdown={breakdown}
+        />
       )}
 
       {/* ==============================================
