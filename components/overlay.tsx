@@ -137,3 +137,85 @@ export const SummaryOverlay = ({
     </div>
   );
 };
+
+// ==== helpers: ดึงค่าจากหลาย path ที่เป็นไปได้ ====
+const pick = (obj: any, path: (string | number)[]) => {
+  let cur = obj;
+  for (const k of path) {
+    if (cur == null) return undefined;
+    cur = cur[k];
+  }
+  return cur;
+};
+
+const firstDefined = (obj: any, paths: (string | number)[][]) => {
+  for (const p of paths) {
+    const v = pick(obj, p);
+    if (v !== undefined && v !== null) return v;
+  }
+  return undefined;
+};
+
+const toNum = (v: any) =>
+  typeof v === "number" && !Number.isNaN(v) ? v : undefined;
+
+// NOTE: ปรับค่า defaultZero เป็น true ถ้าอยากให้แสดง 0 แทนที่จะซ่อนแถว
+export function deriveBreakdown(ft: any, defaultZero = true) {
+  const pushup = toNum(
+    firstDefined(ft, [
+      ["summary", "byExercise", "pushup"],
+      ["results", "pushup", "reps"],
+      ["reps", "pushup"],
+      ["counters", "pushup"],
+      ["totals", "pushup"],
+    ])
+  );
+
+  const squat = toNum(
+    firstDefined(ft, [
+      ["summary", "byExercise", "squat"],
+      ["results", "squat", "reps"],
+      ["reps", "squat"],
+      ["counters", "squat"],
+      ["totals", "squat"],
+    ])
+  );
+
+  const burpee = toNum(
+    firstDefined(ft, [
+      ["summary", "byExercise", "burpee"],
+      ["results", "burpee", "reps"],
+      ["reps", "burpee"],
+      ["counters", "burpee"],
+      ["totals", "burpee"],
+    ])
+  );
+
+  // plankSeconds: รองรับได้หลายแหล่ง
+  let plankSeconds = toNum(
+    firstDefined(ft, [
+      ["summary", "byExercise", "plankSeconds"],
+      ["results", "plank", "seconds"],
+      ["plankSeconds"],
+      ["durations", "plankSeconds"],
+    ])
+  );
+
+  if (plankSeconds === undefined) {
+    const ms = toNum(
+      firstDefined(ft, [
+        ["timers", "plank", "totalMs"],
+        ["durations", "plankMs"],
+      ])
+    );
+    if (typeof ms === "number") plankSeconds = Math.round(ms / 1000);
+  }
+
+  // ถ้าทั้งหมดว่าง และต้องการให้แสดง 0 เพื่อ “บังคับให้มีแถว”
+  return {
+    pushup: pushup ?? (defaultZero ? 0 : undefined),
+    squat: squat ?? (defaultZero ? 0 : undefined),
+    burpee: burpee ?? (defaultZero ? 0 : undefined),
+    plankSeconds: plankSeconds ?? (defaultZero ? 0 : undefined),
+  };
+}

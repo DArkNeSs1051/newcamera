@@ -3,9 +3,14 @@
 import * as poseDetection from "@tensorflow-models/pose-detection";
 import * as tf from "@tensorflow/tfjs";
 import "@tensorflow/tfjs-backend-webgl";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useFitnessTestMachine } from "@/components/fitness-test";
-import { HudOverlay, RestOverlay, SummaryOverlay } from "@/components/overlay";
+import {
+  deriveBreakdown,
+  HudOverlay,
+  RestOverlay,
+  SummaryOverlay,
+} from "@/components/overlay";
 
 const Home = () => {
   const version = "1.0.5"; // กำหนดเวอร์ชันของแอปพลิเคชัน
@@ -3027,24 +3032,26 @@ const Home = () => {
   }, [isFitnessTest, ft.exercise]);
 
   // page.tsx (ส่วนที่ render สรุปผล)
-  const breakdown = {
-    pushup:
-      (ft as any)?.summary?.byExercise?.pushup ??
-      (ft as any)?.results?.pushup?.reps ??
-      (ft as any)?.reps?.pushup,
-    squat:
-      (ft as any)?.summary?.byExercise?.squat ??
-      (ft as any)?.results?.squat?.reps ??
-      (ft as any)?.reps?.squat,
-    burpee:
-      (ft as any)?.summary?.byExercise?.burpee ??
-      (ft as any)?.results?.burpee?.reps ??
-      (ft as any)?.reps?.burpee,
-    plankSeconds:
-      (ft as any)?.summary?.byExercise?.plankSeconds ??
-      (ft as any)?.results?.plank?.seconds ??
-      (ft as any)?.plankSeconds,
-  };
+  // const breakdown = {
+  //   pushup:
+  //     (ft as any)?.summary?.byExercise?.pushup ??
+  //     (ft as any)?.results?.pushup?.reps ??
+  //     (ft as any)?.reps?.pushup,
+  //   squat:
+  //     (ft as any)?.summary?.byExercise?.squat ??
+  //     (ft as any)?.results?.squat?.reps ??
+  //     (ft as any)?.reps?.squat,
+  //   burpee:
+  //     (ft as any)?.summary?.byExercise?.burpee ??
+  //     (ft as any)?.results?.burpee?.reps ??
+  //     (ft as any)?.reps?.burpee,
+  //   plankSeconds:
+  //     (ft as any)?.summary?.byExercise?.plankSeconds ??
+  //     (ft as any)?.results?.plank?.seconds ??
+  //     (ft as any)?.plankSeconds,
+  // };
+
+  const breakdown = useMemo(() => deriveBreakdown(ft, true), [ft]);
   console.log("breakdown:", breakdown);
 
   return (
