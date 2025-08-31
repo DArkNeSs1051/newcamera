@@ -5,6 +5,7 @@ import * as tf from "@tensorflow/tfjs";
 import "@tensorflow/tfjs-backend-webgl";
 import { useEffect, useRef, useState } from "react";
 import { useFitnessTestMachine } from "@/components/fitness-test";
+import { HudOverlay, RestOverlay } from "@/components/overlay";
 
 const Home = () => {
   const version = "1.0.5"; // กำหนดเวอร์ชันของแอปพลิเคชัน
@@ -3061,7 +3062,7 @@ const Home = () => {
         )}
 
         {/* Dashboard Overlay */}
-        {currentStep && (
+        {/* {currentStep && (
           <div className="absolute top-0 left-0 w-full p-3 bg-gray-900/60 backdrop-blur-sm rounded-t-xl border-b border-gray-700">
             <div className="flex justify-between items-center">
               <div>
@@ -3099,6 +3100,61 @@ const Home = () => {
               </div>
             </div>
           </div>
+        )} */}
+        {(currentStep ||
+          (isFitnessTest &&
+            ft.phase !== "countdown" &&
+            ft.phase !== "summary")) && (
+          <>
+            {!isFitnessTest && currentStep && (
+              <HudOverlay
+                exercise={currentStep.exercise}
+                setNumber={currentStep.setNumber}
+                current={
+                  currentStep.exercise?.toLowerCase?.() === "plank"
+                    ? plankTime
+                    : currentStep.exercise
+                        ?.toLowerCase?.()
+                        .includes("side plank")
+                    ? sidePlankTime
+                    : reps
+                }
+                total={currentStep.reps}
+                isTime={
+                  currentStep.exercise?.toLowerCase?.() === "plank" ||
+                  currentStep.exercise?.toLowerCase?.().includes("side plank")
+                }
+              />
+            )}
+
+            {isFitnessTest &&
+              ft.phase !== "countdown" &&
+              ft.phase !== "summary" && (
+                <HudOverlay
+                  exercise={ft.exercise}
+                  // ถ้ามี set/รอบใน state ของคุณ ให้ส่งเข้ามาแทน 1 นี้
+                  setNumber={(ft as any).setNumber ?? 1}
+                  current={
+                    ft.exercise === "plank"
+                      ? ft.plankSec
+                      : ft.exercise === "pushup"
+                      ? ft.counts.pushup
+                      : ft.exercise === "squat"
+                      ? ft.counts.squat
+                      : ft.exercise === "burpee"
+                      ? ft.counts.burpee
+                      : 0
+                  }
+                  // ถ้ามีเป้าหมายใน state (เช่น ft.targetPlankSec / ft.targetReps) ให้ใส่; ถ้าไม่มีก็ปล่อย undefined เพื่อซ่อน "/"
+                  total={
+                    ft.exercise === "plank"
+                      ? (ft as any).targetPlankSec ?? undefined
+                      : (ft as any).targetReps ?? undefined
+                  }
+                  isTime={ft.exercise === "plank"}
+                />
+              )}
+          </>
         )}
 
         {isFinished && (
@@ -3272,7 +3328,7 @@ const Home = () => {
       </div>
 
       {/* Cooldown Overlay */}
-      {isResting && (
+      {/* {isResting && (
         <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm transition-opacity duration-300">
           <p className="text-2xl font-bold uppercase tracking-wider text-green-400 animate-pulse">
             พักสักครู่
@@ -3284,6 +3340,9 @@ const Home = () => {
             วินาที
           </p>
         </div>
+      )} */}
+      {(isResting || (isFitnessTest && ft.phase === "rest")) && (
+        <RestOverlay seconds={isFitnessTest ? ft.restLeft : restTime} />
       )}
 
       {/* ==============================================
