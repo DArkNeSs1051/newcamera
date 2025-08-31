@@ -82,6 +82,7 @@ export const SummaryOverlay = ({
   level,
   breakdown,
 }: SummaryOverlayProps) => {
+  console.log("breakdown:", breakdown);
   const items = [
     breakdown?.pushup != null
       ? { label: "Push-up", value: `${breakdown.pushup} ครั้ง` }

@@ -3045,6 +3045,7 @@ const Home = () => {
       (ft as any)?.results?.plank?.seconds ??
       (ft as any)?.plankSeconds,
   };
+  console.log("breakdown:", breakdown);
 
   return (
     <div className="relative flex flex-col items-center justify-start p-4 md:p-6 bg-gray-900 text-white w-full min-h-screen font-sans gap-4">
