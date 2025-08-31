@@ -5,7 +5,7 @@ import * as tf from "@tensorflow/tfjs";
 import "@tensorflow/tfjs-backend-webgl";
 import { useEffect, useRef, useState } from "react";
 import { useFitnessTestMachine } from "@/components/fitness-test";
-import { HudOverlay, RestOverlay } from "@/components/overlay";
+import { HudOverlay, RestOverlay, SummaryOverlay } from "@/components/overlay";
 
 const Home = () => {
   const version = "1.0.5"; // กำหนดเวอร์ชันของแอปพลิเคชัน
@@ -3343,6 +3343,9 @@ const Home = () => {
       )} */}
       {(isResting || (isFitnessTest && ft.phase === "rest")) && (
         <RestOverlay seconds={isFitnessTest ? ft.restLeft : restTime} />
+      )}
+      {isFitnessTest && ft.phase === "summary" && (
+        <SummaryOverlay total={ft.total} level={ft.level} />
       )}
 
       {/* ==============================================

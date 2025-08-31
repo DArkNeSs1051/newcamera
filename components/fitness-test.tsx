@@ -112,6 +112,16 @@ export function useFitnessTestMachine(opts: {
   const [plankSec, setPlankSec] = useState(0);
 
   const timerRef = useRef<number | null>(null);
+  // timeout เมื่อผู้ใช้หยุดทำ plank จนครบระยะเวลาที่กำหนด
+  const plankStopTimeoutRef = useRef<number | null>(null);
+
+  // ตัวช่วยจัดการ interval และ timeout ที่เกี่ยวข้องกับ plank
+  const clearPlankStopTimeout = () => {
+    if (plankStopTimeoutRef.current) {
+      window.clearTimeout(plankStopTimeoutRef.current);
+      plankStopTimeoutRef.current = null;
+    }
+  };
 
   // ตัวช่วยจัดการ interval
   const clearTimer = () => {
@@ -216,6 +226,8 @@ export function useFitnessTestMachine(opts: {
 
   const finishPlank = useCallback(() => {
     if (ex !== "plank" || phase !== "active") return;
+    clearTimer();
+    clearPlankStopTimeout();
     // จบ plank แล้วไป summary
     setPhase("summary");
   }, [ex, phase]);
@@ -243,6 +255,28 @@ export function useFitnessTestMachine(opts: {
     scorePerExercise.burpee +
     scorePerExercise.plank;
   const level = levelFromTotal(total);
+
+  // เมื่ออยู่ท่า plank: หากฟอร์ม "หลุด" ต่อเนื่อง 5 วินาที ให้จบและไปสรุปผลอัตโนมัติ
+  useEffect(() => {
+    if (ex !== "plank" || phase !== "active") {
+      clearPlankStopTimeout();
+      return;
+    }
+    if (!plankHold) {
+      // เริ่ม/รีสตาร์ท timeout 5 วิ
+      clearPlankStopTimeout();
+      plankStopTimeoutRef.current = window.setTimeout(() => {
+        // ป้องกันไม่ให้ค้าง interval อื่น ๆ
+        clearTimer();
+        setPhase("summary");
+      }, 5000);
+    } else {
+      // กลับมาถือท่าได้ => ยกเลิกการจบอัตโนมัติ
+      clearPlankStopTimeout();
+    }
+    // ล้าง timeout เมื่อ unmount หรือเปลี่ยน phase/exercise
+    return () => clearPlankStopTimeout();
+  }, [ex, phase, plankHold]);
 
   return {
     // state

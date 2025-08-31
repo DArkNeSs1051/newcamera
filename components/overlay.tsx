@@ -57,3 +57,20 @@ export const RestOverlay: React.FC<{ seconds: number | string }> = ({
     <p className="text-xl uppercase tracking-wider text-gray-400">วินาที</p>
   </div>
 );
+
+export const SummaryOverlay: React.FC<{
+  total: number | string;
+  level?: string;
+}> = ({ total, level }) => (
+  <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm transition-opacity duration-300">
+    <p className="text-2xl font-bold uppercase tracking-wider text-green-400 animate-pulse">
+      สรุปผล
+    </p>
+    <p className="text-6xl font-mono font-bold my-4 text-white">{total}</p>
+    {level ? (
+      <p className="text-xl uppercase tracking-wider text-gray-300">
+        ระดับ {level}
+      </p>
+    ) : null}
+  </div>
+);
