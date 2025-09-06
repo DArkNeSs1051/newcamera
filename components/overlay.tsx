@@ -160,13 +160,15 @@ const toNum = (v: any) =>
   typeof v === "number" && !Number.isNaN(v) ? v : undefined;
 
 // NOTE: ปรับค่า defaultZero เป็น true ถ้าอยากให้แสดง 0 แทนที่จะซ่อนแถว
+// overlay.tsx
+
 export function deriveBreakdown(ft: any, defaultZero = true) {
   const pushup = toNum(
     firstDefined(ft, [
       ["summary", "byExercise", "pushup"],
       ["results", "pushup", "reps"],
       ["reps", "pushup"],
-      ["counters", "pushup"],
+      ["counts", "pushup"], // <-- แก้จาก counters เป็น counts
       ["totals", "pushup"],
     ])
   );
@@ -176,7 +178,7 @@ export function deriveBreakdown(ft: any, defaultZero = true) {
       ["summary", "byExercise", "squat"],
       ["results", "squat", "reps"],
       ["reps", "squat"],
-      ["counters", "squat"],
+      ["counts", "squat"], // <-- แก้
       ["totals", "squat"],
     ])
   );
@@ -186,17 +188,18 @@ export function deriveBreakdown(ft: any, defaultZero = true) {
       ["summary", "byExercise", "burpee"],
       ["results", "burpee", "reps"],
       ["reps", "burpee"],
-      ["counters", "burpee"],
+      ["counts", "burpee"], // <-- แก้
       ["totals", "burpee"],
     ])
   );
 
-  // plankSeconds: รองรับได้หลายแหล่ง
+  // plankSeconds: รองรับหลายที่มา รวมทั้ง plankSec ปัจจุบัน
   let plankSeconds = toNum(
     firstDefined(ft, [
       ["summary", "byExercise", "plankSeconds"],
       ["results", "plank", "seconds"],
       ["plankSeconds"],
+      ["plankSec"], // <-- เพิ่ม
       ["durations", "plankSeconds"],
     ])
   );
@@ -211,7 +214,6 @@ export function deriveBreakdown(ft: any, defaultZero = true) {
     if (typeof ms === "number") plankSeconds = Math.round(ms / 1000);
   }
 
-  // ถ้าทั้งหมดว่าง และต้องการให้แสดง 0 เพื่อ “บังคับให้มีแถว”
   return {
     pushup: pushup ?? (defaultZero ? 0 : undefined),
     squat: squat ?? (defaultZero ? 0 : undefined),
