@@ -46,12 +46,23 @@ export const HudOverlay: React.FC<{
   );
 };
 
-export const RestOverlay: React.FC<{ seconds: number | string }> = ({
-  seconds,
-}) => (
-  <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm transition-opacity duration-300">
-    <p className="text-2xl font-bold uppercase tracking-wider text-green-400 animate-pulse">
-      พักสักครู่
+// overlay.tsx
+export const RestOverlay: React.FC<{
+  seconds: number | string;
+  nextExercise?: string;
+  label?: string; // "พักสักครู่" | "เตรียมตัว"
+}> = ({ seconds, nextExercise, label = "พักสักครู่" }) => (
+  <div className="absolute inset-0 z-40 flex flex-col items-center justify-center text-center bg-black/80 backdrop-blur-sm">
+    {nextExercise && (
+      <p className="text-base md:text-lg font-medium tracking-wide text-gray-200 mb-1">
+        ท่าถัดไป:{" "}
+        <span className="capitalize font-semibold text-white">
+          {nextExercise}
+        </span>
+      </p>
+    )}
+    <p className="text-sm md:text-base uppercase tracking-wider text-green-400">
+      {label}
     </p>
     <p className="text-8xl font-mono font-bold my-4 text-white">{seconds}</p>
     <p className="text-xl uppercase tracking-wider text-gray-400">วินาที</p>

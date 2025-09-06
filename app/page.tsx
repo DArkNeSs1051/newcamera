@@ -3054,6 +3054,13 @@ const Home = () => {
   const breakdown = useMemo(() => deriveBreakdown(ft, true), [ft]);
   console.log("breakdown:", breakdown);
 
+  const DISPLAY_EX: Record<string, string> = {
+    pushup: "Push-up",
+    squat: "Squat",
+    burpee: "Burpee",
+    plank: "Plank",
+  };
+
   return (
     <div className="relative flex flex-col items-center justify-start p-4 md:p-6 bg-gray-900 text-white w-full min-h-screen font-sans gap-4">
       {/* ==============================================
@@ -3228,20 +3235,25 @@ const Home = () => {
           <div className="space-y-2">
             {/* VVV เพิ่ม UI สำหรับ Countdown VVV */}
             {ft.phase === "countdown" && (
-              <div className="text-center py-4">
-                <div className="text-xl font-medium text-gray-400">
-                  เตรียมตัว
-                </div>
-                <div className="text-7xl font-bold tabular-nums text-white animate-ping-once">
-                  {ft.countdownLeft}
-                </div>
-                <div className="text-lg text-gray-300 mt-2">
-                  ท่าแรก:{" "}
-                  <span className="capitalize font-semibold">
-                    {ft.exercise}
-                  </span>
-                </div>
-              </div>
+              // <div className="text-center py-4">
+              //   <div className="text-xl font-medium text-gray-400">
+              //     เตรียมตัว
+              //   </div>
+              //   <div className="text-7xl font-bold tabular-nums text-white animate-ping-once">
+              //     {ft.countdownLeft}
+              //   </div>
+              //   <div className="text-lg text-gray-300 mt-2">
+              //     ท่าแรก:{" "}
+              //     <span className="capitalize font-semibold">
+              //       {ft.exercise}
+              //     </span>
+              //   </div>
+              // </div>
+              <RestOverlay
+                seconds={ft.countdownLeft}
+                nextExercise={DISPLAY_EX[ft.exercise] || ft.exercise}
+                label="เตรียมตัว"
+              />
             )}
 
             {ft.phase !== "countdown" && (
@@ -3370,7 +3382,17 @@ const Home = () => {
         </div>
       )} */}
       {(isResting || (isFitnessTest && ft.phase === "rest")) && (
-        <RestOverlay seconds={isFitnessTest ? ft.restLeft : restTime} />
+        // <RestOverlay seconds={isFitnessTest ? ft.restLeft : restTime} />
+        <RestOverlay
+          seconds={isFitnessTest ? ft.restLeft : restTime}
+          nextExercise={(function () {
+            const order = ["pushup", "squat", "burpee", "plank"];
+            const i = order.indexOf(ft.exercise);
+            const n = i >= 0 && i < order.length - 1 ? order[i + 1] : undefined;
+            return n ? DISPLAY_EX[n] : undefined; // ถ้าไม่มีแล้ว (หลัง plank) จะไม่ขึ้น
+          })()}
+          label="พักสักครู่"
+        />
       )}
 
       {/* {isFitnessTest && ft.phase === "summary" && (
