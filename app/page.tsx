@@ -254,7 +254,16 @@ const Home = () => {
         );
       }
     }
-  }, [reps]);
+    if (ft.phase === "summary") {
+      if (typeof window !== "undefined" && (window as any).ReactNativeWebView) {
+        (window as any).ReactNativeWebView.postMessage(
+          JSON.stringify({
+            level: ft.level,
+          })
+        );
+      }
+    }
+  }, [reps, ft]);
 
   const timeStringToSeconds = (timeStr: string) => {
     const parts = timeStr.split(":").map(Number);

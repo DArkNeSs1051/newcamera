@@ -81,7 +81,7 @@ const TABLE: Record<Sex, Record<Exercise, Band[]>> = {
 };
 
 const levelFromTotal = (sum: number) =>
-  sum >= 17 ? "Advance" : sum >= 13 ? "Intermediate" : "Beginner";
+  sum >= 17 ? "advance" : sum >= 13 ? "intermediate" : "beginner";
 
 type Phase = "idle" | "countdown" | "active" | "rest" | "summary";
 
