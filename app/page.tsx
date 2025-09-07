@@ -217,6 +217,7 @@ const Home = () => {
 
         if (data?.type === "FROM_TEST") {
           setC(true);
+          setSex(data.gender);
         }
       } catch (e) {
         console.error("❌ รับข้อมูลพัง:", e);
