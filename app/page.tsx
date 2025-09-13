@@ -621,13 +621,16 @@ const Home = () => {
       const detectorConfig = {
         modelType: poseDetection.movenet.modelType.SINGLEPOSE_THUNDER,
       };
+      console.log("detectorConfig:", detectorConfig);
 
       const detector = await poseDetection.createDetector(
         poseDetection.SupportedModels.MoveNet,
         detectorConfig
       );
+      console.log("detector:", detector);
 
       detectorRef.current = detector;
+      console.log("detectorRef:", detectorRef);
 
       edgesRef.current = {
         "5,7": "m",
@@ -645,6 +648,7 @@ const Home = () => {
       };
 
       setLoading(false);
+      console.log("first");
     } catch (error) {
       console.error("ไม่สามารถโหลดโมเดลได้:", error);
       setMessage("เกิดข้อผิดพลาดในการโหลดโมเดล กรุณาลองใหม่อีกครั้ง");
