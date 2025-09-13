@@ -2948,6 +2948,7 @@ const Home = () => {
 
         if (videoRef.current) {
           videoRef.current.play();
+          console.log("asd");
         }
 
         // เริ่มต้นตัวตรวจจับท่าทาง
