@@ -3020,15 +3020,15 @@ const Home = () => {
     plank: "Plank",
   };
 
-  if (!started) {
-    return (
-      <PreWorkoutGuide
-        onStart={() => {
-          setStarted(true); // อ่านไกด์แล้วกดเริ่ม ถึงจะแสดงกล้อง
-        }}
-      />
-    );
-  }
+  // if (!started) {
+  //   return (
+  //     <PreWorkoutGuide
+  //       onStart={() => {
+  //         setStarted(true); // อ่านไกด์แล้วกดเริ่ม ถึงจะแสดงกล้อง
+  //       }}
+  //     />
+  //   );
+  // }
 
   return (
     <div className="relative flex flex-col items-center justify-start p-4 md:p-6 bg-gray-900 text-white w-full min-h-screen font-sans gap-4">
