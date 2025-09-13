@@ -3057,7 +3057,7 @@ const Home = () => {
       <div className="relative w-full max-w-lg shadow-2xl rounded-xl">
         <video
           ref={videoRef}
-          className="absolute top-0 left-0 w-px h-px opacity-0" // <<< 💡💡💡 แก้ไขจาก "hidden" เป็นอันนี้
+          className="absolute -top-[9999px] -left-[9999px]" // 💡 ลองเปลี่ยนมาใช้ค่านี้
           autoPlay
           playsInline
           muted
