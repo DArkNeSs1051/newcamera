@@ -2879,12 +2879,11 @@ const Home = () => {
     requestAnimationFrame(draw);
   };
 
-  // ฟังก์ชันสำหรับการเริ่มต้นกล้อง
+  // ฟังก์ชันสำหรับการเริ่มต้นกล้อง (ฉบับแก้ไข)
   const setupCamera = async () => {
     if (!videoRef.current) return;
 
     try {
-      // ปรับการตั้งค่ากล้องให้เหมาะกับมือถือ
       const constraints = {
         video: {
           facingMode: "user",
@@ -2895,15 +2894,13 @@ const Home = () => {
       };
 
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
-
       videoRef.current.srcObject = stream;
 
+      // <<< จุดแก้ไขสำคัญ: เราจะรอให้วิดีโอ "เริ่มเล่น" จริงๆ
+      // ไม่ใช่แค่โหลดข้อมูลเสร็จ
       return new Promise<void>((resolve) => {
         if (!videoRef.current) return;
-        videoRef.current.onloadedmetadata = () => {
-          if (videoRef.current) {
-            videoRef.current.play();
-          }
+        videoRef.current.onplaying = () => {
           resolve();
         };
       });
@@ -2935,16 +2932,15 @@ const Home = () => {
     window.addEventListener("resize", handleResize);
 
     const init = async () => {
-      // เพิ่มการแจ้งเตือนเสียงเมื่อเริ่มต้น
-      setTimeout(() => {
-        speak("ระบบเสียงพร้อมใช้งาน");
-      }, 2000); // รอ 2 วินาทีหลังจากโหลดเสร็จ
-
       // เริ่มต้น TensorFlow.js
       await tf.ready();
 
       // ตั้งค่ากล้อง
       await setupCamera();
+
+      if (videoRef.current) {
+        videoRef.current.play();
+      }
 
       // เริ่มต้นตัวตรวจจับท่าทาง
       await initDetector();
