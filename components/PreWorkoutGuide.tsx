@@ -14,12 +14,12 @@ import {
 // ================================
 // Types
 // ================================
-export type Orientation = "front" | "left" | "right" | "back";
+// export type Orientation = "front" | "left" | "right" | "back";
 
 export type ExerciseGuide = {
   key: string;
   nameTh: string;
-  orientation: Orientation;
+  orientation: string;
   cues: string[];
   durationSec?: number;
 };
@@ -28,64 +28,188 @@ export type ExerciseGuide = {
 // Defaults (ตัวอย่างข้อมูล)
 // ================================
 export const DEFAULT_GUIDES: ExerciseGuide[] = [
+  // -------- Bodyweight --------
   {
     key: "squat",
     nameTh: "Squat",
-    orientation: "front",
+    orientation: "front face camera",
     cues: [
-      "หันหน้าตรงเข้าหากล้อง ยืนเต็มตัวศีรษะ–ปลายเท้าอยู่ในเฟรม",
-      "ยืนกว้างเท่าหัวไหล่ หลังตรง เข่าชี้ตามปลายเท้า",
-      "วางกล้องสูงประมาณระดับเอว–อก ระยะห่าง ~2–3 เมตร",
+      "Face the camera. Stand full-body in frame (head to feet).",
+      "Feet shoulder-width, chest up, knees track over toes.",
+      "Camera height ~waist to chest, distance ~2–3 m.",
     ],
   },
   {
     key: "pushup",
     nameTh: "Push-up",
-    orientation: "left",
+    orientation: "turn right toward camera",
     cues: [
-      "วางกล้องด้านข้างลำตัว (เห็นหัว–ลำตัว–เท้าในเฟรมเดียว)",
-      "ลำตัวตรง สะโพกไม่ตก ศอกงอจนหน้าอกต่ำระดับศอก",
-      "ใช้เสื่อโยคะเพื่อกันลื่น",
+      "Place the camera to your side so head–torso–feet are visible.",
+      "Body in a straight line, hips don’t sag; lower chest to elbow level.",
+      "Use a mat to avoid slipping.",
+    ],
+  },
+  {
+    key: "lunge",
+    nameTh: "Leg Lunges",
+    orientation: "front face camera",
+    cues: [
+      "Front view helps the app see knee and hip angles clearly.",
+      "Step long enough so the front knee stays behind toes; back knee drops toward floor.",
+      "Torso tall, eyes forward.",
     ],
   },
   {
     key: "plank",
     nameTh: "Plank",
-    orientation: "left",
+    orientation: "turn right toward camera",
     cues: [
-      "หันข้างให้กล้องเพื่อให้เห็นแนวไหล่–สะโพก–ข้อเท้า",
-      "เกร็งแกนกลาง ลำตัวเป็นเส้นตรง สะโพกไม่โด่ง",
-      "หายใจสม่ำเสมอ",
+      "Turn sideways so shoulder–hip–ankle alignment is clear.",
+      "Brace your core; body forms a straight line; don’t pike hips.",
+      "Breathe steadily.",
     ],
   },
   {
     key: "side_plank_left",
-    nameTh: "Side Plank (ซ้าย)",
-    orientation: "left",
+    nameTh: "Side Plank (Left)",
+    orientation: "front face camera",
     cues: [
-      "วางกล้องด้านซ้ายลำตัว แขนซ้ายยันพื้น ไหล่ซ้อนเหนือศอก",
-      "ยกสะโพกให้ลำตัวเป็นเส้นตรง เอียงตัวเล็กน้อยให้เห็นทั้งลำตัว",
-      "เก็บท้อง คอผ่อนคลาย",
+      "Camera on your left side. Left forearm under shoulder.",
+      "Lift hips so the body forms a straight line; slight angle so torso is visible.",
+      "Brace abs; keep neck relaxed.",
     ],
   },
   {
-    key: "lunge",
-    nameTh: "Lunge",
-    orientation: "front",
+    key: "side_plank_right",
+    nameTh: "Side Plank (Right)",
+    orientation: "front facing camera",
     cues: [
-      "หันหน้าตรงเข้าหากล้อง ยืนกลางเฟรม",
-      "ก้าวยาวพอให้เข่าหน้าไม่เลยปลายเท้า เข่าหลังลงใกล้พื้น",
-      "รักษาหลังตรง สายตามองไปข้างหน้า",
+      "Camera on your right side. Right forearm under shoulder.",
+      "Lift hips so the body forms a straight line; slight angle so torso is visible.",
+      "Brace abs; keep neck relaxed.",
     ],
   },
   {
-    key: "russian_twist",
-    nameTh: "Russian Twist",
-    orientation: "front",
+    key: "leg_raises",
+    nameTh: "Leg Raises",
+    orientation: "turn right toward camera",
     cues: [
-      "นั่งหันหน้าตรงเข้าหากล้อง ชันเข่า ยกปลายเท้าเล็กน้อย (ถ้าไหว)",
-      "เอนหลังประมาณ 45° หลังตรง ไหล่ผ่อนคลาย",
-      "บิดลำตัวซ้าย–ขวา แตะมือใกล้สะโพกสลับกัน",
+      "Side view to capture hip motion and lumbar position.",
+      "Lower legs with control; avoid arching the lower back.",
+      "Keep head/shoulders relaxed on the floor or bench.",
+    ],
+  },
+  {
+    key: "russian_twists",
+    nameTh: "Russian Twists",
+    orientation: "turn right toward camera",
+    cues: [
+      "Side view is best; show torso angle and elbow travel.",
+      "Lean back ~45°, chest up, rotate through the torso (not just arms).",
+      "Tap near the hip on each side with control.",
+    ],
+  },
+  {
+    key: "burpee_pushup",
+    nameTh: "Burpee (with Push-up)",
+    orientation: "turn right toward camera",
+    cues: [
+      "Side view so the push-up depth and jump are visible.",
+      "Chest to elbow level on the push-up; land softly; keep core tight.",
+      "Stay in frame for the squat, kick-back, push-up, and jump.",
+    ],
+  },
+  {
+    key: "burpee_no_pushup",
+    nameTh: "Burpee (no Push-up)",
+    orientation: "front facing camera",
+    cues: [
+      "Face camera; keep full body in frame.",
+      "Hands to floor → kick back to plank → return to squat → jump.",
+      "Keep knees tracking over toes; land softly.",
+    ],
+  },
+
+  // -------- Dumbbell --------
+  {
+    key: "db_bench_press",
+    nameTh: "Dumbbell Bench Press",
+    orientation: "turn right/left toward camera",
+    cues: [
+      "Side view aligns bench, shoulders, and elbow path.",
+      "Wrists stacked over elbows; touch dumbbells near chest, press up under control.",
+      "Feet planted; slight arch is fine, keep glutes on bench.",
+    ],
+  },
+  {
+    key: "db_bent_over_row",
+    nameTh: "Dumbbell Bent-Over Rows",
+    orientation: "Turn left 45 degrees towards camera",
+    cues: [
+      "Side or ~45° side view works (45° is OK).",
+      "Hinge at hips, flat back; row by driving elbows toward hips.",
+      "Avoid shrugging; keep neck neutral.",
+    ],
+    // important: "If it doesn't count please turn left a little bit more",
+  },
+  {
+    key: "db_shoulder_press",
+    nameTh: "Dumbbell Shoulder Press",
+    orientation: "front facing camera",
+    cues: [
+      "Face camera to show elbow flare and lockout.",
+      "Press overhead; biceps near ears; control the descent.",
+      "Ribs down; avoid overarching lower back.",
+    ],
+  },
+  {
+    key: "db_bicep_curl",
+    nameTh: "Dumbbell Bicep Curls",
+    orientation: "front facing camera",
+    cues: [
+      "Front view captures elbow position and wrist alignment.",
+      "Elbows stay by sides; curl without swinging shoulders.",
+      "Full range; control down.",
+    ],
+  },
+  {
+    key: "db_goblet_squat",
+    nameTh: "Dumbbell Goblet Squats",
+    orientation: "front facing camera",
+    cues: [
+      "Face camera; hold the dumbbell at chest (goblet) position.",
+      "Knees track over toes; chest tall; squat to comfortable depth.",
+      "Keep heels down; control on the way up.",
+    ],
+  },
+  {
+    key: "db_romanian_deadlift",
+    nameTh: "Dumbbell Romanian Deadlifts",
+    orientation: "front facing or turn right/left toward camera",
+    cues: [
+      "Front works; a ~45° side is also fine for hip hinge depth.",
+      "Push hips back, soft knees, flat back; feel hamstrings load.",
+      "Dumbbells close to thighs; stand tall without leaning back.",
+    ],
+  },
+  {
+    key: "db_oh_tricep_extension",
+    nameTh: "Dumbbell Overhead Tricep Extension",
+    orientation: "front facing camera",
+    cues: [
+      "Front view shows elbow flare and range.",
+      "Elbows point forward; lower behind head, then extend fully.",
+      "Keep ribs down; avoid lower-back arch.",
+    ],
+  },
+  {
+    key: "db_side_lateral_raise",
+    nameTh: "Dumbbell Side Lateral Raises",
+    orientation: "front facing camera",
+    cues: [
+      "Front view to see shoulder height and symmetry.",
+      "Raise to ~shoulder height with slight elbow bend; lead with elbows.",
+      "No swinging; control tempo.",
     ],
   },
 ];
@@ -93,18 +217,18 @@ export const DEFAULT_GUIDES: ExerciseGuide[] = [
 // ================================
 // Helper UI
 // ================================
-const ORI_LABEL: Record<Orientation, string> = {
-  front: "หันหน้าเข้าหากล้อง",
-  left: "หันด้านซ้ายให้กล้อง",
-  right: "หันด้านขวาให้กล้อง",
-  back: "หันหลังให้กล้อง",
-};
+// const ORI_LABEL: Record<Orientation, string> = {
+//   front: "หันหน้าเข้าหากล้อง",
+//   left: "หันด้านซ้ายให้กล้อง",
+//   right: "หันด้านขวาให้กล้อง",
+//   back: "หันหลังให้กล้อง",
+// };
 
-function OrientationPill({ o }: { o: Orientation }) {
+function OrientationPill({ o }: any) {
   return (
     <div className="inline-flex items-center gap-2 rounded-full border border-slate-300/70 bg-white/60 px-3 py-1 text-sm text-slate-700 shadow-sm backdrop-blur">
       <Camera className="h-4 w-4" />
-      <span>{ORI_LABEL[o]}</span>
+      <span>{o}</span>
     </div>
   );
 }
