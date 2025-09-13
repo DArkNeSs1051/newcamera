@@ -11,6 +11,7 @@ import {
   RestOverlay,
   SummaryOverlay,
 } from "@/components/overlay";
+import PreWorkoutGuide from "@/components/PreWorkoutGuide";
 
 const Home = () => {
   const version = "1.0.5"; // กำหนดเวอร์ชันของแอปพลิเคชัน
@@ -3020,6 +3021,18 @@ const Home = () => {
     burpee: "Burpee",
     plank: "Plank",
   };
+
+  const [started, setStarted] = useState(false);
+
+  if (!started) {
+    return (
+      <PreWorkoutGuide
+        onStart={() => {
+          setStarted(true); // อ่านไกด์แล้วกดเริ่ม ถึงจะแสดงกล้อง
+        }}
+      />
+    );
+  }
 
   return (
     <div className="relative flex flex-col items-center justify-start p-4 md:p-6 bg-gray-900 text-white w-full min-h-screen font-sans gap-4">
