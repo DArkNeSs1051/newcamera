@@ -2983,7 +2983,7 @@ const Home = () => {
         tracks.forEach((track) => track.stop());
       }
     };
-  }, [started]);
+  }, []);
 
   useEffect(() => {
     exerciseTypeRef.current = exerciseType;
