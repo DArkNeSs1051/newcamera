@@ -2927,6 +2927,8 @@ const Home = () => {
     checkIfMobile();
   };
 
+  const [started, setStarted] = useState(false);
+
   // ใช้ useEffect สำหรับการเริ่มต้นแอปพลิเคชัน
   useEffect(() => {
     checkIfMobile();
@@ -2981,7 +2983,7 @@ const Home = () => {
         tracks.forEach((track) => track.stop());
       }
     };
-  }, []);
+  }, [started]);
 
   useEffect(() => {
     exerciseTypeRef.current = exerciseType;
@@ -3021,8 +3023,6 @@ const Home = () => {
     burpee: "Burpee",
     plank: "Plank",
   };
-
-  const [started, setStarted] = useState(false);
 
   if (!started) {
     return (
