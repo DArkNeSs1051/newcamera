@@ -246,8 +246,8 @@ function CueItem({ text }: { text: string }) {
 // Component
 // ================================
 export default function PreWorkoutGuide({
-  title = "คู่มือก่อนเริ่มการออกกำลังกาย",
-  subtitle = "อ่านคำแนะนำการจัดวางกล้องและท่าทางโดยย่อ จากนั้นกดปุ่มเพื่อเริ่มโปรแกรมได้เลย",
+  title = "Instruction",
+  subtitle = "Please read the instruction before start",
   exercises = DEFAULT_GUIDES,
   onStart,
 }: {
@@ -307,7 +307,8 @@ export default function PreWorkoutGuide({
             <div className="mt-3 flex items-center gap-2 text-xs text-slate-500">
               <Info className="h-4 w-4" />
               <span>
-                เคล็ดลับ: จัดพื้นที่โล่ง 2–3 เมตร วางกล้องให้นิ่งและสว่างพอ
+                Tip: clear the space for 2–3 meter place camera at clear sight
+                and bright
               </span>
             </div>
           </div>
@@ -318,11 +319,11 @@ export default function PreWorkoutGuide({
           <div className="flex items-start gap-2">
             <AlertTriangle className="mt-0.5 h-5 w-5" />
             <div className="space-y-1 text-sm">
-              <p className="font-medium">ความปลอดภัยมาก่อน</p>
+              <p className="font-medium">Safety first</p>
               <ul className="list-disc space-y-1 pl-5">
-                <li>อบอุ่นร่างกาย 3–5 นาที และดื่มน้ำให้เพียงพอ</li>
-                <li>ถ้ามีอาการเจ็บ เวียนหัว หรือหายใจลำบาก ให้หยุดทันที</li>
-                <li>สวมรองเท้าที่เหมาะสมและหลีกเลี่ยงพื้นลื่น</li>
+                <li>Warm up 3–5 minute and drink enough water</li>
+                <li>If you have dizzle and pian please stop immediately</li>
+                <li>Wear shoes and avoid slippery floor</li>
               </ul>
             </div>
           </div>
@@ -379,7 +380,7 @@ export default function PreWorkoutGuide({
                   checked={ack}
                   onChange={(e) => setAck(e.target.checked)}
                 />
-                ฉันอ่านและพร้อมเริ่มแล้ว
+                I've read it and I'm ready
               </label>
               <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-slate-500">
                 <input
@@ -388,7 +389,7 @@ export default function PreWorkoutGuide({
                   checked={dontShow}
                   onChange={(e) => setDontShow(e.target.checked)}
                 />
-                ไม่ต้องแสดงหน้านี้อีก
+                Don't show it again
               </label>
             </div>
 
@@ -398,7 +399,7 @@ export default function PreWorkoutGuide({
               onClick={handleStart}
               className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-sm transition disabled:cursor-not-allowed disabled:bg-slate-300 md:text-base"
             >
-              เริ่มโปรแกรม
+              Start session
               <ArrowRight className="h-4 w-4" />
             </button>
           </div>
@@ -406,7 +407,8 @@ export default function PreWorkoutGuide({
 
         {/* Progress hint */}
         <p className="mt-3 text-center text-xs text-slate-500">
-          รวม {total} ท่า • ตรวจสอบท่าทางก่อนเริ่มเพื่อผลการตรวจจับที่แม่นยำขึ้น
+          total {total} exercises • please check the form before start for
+          better form check
         </p>
       </div>
     </div>
