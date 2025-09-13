@@ -32,7 +32,6 @@ const Home = () => {
   const detectorRef = useRef<poseDetection.PoseDetector | null>(null);
   const posesRef = useRef<poseDetection.Pose[] | null>(null);
   const requestRef = useRef<number | null>(null);
-  const estimateFallbackTriedRef = useRef(false);
   const edgesRef = useRef<Record<string, string>>({});
 
   // ตัวแปรสำหรับการตรวจจับท่า Push Up
@@ -597,26 +596,6 @@ const Home = () => {
       window.speechSynthesis.speak(msg);
     }
   };
-  // บังคับใช้ backend ที่เสถียร (หลีกเลี่ยง WebGPU) พร้อม fallback
-  const backendRef = useRef<"webgl" | "cpu">("webgl");
-  const ensureTfBackend = async () => {
-    try {
-      if (tf.getBackend() !== "webgl") {
-        await tf.setBackend("webgl");
-      }
-      await tf.ready();
-      backendRef.current = "webgl";
-    } catch (e) {
-      console.warn("webgl backend not available, falling back to cpu:", e);
-      try {
-        await tf.setBackend("cpu");
-        await tf.ready();
-        backendRef.current = "cpu";
-      } catch (err) {
-        console.error("Failed to set any TF backend:", err);
-      }
-    }
-  };
 
   // ฟังก์ชันสำหรับแสดงข้อความแจ้งเตือน
   const showFeedback = (message: string) => {
@@ -672,28 +651,20 @@ const Home = () => {
     }
   };
 
+  // ฟังก์ชันสำหรับการประมาณท่าทาง
   const getPoses = async () => {
     if (!detectorRef.current || !videoRef.current) return;
+
     try {
       posesRef.current = await detectorRef.current.estimatePoses(
         videoRef.current
       );
-    } catch (error: any) {
-      const msg = String(error?.message || error);
-      console.error("เกิดข้อผิดพลาดในการประมาณท่าทาง:", error);
-      // ถ้าเป็นบั๊ก importExternalTexture / GPUDevice ให้ fallback backend หนึ่งครั้ง
-      if (
-        !estimateFallbackTriedRef.current &&
-        /importExternalTexture|GPUDevice|fromPixels/i.test(msg)
-      ) {
-        estimateFallbackTriedRef.current = true;
-        await ensureTfBackend(); // บังคับเป็น webgl/cpu
-        await initDetector(); // สร้าง detector ใหม่บน backend ปัจจุบัน
-      }
-    } finally {
       requestRef.current = requestAnimationFrame(getPoses);
+    } catch (error) {
+      console.error("เกิดข้อผิดพลาดในการประมาณท่าทาง:", error);
     }
   };
+
   // ฟังก์ชันสำหรับการวาดจุดสำคัญ
   const drawKeypoints = (ctx: CanvasRenderingContext2D) => {
     let count = 0;
@@ -2909,10 +2880,9 @@ const Home = () => {
   };
 
   // ฟังก์ชันสำหรับการเริ่มต้นกล้อง
-
   const setupCamera = async () => {
-    const v = videoRef.current;
-    if (!v) return;
+    if (!videoRef.current) return;
+
     try {
       // ปรับการตั้งค่ากล้องให้เหมาะกับมือถือ
       const constraints = {
@@ -2923,35 +2893,23 @@ const Home = () => {
         },
         audio: false,
       };
+
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      v.srcObject = stream;
-      // ให้เล่นอัตโนมัติบนมือถือ
-      v.setAttribute("playsinline", "true");
-      v.muted = true;
-      await new Promise<void>((resolve) => {
-        v.onloadedmetadata = () => resolve();
+
+      videoRef.current.srcObject = stream;
+
+      return new Promise<void>((resolve) => {
+        if (!videoRef.current) return;
+        videoRef.current.onloadedmetadata = () => {
+          if (videoRef.current) {
+            videoRef.current.play();
+          }
+          resolve();
+        };
       });
-      try {
-        await v.play();
-      } catch (e) {
-        console.warn(
-          "video.play() was blocked, will keep trying after user gesture",
-          e
-        );
-      }
-      // รอจนวิดีโอพร้อมมีเฟรมจริง
-      let guard = 0;
-      while (
-        (v.readyState < 3 || v.videoWidth === 0 || v.videoHeight === 0) &&
-        guard < 60
-      ) {
-        await new Promise((r) => setTimeout(r, 50));
-        guard++;
-      }
     } catch (error) {
       console.error("ไม่สามารถเข้าถึงกล้องได้:", error);
       setMessage("ไม่สามารถเข้าถึงกล้องได้ กรุณาอนุญาตการใช้งานกล้อง");
-      throw error;
     }
   };
 
@@ -2983,7 +2941,7 @@ const Home = () => {
       }, 2000); // รอ 2 วินาทีหลังจากโหลดเสร็จ
 
       // เริ่มต้น TensorFlow.js
-      await ensureTfBackend();
+      await tf.ready();
 
       // ตั้งค่ากล้อง
       await setupCamera();
@@ -3097,12 +3055,17 @@ const Home = () => {
 
       {/* ส่วนวิดีโอและ Canvas */}
       <div className="relative w-full max-w-lg shadow-2xl rounded-xl">
-        <video ref={videoRef} className="hidden" autoPlay playsInline muted />
+        <video
+          ref={videoRef}
+          className="absolute top-0 left-0 w-px h-px opacity-0" // แก้ไขตรงนี้
+          autoPlay
+          playsInline
+          muted
+        />{" "}
         <canvas
           ref={canvasRef}
           className="w-full h-auto border-2 border-gray-700 rounded-xl"
         />
-
         {/* Loading Overlay */}
         {loading && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black bg-opacity-75 rounded-xl text-white">
@@ -3110,7 +3073,6 @@ const Home = () => {
             <p className="text-xl">กำลังโหลดโมเดล...</p>
           </div>
         )}
-
         {/* Dashboard Overlay */}
         {/* {currentStep && (
           <div className="absolute top-0 left-0 w-full p-3 bg-gray-900/60 backdrop-blur-sm rounded-t-xl border-b border-gray-700">
@@ -3206,7 +3168,6 @@ const Home = () => {
               )}
           </>
         )}
-
         {isFinished && (
           <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black bg-opacity-90 text-center p-6 rounded-xl">
             <h2 className="text-3xl font-bold text-green-400 mb-4 animate-bounce">
