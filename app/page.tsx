@@ -3057,15 +3057,16 @@ const Home = () => {
       <div className="relative w-full max-w-lg shadow-2xl rounded-xl">
         <video
           ref={videoRef}
-          className="absolute top-0 left-0 w-px h-px opacity-0" // แก้ไขตรงนี้
+          className="absolute top-0 left-0 w-px h-px opacity-0" // <<< 💡💡💡 แก้ไขจาก "hidden" เป็นอันนี้
           autoPlay
           playsInline
           muted
-        />{" "}
+        />
         <canvas
           ref={canvasRef}
           className="w-full h-auto border-2 border-gray-700 rounded-xl"
         />
+
         {/* Loading Overlay */}
         {loading && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black bg-opacity-75 rounded-xl text-white">
@@ -3073,6 +3074,7 @@ const Home = () => {
             <p className="text-xl">กำลังโหลดโมเดล...</p>
           </div>
         )}
+
         {/* Dashboard Overlay */}
         {/* {currentStep && (
           <div className="absolute top-0 left-0 w-full p-3 bg-gray-900/60 backdrop-blur-sm rounded-t-xl border-b border-gray-700">
@@ -3168,6 +3170,7 @@ const Home = () => {
               )}
           </>
         )}
+
         {isFinished && (
           <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black bg-opacity-90 text-center p-6 rounded-xl">
             <h2 className="text-3xl font-bold text-green-400 mb-4 animate-bounce">
