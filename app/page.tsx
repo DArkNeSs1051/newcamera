@@ -2885,29 +2885,97 @@ const Home = () => {
 
   // ฟังก์ชันสำหรับการเริ่มต้นกล้อง (ฉบับแก้ไข)
   const setupCamera = async () => {
-    if (!videoRef.current) return;
+    const video = videoRef.current;
+    if (!video) return;
 
     try {
-      const constraints = {
+      // 1) กำหนด constraints ตามอุปกรณ์
+      const constraints: MediaStreamConstraints = {
         video: {
-          facingMode: "user",
+          facingMode: { ideal: "user" }, // ถ้ากล้องหน้าไม่มี เดี๋ยวเราจะ fallback ด้านล่าง
           width: { ideal: isMobile ? 720 : 1280 },
           height: { ideal: isMobile ? 1280 : 720 },
         },
         audio: false,
       };
 
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      videoRef.current.srcObject = stream;
+      // 2) ขอสิทธิ์กล้อง
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+      } catch (e) {
+        // Fallback: บางเครื่องเลือกกล้องหน้าไม่ได้
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: false,
+        });
+      }
 
-      // <<< จุดแก้ไขสำคัญ: เราจะรอให้วิดีโอ "เริ่มเล่น" จริงๆ
-      // ไม่ใช่แค่โหลดข้อมูลเสร็จ
-      return new Promise<void>((resolve) => {
-        if (!videoRef.current) return;
-        videoRef.current.onplaying = () => {
+      // 3) ตั้งค่าก่อนเล่น (กัน autoplay policy)
+      video.srcObject = stream;
+      video.setAttribute("playsinline", "true");
+      video.muted = true;
+
+      // 4) รอให้ video “เล่นจริง” และมีมิติ (กัน 0x0)
+      await new Promise<void>((resolve) => {
+        let resolved = false;
+
+        const done = () => {
+          if (resolved) return;
+          resolved = true;
+          video.removeEventListener("playing", onPlaying);
+          video.removeEventListener("loadedmetadata", onLoaded);
           resolve();
         };
+
+        const onPlaying = () => {
+          // playing แล้วยังเช็คซ้ำว่ามีขนาดจริงหรือยัง
+          if (video.videoWidth > 0 && video.videoHeight > 0) done();
+        };
+
+        const onLoaded = () => {
+          if (video.readyState >= 2) {
+            // เผื่อบางเบราว์เซอร์ loadedmetadata มาก่อน playing
+            if (video.videoWidth > 0 && video.videoHeight > 0) done();
+          }
+        };
+
+        video.addEventListener("playing", onPlaying);
+        video.addEventListener("loadedmetadata", onLoaded);
+
+        // ขอให้เล่นทันที (บางเครื่องต้องเรียกเอง)
+        const tryPlay = async () => {
+          try {
+            await video.play();
+          } catch {}
+        };
+        tryPlay();
+
+        // วนเช็คทุก 50ms จนกว่าจะมีมิติจริง (กันบางเคส event ไม่ยิง)
+        const tick = () => {
+          if (resolved) return;
+          if (video.videoWidth > 0 && video.videoHeight > 0) return done();
+          setTimeout(tick, 50);
+        };
+        tick();
+
+        // safety timeout 5s กันค้าง
+        setTimeout(() => {
+          if (!resolved) {
+            console.warn("video size still 0x0 after timeout");
+            done();
+          }
+        }, 5000);
       });
+
+      // 5) ถึงตรงนี้ video มีขนาดจริงแล้ว (ถ้าใช้ canvas ให้ตั้งขนาดตามนี้)
+      // if (canvasRef.current) {
+      //   const c = canvasRef.current;
+      //   if (c.width !== video.videoWidth || c.height !== video.videoHeight) {
+      //     c.width = video.videoWidth;
+      //     c.height = video.videoHeight;
+      //   }
+      // }
     } catch (error) {
       console.error("ไม่สามารถเข้าถึงกล้องได้:", error);
       setMessage("ไม่สามารถเข้าถึงกล้องได้ กรุณาอนุญาตการใช้งานกล้อง");
