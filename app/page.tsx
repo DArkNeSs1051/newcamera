@@ -2942,9 +2942,11 @@ const Home = () => {
 
         // เริ่มต้น TensorFlow.js
         await tf.ready();
+        console.log("tf.ready():", tf.ready());
 
         // ตั้งค่ากล้อง
         await setupCamera();
+        console.log("check");
 
         if (videoRef.current) {
           videoRef.current.play();
