@@ -1001,46 +1001,103 @@ const Home = () => {
   };
 
   // ฟังก์ชันสำหรับการตรวจสอบท่า Squat
+  // ✅ ตรวจสควอทจาก "สองขา" (รองรับ MoveNet Thunder / TFJS)
   const detectSquat = () => {
     if (isResting) return;
+    const pose = posesRef.current?.[0];
+    if (!pose) return;
 
-    if (!posesRef.current || posesRef.current.length === 0) return;
+    const kps = pose.keypoints;
+    const MIN_SCORE = 0.2;
+    const KNEE_TOE_OFFSET_PX = 50; // ระยะที่ถือว่า "เลยปลายเท้า"
+    const LHIP = 11,
+      RHIP = 12,
+      LKNEE = 13,
+      RKNEE = 14,
+      LANK = 15,
+      RANK = 16;
 
-    updateKneeAngle();
+    const get = (i: number) => kps?.[i];
 
-    // ตรวจสอบว่าอยู่ในท่า Squat ลง (ย่อตัว)
+    // คำนวณมุมที่หัวเข่า (องศา)
+    const kneeAngle = (hip: any, knee: any, ankle: any) => {
+      if (!hip?.score || !knee?.score || !ankle?.score)
+        return Number.POSITIVE_INFINITY;
+      if (
+        hip.score < MIN_SCORE ||
+        knee.score < MIN_SCORE ||
+        ankle.score < MIN_SCORE
+      )
+        return Number.POSITIVE_INFINITY;
+
+      const v1x = hip.x - knee.x,
+        v1y = hip.y - knee.y;
+      const v2x = ankle.x - knee.x,
+        v2y = ankle.y - knee.y;
+      const dot = v1x * v2x + v1y * v2y;
+      const m1 = Math.hypot(v1x, v1y),
+        m2 = Math.hypot(v2x, v2y);
+      if (m1 === 0 || m2 === 0) return Number.POSITIVE_INFINITY;
+
+      let cos = dot / (m1 * m2);
+      cos = Math.max(-1, Math.min(1, cos));
+      return Math.acos(cos) * (180 / Math.PI); // องศา
+    };
+
+    // มุมหัวเข่าซ้าย/ขวา
+    const leftAngle = kneeAngle(get(LHIP), get(LKNEE), get(LANK));
+    const rightAngle = kneeAngle(get(RHIP), get(RKNEE), get(RANK));
+
+    const threshold = kneeAngleThresholdRef.current ?? 120; // ปรับได้ตามต้องการ
+
+    // ---- Detect down (ต้อง "ทั้งสองขา" ต่ำกว่า threshold) ----
     if (
-      kneeAngleRef.current < kneeAngleThresholdRef.current &&
+      leftAngle < threshold &&
+      rightAngle < threshold &&
       squatUpPositionRef.current
     ) {
       squatDownPositionRef.current = true;
       squatUpPositionRef.current = false;
-      showFeedback("ย่อตัวลงแล้ว ดันสะโพกไปด้านหลังพร้อมงอเข่า");
+      showFeedback("ย่อตัวลงแล้ว ดันสะโพกไปด้านหลังพร้อมงอเข่าทั้งสองขา");
     }
-    // ตรวจสอบว่ากลับมายืนตรง
-    else if (kneeAngleRef.current > 160 && squatDownPositionRef.current) {
+    // ---- Detect up (ต้อง "ทั้งสองขา" > 160°) ----
+    else if (
+      leftAngle > 160 &&
+      rightAngle > 160 &&
+      squatDownPositionRef.current
+    ) {
       squatUpPositionRef.current = true;
       squatDownPositionRef.current = false;
-      // setReps((prev) => prev + 1);
       handleDoOneRep(currentStepRef.current);
       showFeedback("ดีมาก! ทำครบ 1 ครั้ง");
     }
 
-    // ตรวจสอบว่าเข่าไม่เลยปลายเท้ามากเกินไป
+    // ---- เข่าเลยปลายเท้า (เช็คทั้งสองด้านตอนกำลังลง) ----
     if (squatDownPositionRef.current) {
-      const leftKnee = posesRef.current[0].keypoints[13];
-      const leftAnkle = posesRef.current[0].keypoints[15];
+      const lk = get(LKNEE),
+        la = get(LANK);
+      const rk = get(RKNEE),
+        ra = get(RANK);
 
+      // ด้านซ้าย: เข่าขวาไปทางขวามือของข้อเท้ามาก ๆ
       if (
-        leftKnee.score &&
-        leftAnkle.score &&
-        leftKnee.score > 0.2 &&
-        leftAnkle.score > 0.2
+        lk &&
+        (lk.score ?? 0) > MIN_SCORE &&
+        la &&
+        (la.score ?? 0) > MIN_SCORE &&
+        lk.x - la.x > KNEE_TOE_OFFSET_PX
       ) {
-        if (leftKnee.x > leftAnkle.x + 50) {
-          // เข่าเลยปลายเท้ามากเกินไป
-          showFeedback("ระวัง! เข่าไม่ควรเลยปลายเท้ามากเกินไป");
-        }
+        showFeedback("ซ้าย: ระวัง! เข่าไม่ควรเลยปลายเท้ามากเกินไป");
+      }
+      // ด้านขวา: เข่าไปทางซ้ายมือของข้อเท้ามาก ๆ
+      if (
+        rk &&
+        (rk.score ?? 0) > MIN_SCORE &&
+        ra &&
+        (ra.score ?? 0) > MIN_SCORE &&
+        rk.x - ra.x < -KNEE_TOE_OFFSET_PX
+      ) {
+        showFeedback("ขวา: ระวัง! เข่าไม่ควรเลยปลายเท้ามากเกินไป");
       }
     }
   };
