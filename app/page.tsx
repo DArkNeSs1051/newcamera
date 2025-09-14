@@ -1224,10 +1224,12 @@ const Home = () => {
       x: leftKnee.x,
       y: leftKnee.y + 100,
     });
+    console.log("leftKneeAngle:", leftKneeAngle);
     const rightKneeAngle = calculateAngle(rightHip, rightKnee, {
       x: rightKnee.x,
       y: rightKnee.y + 100,
     });
+    console.log("rightKneeAngle:", rightKneeAngle);
     const avgKneeAngle = (leftKneeAngle + rightKneeAngle) / 2;
 
     const feetOffGround = hipMidY > kneeMidY + 100;
@@ -1245,6 +1247,7 @@ const Home = () => {
     }
 
     const torsoAngle = calculateAngle(leftHip, leftShoulder, rightHip);
+    console.log("torsoAngle:", torsoAngle);
     const backLeanProper = torsoAngle > 0 && torsoAngle < 35;
     if (!backLeanProper) {
       showFeedback("เอนไปข้างหลังประมาณ 45°");
