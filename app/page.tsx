@@ -1232,7 +1232,7 @@ const Home = () => {
     console.log("rightKneeAngle:", rightKneeAngle);
     const avgKneeAngle = (leftKneeAngle + rightKneeAngle) / 2;
 
-    const feetOffGround = hipMidY > kneeMidY + 100;
+    const feetOffGround = hipMidY < kneeMidY + 100;
     const isProperSitting =
       avgKneeAngle > 20 && avgKneeAngle < 50 && feetOffGround;
 
