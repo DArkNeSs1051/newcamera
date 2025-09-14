@@ -1325,9 +1325,9 @@ const Home = () => {
       legRaiseHipAngleRef.current = (hipAngleLeft + hipAngleRight) / 2;
     }
 
-    const leftLegStraight = calculateAngle(leftHip, leftKnee, leftAnkle) > 140;
+    const leftLegStraight = calculateAngle(leftHip, leftKnee, leftAnkle) > 120;
     const rightLegStraight =
-      calculateAngle(rightHip, rightKnee, rightAnkle) > 140;
+      calculateAngle(rightHip, rightKnee, rightAnkle) > 120;
     const bothLegsStright = leftLegStraight && rightLegStraight;
 
     if (!bothLegsStright && !legRaiseMomentumWarningRef.current) {
