@@ -102,7 +102,7 @@ export const DEFAULT_GUIDES: ExerciseGuide[] = [
   {
     key: "russian_twists",
     nameTh: "Russian Twists",
-    orientation: "turn right toward camera",
+    orientation: "turn left toward camera",
     cues: [
       "Side view is best; show torso angle and elbow travel.",
       "Lean back ~45°, chest up, rotate through the torso (not just arms).",
