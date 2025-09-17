@@ -368,6 +368,33 @@ const Home = () => {
     currentStepRef.current = currentStep;
   }, [currentStep]);
 
+  // >>> PATCH: sync exerciseTypeRef กับ currentStep เมื่อเปลี่ยนท่า
+  useEffect(() => {
+    if (currentStep && currentStep.exercise) {
+      exerciseTypeRef.current = String(currentStep.exercise).toLowerCase();
+
+      // รีเซ็ต state ที่เกี่ยวกับการนับ เพื่อกันค้างจากท่าที่แล้ว
+      repsRef.current = 0;
+      setReps(0);
+      plankTimeRef.current = 0;
+      setPlankTime(0);
+      sidePlankTimeRef.current = 0;
+      setSidePlankTime(0);
+      plankStartedRef.current = false;
+      sidePlankStartedRef.current = false;
+
+      // ยกเลิก timer ท่าก่อน (กัน overlap)
+      if (plankTimerRef.current) {
+        clearInterval(plankTimerRef.current);
+        plankTimerRef.current = null;
+      }
+      if (sidePlankTimerRef.current) {
+        clearInterval(sidePlankTimerRef.current);
+        sidePlankTimerRef.current = null;
+      }
+    }
+  }, [currentStep]);
+
   const parseTimeToSeconds = (input: string) => {
     const cleanInput = input.trim().replace(/[^0-9:.]/g, ""); // ลบพวก " นาที", "วิ" ออก
 
