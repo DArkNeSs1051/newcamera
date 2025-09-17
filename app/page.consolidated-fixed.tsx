@@ -326,7 +326,7 @@ const Home = () => {
             exercise: item.exercise,
             stepNumber: index + 1,
             setNumber: i + 1,
-            reps: timeStringToSeconds(item.reps ?? ""), // แปลงนาทีเป็นวินาที
+            reps: timeStringToSeconds(item.reps), // แปลงนาทีเป็นวินาที
             restTime: `${item.rest} นาที`,
           });
         }
@@ -378,15 +378,10 @@ const Home = () => {
     setSidePlankTime(0);
     plankStartedRef.current = false;
     sidePlankStartedRef.current = false;
-    if (plankTimerRef.current) {
-      clearInterval(plankTimerRef.current);
-      plankTimerRef.current = null;
-    }
-    if (sidePlankTimerRef.current) {
-      clearInterval(sidePlankTimerRef.current);
-      sidePlankTimerRef.current = null;
-    }
+    if (plankTimerRef.current) { clearInterval(plankTimerRef.current); plankTimerRef.current = null; }
+    if (sidePlankTimerRef.current) { clearInterval(sidePlankTimerRef.current); sidePlankTimerRef.current = null; }
   }, [currentStepIndex]);
+
 
   const parseTimeToSeconds = (input: string) => {
     const cleanInput = input.trim().replace(/[^0-9:.]/g, ""); // ลบพวก " นาที", "วิ" ออก
@@ -411,12 +406,13 @@ const Home = () => {
     return Math.round(minutes * 60);
   };
 
-  function parseRepsNumber(input: any): number {
-    if (input === null || input === undefined) return 0;
-    const s = String(input);
-    const m = s.match(/\d+(?:\.\d+)?/);
-    return m ? Number(m[0]) : 0;
-  }
+function parseRepsNumber(input: any): number {
+  if (input === null || input === undefined) return 0;
+  const s = String(input);
+  const m = s.match(/\d+(?:\.\d+)?/);
+  return m ? Number(m[0]) : 0;
+}
+
 
   const [isFinished, setIsFinished] = useState(false); // เพิ่ม state ใหม่
 
