@@ -415,12 +415,12 @@ const Home = () => {
     return Math.round(minutes * 60);
   };
   // Helper: แปลง reps ที่อาจเป็นสตริงมีคำไทย เช่น "12 ครั้ง" -> 12
-  const parseRepsNumber = (input: any): number => {
+  function parseRepsNumber(input: any): number {
     if (input === null || input === undefined) return 0;
     const s = String(input);
     const m = s.match(/\d+(?:\.\d+)?/);
     return m ? Number(m[0]) : 0;
-  };
+  }
 
   const [isFinished, setIsFinished] = useState(false); // เพิ่ม state ใหม่
 
