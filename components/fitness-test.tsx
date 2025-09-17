@@ -110,7 +110,8 @@ export function useFitnessTestMachine(opts: {
   });
   const [plankHold, setPlankHold] = useState(false);
   const [plankSec, setPlankSec] = useState(0);
-  // ใช้ ref เพื่อหลีกเลี่ยงค่า stale ของ plankHold ภายใน setInterval
+
+  // ใช้ ref กัน stale closure ของ setInterval
   const plankHoldRef = useRef(plankHold);
   useEffect(() => {
     plankHoldRef.current = plankHold;
