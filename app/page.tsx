@@ -322,13 +322,11 @@ const Home = () => {
         }
         // --- เงื่อนไขสำหรับ Plank (ยังคงเหมือนเดิม) ---
         else if (exerciseNameLower === "plank") {
-          const totalSeconds = item.reps ? timeStringToSeconds(item.reps) : 0;
-
           steps.push({
             exercise: item.exercise,
             stepNumber: index + 1,
             setNumber: i,
-            reps: totalSeconds,
+            reps: item.reps ? parseInt(item.reps, 10) * 60 : 0, // แปลงนาทีเป็นวินาที
             restTime: `${item.rest} นาที`,
           });
         }
@@ -355,7 +353,7 @@ const Home = () => {
   const [restTime, setRestTime] = useState(0);
   const restTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const steps = getExerciseSteps(a);
+  const steps = useMemo(() => getExerciseSteps(a), [a]);
   const currentStep = steps[currentStepIndex];
 
   // --- เพิ่ม 2 บรรทัดนี้เข้าไป ---
@@ -367,33 +365,32 @@ const Home = () => {
   useEffect(() => {
     currentStepRef.current = currentStep;
   }, [currentStep]);
+  // >>> PATCH v2: รีเซ็ตเฉพาะตอน "เปลี่ยนท่า" จริง ๆ (ตาม index) ไม่รีเซ็ตทุก re-render
+  useEffect(() => {
+    const step = stepsRef.current[currentStepIndex];
+    if (!step) return;
+    // sync exercise type
+    exerciseTypeRef.current = String(step.exercise).toLowerCase();
+    // reset counters & timers for NEW step only
+    repsRef.current = 0;
+    setReps(0);
+    plankTimeRef.current = 0;
+    setPlankTime(0);
+    sidePlankTimeRef.current = 0;
+    setSidePlankTime(0);
+    plankStartedRef.current = false;
+    sidePlankStartedRef.current = false;
+    if (plankTimerRef.current) {
+      clearInterval(plankTimerRef.current);
+      plankTimerRef.current = null;
+    }
+    if (sidePlankTimerRef.current) {
+      clearInterval(sidePlankTimerRef.current);
+      sidePlankTimerRef.current = null;
+    }
+  }, [currentStepIndex]);
 
   // >>> PATCH: sync exerciseTypeRef กับ currentStep เมื่อเปลี่ยนท่า
-  useEffect(() => {
-    if (currentStep && currentStep.exercise) {
-      exerciseTypeRef.current = String(currentStep.exercise).toLowerCase();
-
-      // รีเซ็ต state ที่เกี่ยวกับการนับ เพื่อกันค้างจากท่าที่แล้ว
-      repsRef.current = 0;
-      setReps(0);
-      plankTimeRef.current = 0;
-      setPlankTime(0);
-      sidePlankTimeRef.current = 0;
-      setSidePlankTime(0);
-      plankStartedRef.current = false;
-      sidePlankStartedRef.current = false;
-
-      // ยกเลิก timer ท่าก่อน (กัน overlap)
-      if (plankTimerRef.current) {
-        clearInterval(plankTimerRef.current);
-        plankTimerRef.current = null;
-      }
-      if (sidePlankTimerRef.current) {
-        clearInterval(sidePlankTimerRef.current);
-        sidePlankTimerRef.current = null;
-      }
-    }
-  }, [currentStep]);
 
   const parseTimeToSeconds = (input: string) => {
     const cleanInput = input.trim().replace(/[^0-9:.]/g, ""); // ลบพวก " นาที", "วิ" ออก
@@ -503,19 +500,6 @@ const Home = () => {
   useEffect(() => {
     ftFinishPlankRef.current = ft.finishPlank;
   }, [ft.finishPlank]);
-  // >>> PATCH: Cleanup fault timer เมื่อออกจากท่า Plank หรือออกจาก phase active
-  useEffect(() => {
-    const isPlankActive = ft.phase === "active" && ft.exercise === "plank";
-    if (!isPlankActive) {
-      if (ftPlankFaultTimerRef.current) {
-        clearTimeout(ftPlankFaultTimerRef.current);
-        ftPlankFaultTimerRef.current = null;
-      }
-      if (typeof ftSetPlankHoldRef.current === "function") {
-        ftSetPlankHoldRef.current(false);
-      }
-    }
-  }, [ft.phase, ft.exercise]);
 
   // ...
 
@@ -1566,26 +1550,7 @@ const Home = () => {
       "right_ankle",
     ].map(get);
 
-    if (pts.some((p) => !p || (p.score !== undefined && p.score < 0.2))) {
-      if (
-        isFitnessTestRef.current &&
-        ftPhaseRef.current === "active" &&
-        ftExerciseRef.current === "plank"
-      ) {
-        if (typeof ftSetPlankHoldRef.current === "function")
-          ftSetPlankHoldRef.current(false);
-        if (!ftPlankFaultTimerRef.current) {
-          showFeedback("ความเชื่อมั่นต่ำ แก้ไขภายใน 5 วินาที");
-          ftPlankFaultTimerRef.current = setTimeout(() => {
-            showFeedback("ความเชื่อมั่นต่ำต่อเนื่อง จบการทดสอบท่า Plank");
-            if (typeof ftFinishPlankRef.current === "function")
-              ftFinishPlankRef.current();
-            ftPlankFaultTimerRef.current = null;
-          }, 5000);
-        }
-      }
-      return;
-    }
+    if (pts.some((p) => !p || (p.score !== undefined && p.score < 0.2))) return;
     const [ls, rs, le, re, lh, rh, lk, rk, la, ra] = pts as any[];
 
     const calcAngle = (A: any, B: any) =>
