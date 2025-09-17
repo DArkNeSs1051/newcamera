@@ -1,9 +1,59 @@
 "use client";
 
+// ✅ Robust time parser for "mm:ss", "X นาที", "X วินาที", "30s", "1:00", or plain numbers (seconds)
+function timeStringToSeconds(val: string | number): number {
+  if (typeof val === "number") return val;
+  const s = String(val ?? "")
+    .trim()
+    .toLowerCase();
+  if (!s) return 0;
+
+  // mm:ss
+  const mmss = s.match(/^(\d{1,2}):(\d{1,2})/);
+  if (mmss) {
+    const m = parseInt(mmss[1], 10) || 0;
+    const sec = parseInt(mmss[2], 10) || 0;
+    return m * 60 + sec;
+  }
+
+  // X นาที / min / minute(s)
+  const min = s.match(/(\d+)\s*(นาที|min|minutes?)/);
+  if (min) return (parseInt(min[1], 10) || 0) * 60;
+
+  // X วินาที / sec / s / second(s)
+  const sec = s.match(/(\d+)\s*(วินาที|sec|s|seconds?)/);
+  if (sec) return parseInt(sec[1], 10) || 0;
+
+  // Plain number => seconds
+  const num = parseInt(s, 10);
+  if (!isNaN(num)) return num;
+
+  return 0;
+}
+
 import * as poseDetection from "@tensorflow-models/pose-detection";
 import * as tf from "@tensorflow/tfjs";
 import "@tensorflow/tfjs-backend-webgl";
 import { useEffect, useMemo, useRef, useState } from "react";
+
+// ✅ Notify host app that the Web page is READY to receive config
+useEffect(() => {
+  const post = () => {
+    try {
+      if (typeof window !== "undefined" && (window as any).ReactNativeWebView) {
+        (window as any).ReactNativeWebView.postMessage(
+          JSON.stringify({ type: "READY", version: 1 })
+        );
+      }
+    } catch {}
+  };
+  const t1 = setTimeout(post, 120);
+  const t2 = setTimeout(post, 800);
+  return () => {
+    clearTimeout(t1);
+    clearTimeout(t2);
+  };
+}, []);
 import { useFitnessTestMachine } from "@/components/fitness-test";
 import {
   deriveBreakdown,
@@ -324,7 +374,7 @@ const Home = () => {
         else if (exerciseNameLower === "plank") {
           steps.push({
             exercise: item.exercise,
-            stepNumber: index + 1,
+            stepNumber: steps.length + 1,
             setNumber: i,
             reps: item.reps ? parseInt(item.reps, 10) * 60 : 0, // แปลงนาทีเป็นวินาที
             restTime: `${item.rest} นาที`,
@@ -3203,6 +3253,28 @@ const Home = () => {
       />
     );
   }
+
+  // ✅ Guard: ensure plank steps never start at 0 seconds
+  useEffect(() => {
+    try {
+      if (!Array.isArray(steps)) return;
+      let patched = false;
+      for (const s of steps as any[]) {
+        if (
+          typeof s?.exercise === "string" &&
+          s.exercise.toLowerCase().includes("plank")
+        ) {
+          if (!s.reps || s.reps <= 0) {
+            s.reps = 30; // default fallback 30s
+            patched = true;
+          }
+        }
+      }
+      if (patched) {
+        console.warn("Applied fallback: plank reps set to 30s to avoid 0/0");
+      }
+    } catch {}
+  }, [steps]);
 
   return (
     <div className="relative flex flex-col items-center justify-start p-4 md:p-6 bg-gray-900 text-white w-full min-h-screen font-sans gap-4">
