@@ -474,19 +474,6 @@ const Home = () => {
   useEffect(() => {
     ftFinishPlankRef.current = ft.finishPlank;
   }, [ft.finishPlank]);
-  // >>> PATCH: Cleanup fault timer เมื่อออกจากท่า Plank หรือออกจาก phase active
-  useEffect(() => {
-    const isPlankActive = ft.phase === "active" && ft.exercise === "plank";
-    if (!isPlankActive) {
-      if (ftPlankFaultTimerRef.current) {
-        clearTimeout(ftPlankFaultTimerRef.current);
-        ftPlankFaultTimerRef.current = null;
-      }
-      if (typeof ftSetPlankHoldRef.current === "function") {
-        ftSetPlankHoldRef.current(false);
-      }
-    }
-  }, [ft.phase, ft.exercise]);
 
   // ...
 
@@ -1537,26 +1524,7 @@ const Home = () => {
       "right_ankle",
     ].map(get);
 
-    if (pts.some((p) => !p || (p.score !== undefined && p.score < 0.2))) {
-      if (
-        isFitnessTestRef.current &&
-        ftPhaseRef.current === "active" &&
-        ftExerciseRef.current === "plank"
-      ) {
-        if (typeof ftSetPlankHoldRef.current === "function")
-          ftSetPlankHoldRef.current(false);
-        if (!ftPlankFaultTimerRef.current) {
-          showFeedback("ความเชื่อมั่นต่ำ แก้ไขภายใน 5 วินาที");
-          ftPlankFaultTimerRef.current = setTimeout(() => {
-            showFeedback("ความเชื่อมั่นต่ำต่อเนื่อง จบการทดสอบท่า Plank");
-            if (typeof ftFinishPlankRef.current === "function")
-              ftFinishPlankRef.current();
-            ftPlankFaultTimerRef.current = null;
-          }, 5000);
-        }
-      }
-      return;
-    }
+    if (pts.some((p) => !p || (p.score !== undefined && p.score < 0.2))) return;
     const [ls, rs, le, re, lh, rh, lk, rk, la, ra] = pts as any[];
 
     const calcAngle = (A: any, B: any) =>
