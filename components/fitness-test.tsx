@@ -111,12 +111,6 @@ export function useFitnessTestMachine(opts: {
   const [plankHold, setPlankHold] = useState(false);
   const [plankSec, setPlankSec] = useState(0);
 
-  // ใช้ ref กัน stale closure ของ setInterval
-  const plankHoldRef = useRef(plankHold);
-  useEffect(() => {
-    plankHoldRef.current = plankHold;
-  }, [plankHold]);
-
   const timerRef = useRef<number | null>(null);
   // timeout เมื่อผู้ใช้หยุดทำ plank จนครบระยะเวลาที่กำหนด
   const plankStopTimeoutRef = useRef<number | null>(null);
@@ -155,7 +149,7 @@ export function useFitnessTestMachine(opts: {
       if (ex === "plank") {
         // นับเวลาที่ฟอร์มถูกต้อง
         timerRef.current = window.setInterval(() => {
-          setPlankSec((s) => (plankHoldRef.current ? s + 1 : s));
+          setPlankSec((s) => (plankHold ? s + 1 : s));
         }, 1000);
       } else {
         setTimeLeft(WORK_SEC);
