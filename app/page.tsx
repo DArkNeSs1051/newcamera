@@ -326,7 +326,7 @@ const Home = () => {
             exercise: item.exercise,
             stepNumber: index + 1,
             setNumber: i + 1,
-            reps: timeStringToSeconds(item.reps ?? ""), // แปลงนาทีเป็นวินาที
+            reps: timeStringToSeconds(item.reps ?? "0"), // แปลงนาทีเป็นวินาที
             restTime: `${item.rest} นาที`,
           });
         }
