@@ -336,7 +336,7 @@ const Home = () => {
             exercise: item.exercise,
             stepNumber: index + 1,
             setNumber: i,
-            reps: item.reps ? +item.reps : 0, // แปลง reps เป็นตัวเลข
+            reps: parseRepsNumber(item.reps), // แปลง reps เป็นตัวเลข
             restTime: `${item.rest} นาที`,
           });
         }
@@ -413,6 +413,13 @@ const Home = () => {
     const match = input.match(/[\d.]+/);
     const minutes = match ? parseFloat(match[0]) : 1;
     return Math.round(minutes * 60);
+  };
+  // Helper: แปลง reps ที่อาจเป็นสตริงมีคำไทย เช่น "12 ครั้ง" -> 12
+  const parseRepsNumber = (input: any): number => {
+    if (input === null || input === undefined) return 0;
+    const s = String(input);
+    const m = s.match(/\d+(?:\.\d+)?/);
+    return m ? Number(m[0]) : 0;
   };
 
   const [isFinished, setIsFinished] = useState(false); // เพิ่ม state ใหม่
