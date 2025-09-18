@@ -306,7 +306,7 @@ const Home = () => {
           steps.push({
             exercise: "side plank_left", // ชื่อท่าสำหรับข้างซ้าย
             stepNumber: steps.length + 1, // ใช้ length ของ steps เพื่อให้เลข step ต่อเนื่องกัน
-            setNumber: i,
+            setNumber: i + 1,
             reps: timePerSide,
             restTime: `0:05 นาที`, // พัก 0 นาทีระหว่างเปลี่ยนข้าง
           });
@@ -315,7 +315,7 @@ const Home = () => {
           steps.push({
             exercise: "side plank_right", // ชื่อท่าสำหรับข้างขวา
             stepNumber: steps.length + 1,
-            setNumber: i,
+            setNumber: i + 1,
             reps: timePerSide,
             restTime: `${item.rest} นาที`,
           });
@@ -325,7 +325,7 @@ const Home = () => {
           steps.push({
             exercise: item.exercise,
             stepNumber: index + 1,
-            setNumber: i,
+            setNumber: i + 1,
             reps: timeStringToSeconds(item.reps ?? "0"), // แปลงนาทีเป็นวินาที
             restTime: `${item.rest} นาที`,
           });
@@ -335,7 +335,7 @@ const Home = () => {
           steps.push({
             exercise: item.exercise,
             stepNumber: index + 1,
-            setNumber: i,
+            setNumber: i + 1,
             reps: parseRepsNumber(item.reps), // แปลง reps เป็นตัวเลข
             restTime: `${item.rest} นาที`,
           });
@@ -420,6 +420,11 @@ const Home = () => {
 
   const [isFinished, setIsFinished] = useState(false); // เพิ่ม state ใหม่
 
+  // sync isFinished กับ phase=summary ของ FitnessTest
+  useEffect(() => {
+    if (ft.phase === "summary") setIsFinished(true);
+  }, [ft.phase]);
+
   // ฟังก์ชันสำหรับเริ่มการพักโดยเฉพาะ
   const startRestPeriod = () => {
     const currentStep = currentStepRef.current;
@@ -449,8 +454,7 @@ const Home = () => {
           setCurrentStepIndex((i) => {
             const nextIndex = i + 1;
             const nextStep = stepsRef.current[nextIndex];
-            if (nextStep)
-              speak(`เตรียมตัวสำหรับท่าถัดไป, ${nextStep.exercise}`);
+            speak(`เตรียมตัวสำหรับท่าถัดไป, ${nextStep.exercise}`);
             return nextIndex;
           });
 
@@ -1822,7 +1826,7 @@ const Home = () => {
     };
 
     // --- ตรวจสอบเงื่อนไขหลัก ---
-    const expectedSide = (exerciseTypeRef.current || "").includes("left")
+    const expectedSide = currentStep.exercise.includes("left")
       ? "left"
       : "right";
 
@@ -3338,19 +3342,6 @@ const Home = () => {
               )}
           </>
         )}
-
-        {isFinished && (
-          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black bg-opacity-90 text-center p-6 rounded-xl">
-            <h2 className="text-3xl font-bold text-green-400 mb-4 animate-bounce">
-              🎉 ยินดีด้วย!
-            </h2>
-            <p className="text-lg text-white mb-6">
-              คุณออกกำลังกายครบทุกท่าแล้ว
-              <br />
-              โปรดกลับมาเล่นใหม่อีกครั้งในวันพรุ่งนี้
-            </p>
-          </div>
-        )}
       </div>
 
       {/* === Fitness Test Panel === */}
@@ -3548,17 +3539,17 @@ const Home = () => {
         />
       )}
 
-      {/* {isFitnessTest && ft.phase === "summary" && (
+      {/* {(isFitnessTest && ft.phase === "summary") || isFinished ? (
         <SummaryOverlay total={ft.total} level={ft.level} />
-      )} */}
+      ) : null} */}
 
-      {isFitnessTest && ft.phase === "summary" && (
+      {(isFitnessTest && ft.phase === "summary") || isFinished ? (
         <SummaryOverlay
           total={ft.total}
           level={ft.level}
           breakdown={breakdown}
         />
-      )}
+      ) : null}
 
       {/* ==============================================
       Modal สำหรับแสดงวิดีโอ

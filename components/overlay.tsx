@@ -143,6 +143,10 @@ export const SummaryOverlay = ({
               </ul>
             </div>
           )}
+
+          <p className="mt-6 text-sm md:text-base text-gray-300">
+            ออกกำลังกายเสร็จแล้ว โปรดกลับมาใหม่ในวันพรุ่งนี้
+          </p>
         </div>
       </div>
     </div>
