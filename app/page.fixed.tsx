@@ -425,17 +425,12 @@ const Home = () => {
     if (!isFinished) return;
     try {
       if (requestRef.current) cancelAnimationFrame(requestRef.current);
-      if (plankTimerRef.current) {
-        clearInterval(plankTimerRef.current as any);
-        plankTimerRef.current = null;
-      }
-      if (sidePlankTimerRef.current) {
-        clearInterval(sidePlankTimerRef.current as any);
-        sidePlankTimerRef.current = null;
-      }
+      if (plankTimerRef.current) { clearInterval(plankTimerRef.current as any); plankTimerRef.current = null; }
+      if (sidePlankTimerRef.current) { clearInterval(sidePlankTimerRef.current as any); sidePlankTimerRef.current = null; }
       setIsResting(false);
     } catch {}
   }, [isFinished]);
+
 
   // ฟังก์ชันสำหรับเริ่มการพักโดยเฉพาะ
   const startRestPeriod = () => {
@@ -1838,9 +1833,7 @@ const Home = () => {
     };
 
     // --- ตรวจสอบเงื่อนไขหลัก ---
-    const expectedSide = (currentStep?.exercise || "")
-      .toLowerCase()
-      .includes("left")
+    const expectedSide = ((currentStep?.exercise || "").toLowerCase().includes("left"))
       ? "left"
       : "right";
 
@@ -3201,16 +3194,11 @@ const Home = () => {
     exerciseTypeRef.current = nextName;
   }, [isFitnessTest, ft.exercise]);
 
-  const phase = String((ft as any).phase);
-  const breakdown = useMemo(() => deriveBreakdown(ft, true), [ft]);
+    const phase = String((ft as any).phase);
+const breakdown = useMemo(() => deriveBreakdown(ft, true), [ft]);
   const totalScore = useMemo(() => {
     const b = breakdown || ({} as any);
-    return (
-      Number(b.pushup ?? 0) +
-      Number(b.squat ?? 0) +
-      Number(b.burpee ?? 0) +
-      Number(b.plankSeconds ?? 0)
-    );
+    return (Number(b.pushup ?? 0) + Number(b.squat ?? 0) + Number(b.burpee ?? 0) + Number(b.plankSeconds ?? 0));
   }, [breakdown]);
 
   const levelLabel = useMemo(() => {
@@ -3220,6 +3208,7 @@ const Home = () => {
     return "Beginner";
   }, [totalScore]);
 
+
   const DISPLAY_EX: Record<string, string> = {
     pushup: "Push-up",
     squat: "Squat",
@@ -3227,15 +3216,12 @@ const Home = () => {
     plank: "Plank",
   };
 
+
   // ถ้าจบทั้งหมดแล้ว แสดงหน้าเสร็จสิ้นอย่างเดียว เพื่อตัดการ render ส่วนอื่นที่อาจอ้าง currentStep/ft.exercise
   if (isFinished || phase === "summary") {
     return (
       <div className="relative flex flex-col items-center justify-center p-6 bg-gray-900 text-white w-full min-h-screen">
-        <SummaryOverlay
-          total={totalScore}
-          level={levelLabel}
-          breakdown={breakdown}
-        />
+        <SummaryOverlay total={totalScore} level={levelLabel} breakdown={breakdown} />
       </div>
     );
   }
