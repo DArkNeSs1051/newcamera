@@ -166,6 +166,7 @@ const Home = () => {
     sex,
     kneePushupOffset: sex === "female" ? 7 : 0,
   });
+  const phase = String((ft as any)?.phase ?? "");
 
   useEffect(() => {
     repsRef.current = reps;
@@ -260,7 +261,7 @@ const Home = () => {
       if (typeof window !== "undefined" && (window as any).ReactNativeWebView) {
         (window as any).ReactNativeWebView.postMessage(
           JSON.stringify({
-            level: ft.level,
+            level: String((ft as any)?.level ?? ""),
           })
         );
       }
@@ -486,11 +487,11 @@ const Home = () => {
 
   useEffect(() => {
     ftPhaseRef.current = ft.phase;
-  }, [ft.phase]);
+  }, [phase]);
 
   useEffect(() => {
-    ftExerciseRef.current = ft.exercise;
-  }, [ft.exercise]);
+    ftExerciseRef.current = (ft as any)?.exercise;
+  }, [(ft as any)?.exercise]);
 
   useEffect(() => {
     ftOnRepRef.current = ft.onRep;
@@ -504,7 +505,7 @@ const Home = () => {
 
   useEffect(() => {
     ftPhaseRef.current = ft.phase;
-  }, [ft.phase]);
+  }, [phase]);
 
   // ...
 
@@ -3196,12 +3197,13 @@ const Home = () => {
       plank: "plank",
     };
 
-    const nextName = map[ft.exercise];
+    const nextName =
+      map[
+        String((ft as any)?.exercise ?? "").toLowerCase() as keyof typeof map
+      ];
     setExerciseType(nextName);
     exerciseTypeRef.current = nextName;
-  }, [isFitnessTest, ft.exercise]);
-
-  const phase = String((ft as any).phase);
+  }, [isFitnessTest, (ft as any)?.exercise]);
   const breakdown = useMemo(() => deriveBreakdown(ft, true), [ft]);
   const totalScore = useMemo(() => {
     const b = breakdown || ({} as any);
@@ -3227,7 +3229,7 @@ const Home = () => {
     plank: "Plank",
   };
 
-  // ถ้าจบทั้งหมดแล้ว แสดงหน้าเสร็จสิ้นอย่างเดียว เพื่อตัดการ render ส่วนอื่นที่อาจอ้าง currentStep/ft.exercise
+  // ถ้าจบทั้งหมดแล้ว แสดงหน้าเสร็จสิ้นอย่างเดียว เพื่อตัดการ render ส่วนอื่นที่อาจอ้าง currentStep/((ft as any)?.exercise)
   if (isFinished || phase === "summary") {
     return (
       <div className="relative flex flex-col items-center justify-center p-6 bg-gray-900 text-white w-full min-h-screen">
@@ -3332,9 +3334,7 @@ const Home = () => {
           </div>
         )} */}
         {(currentStep ||
-          (isFitnessTest &&
-            ft.phase !== "countdown" &&
-            phase !== "summary")) && (
+          (isFitnessTest && phase !== "countdown" && phase !== "summary")) && (
           <>
             {!isFitnessTest && currentStep && (
               <HudOverlay
@@ -3357,33 +3357,31 @@ const Home = () => {
               />
             )}
 
-            {isFitnessTest &&
-              ft.phase !== "countdown" &&
-              phase !== "summary" && (
-                <HudOverlay
-                  exercise={ft.exercise}
-                  // ถ้ามี set/รอบใน state ของคุณ ให้ส่งเข้ามาแทน 1 นี้
-                  setNumber={(ft as any).setNumber ?? 1}
-                  current={
-                    ft.exercise === "plank"
-                      ? ft.plankSec
-                      : ft.exercise === "pushup"
-                      ? ft.counts.pushup
-                      : ft.exercise === "squat"
-                      ? ft.counts.squat
-                      : ft.exercise === "burpee"
-                      ? ft.counts.burpee
-                      : 0
-                  }
-                  // ถ้ามีเป้าหมายใน state (เช่น ft.targetPlankSec / ft.targetReps) ให้ใส่; ถ้าไม่มีก็ปล่อย undefined เพื่อซ่อน "/"
-                  total={
-                    ft.exercise === "plank"
-                      ? (ft as any).targetPlankSec ?? undefined
-                      : (ft as any).targetReps ?? undefined
-                  }
-                  isTime={ft.exercise === "plank"}
-                />
-              )}
+            {isFitnessTest && phase !== "countdown" && phase !== "summary" && (
+              <HudOverlay
+                exercise={(ft as any)?.exercise}
+                // ถ้ามี set/รอบใน state ของคุณ ให้ส่งเข้ามาแทน 1 นี้
+                setNumber={(ft as any).setNumber ?? 1}
+                current={
+                  (ft as any)?.exercise === "plank"
+                    ? (ft as any)?.plankSec ?? 0
+                    : (ft as any)?.exercise === "pushup"
+                    ? (ft as any)?.counts?.pushup ?? 0
+                    : (ft as any)?.exercise === "squat"
+                    ? (ft as any)?.counts?.squat ?? 0
+                    : (ft as any)?.exercise === "burpee"
+                    ? (ft as any)?.counts?.burpee ?? 0
+                    : 0
+                }
+                // ถ้ามีเป้าหมายใน state (เช่น ft.targetPlankSec / ft.targetReps) ให้ใส่; ถ้าไม่มีก็ปล่อย undefined เพื่อซ่อน "/"
+                total={
+                  (ft as any)?.exercise === "plank"
+                    ? (ft as any).targetPlankSec ?? undefined
+                    : (ft as any).targetReps ?? undefined
+                }
+                isTime={(ft as any)?.exercise === "plank"}
+              />
+            )}
           </>
         )}
 
@@ -3430,52 +3428,62 @@ const Home = () => {
           ) : (
             <div className="space-y-2">
               {/* VVV เพิ่ม UI สำหรับ Countdown VVV */}
-              {ft.phase === "countdown" && (
+              {phase === "countdown" && (
                 // <div className="text-center py-4">
                 //   <div className="text-xl font-medium text-gray-400">
                 //     เตรียมตัว
                 //   </div>
                 //   <div className="text-7xl font-bold tabular-nums text-white animate-ping-once">
-                //     {ft.countdownLeft}
+                //     {((ft as any)?.countdownLeft ?? 0)}
                 //   </div>
                 //   <div className="text-lg text-gray-300 mt-2">
                 //     ท่าแรก:{" "}
                 //     <span className="capitalize font-semibold">
-                //       {ft.exercise}
+                //       {((ft as any)?.exercise)}
                 //     </span>
                 //   </div>
                 // </div>
                 <RestOverlay
-                  seconds={ft.countdownLeft}
-                  nextExercise={DISPLAY_EX[ft.exercise] || ft.exercise}
+                  seconds={(ft as any)?.countdownLeft ?? 0}
+                  nextExercise={(() => {
+                    const key = String(
+                      (ft as any)?.exercise ?? ""
+                    ).toLowerCase() as keyof typeof DISPLAY_EX;
+                    return (
+                      DISPLAY_EX[key] ?? String((ft as any)?.exercise ?? "")
+                    );
+                  })()}
                   label="เตรียมตัว"
                 />
               )}
 
-              {ft.phase !== "countdown" && (
+              {phase !== "countdown" && (
                 <>
                   <div className="flex items-center justify-between">
                     <div className="font-medium capitalize">
                       กำลังทำ: {exerciseTypeRef.current}
                     </div>
-                    {ft.exercise !== "plank" ? (
+                    {(ft as any)?.exercise !== "plank" ? (
                       <div className="text-2xl tabular-nums">
                         {ft.timeLeft}s
                       </div>
                     ) : (
                       <div className="text-2xl tabular-nums">
-                        {ft.plankSec}s
+                        {(ft as any)?.plankSec ?? 0}s
                       </div>
                     )}
                   </div>
 
-                  {ft.exercise !== "plank" ? (
+                  {(ft as any)?.exercise !== "plank" ? (
                     <div className="flex items-center justify-between text-sm">
                       <span>นับได้</span>
                       <span className="text-xl">
-                        {ft.exercise === "pushup" && ft.counts.pushup}
-                        {ft.exercise === "squat" && ft.counts.squat}
-                        {ft.exercise === "burpee" && ft.counts.burpee}
+                        {(ft as any)?.exercise === "pushup" &&
+                          ((ft as any)?.counts?.pushup ?? 0)}
+                        {(ft as any)?.exercise === "squat" &&
+                          ((ft as any)?.counts?.squat ?? 0)}
+                        {(ft as any)?.exercise === "burpee" &&
+                          ((ft as any)?.counts?.burpee ?? 0)}
                       </span>
                     </div>
                   ) : (
@@ -3491,7 +3499,7 @@ const Home = () => {
                     </div>
                   )}
 
-                  {ft.phase === "rest" && (
+                  {phase === "rest" && (
                     <div className="text-center">
                       พัก {ft.restLeft}s แล้วจะไปท่าถัดไปอัตโนมัติ
                     </div>
@@ -3502,24 +3510,25 @@ const Home = () => {
                       <div className="font-semibold mb-1">สรุปผล</div>
                       <ul className="text-sm space-y-1">
                         <li>
-                          Push-up: {ft.counts.pushup} →{" "}
+                          Push-up: {(ft as any)?.counts?.pushup ?? 0} →{" "}
                           {ft.scorePerExercise.pushup} คะแนน
                         </li>
                         <li>
-                          Squat: {ft.counts.squat} → {ft.scorePerExercise.squat}{" "}
-                          คะแนน
+                          Squat: {(ft as any)?.counts?.squat ?? 0} →{" "}
+                          {ft.scorePerExercise.squat} คะแนน
                         </li>
                         <li>
-                          Burpee: {ft.counts.burpee} →{" "}
+                          Burpee: {(ft as any)?.counts?.burpee ?? 0} →{" "}
                           {ft.scorePerExercise.burpee} คะแนน
                         </li>
                         <li>
-                          Plank: {ft.plankSec}s → {ft.scorePerExercise.plank}{" "}
-                          คะแนน
+                          Plank: {(ft as any)?.plankSec ?? 0}s →{" "}
+                          {ft.scorePerExercise.plank} คะแนน
                         </li>
                       </ul>
                       <div className="mt-2">
-                        รวม: <b>{ft.total}</b> คะแนน → ระดับ <b>{ft.level}</b>
+                        รวม: <b>{Number((ft as any)?.total ?? 0)}</b> คะแนน →
+                        ระดับ <b>{String((ft as any)?.level ?? "")}</b>
                       </div>
 
                       <div className="mt-3 flex gap-2">
@@ -3543,9 +3552,9 @@ const Home = () => {
 
                   {phase !== "summary" && (
                     <div className="flex gap-2">
-                      {ft.exercise === "plank" && (
+                      {(ft as any)?.exercise === "plank" && (
                         <button
-                          onClick={() => ft.finishPlank()}
+                          onClick={() => (ft as any)?.finishPlank?.()}
                           className="px-3 py-2 rounded-lg bg-gray-700"
                         >
                           จบ Plank
@@ -3553,7 +3562,7 @@ const Home = () => {
                       )}
                       <button
                         onClick={() => {
-                          ft.stop();
+                          (ft as any)?.stop?.();
                         }}
                         className="px-3 py-2 rounded-lg bg-gray-700"
                       >
@@ -3582,17 +3591,19 @@ const Home = () => {
           </p>
         </div>
       )} */}
-      {(isResting || (isFitnessTest && ft.phase === "rest")) && (
+      {(isResting || (isFitnessTest && phase === "rest")) && (
         <RestOverlay
           seconds={isFitnessTest ? ft.restLeft : restTime}
           nextExercise={
             isFitnessTest
               ? (() => {
-                  const order = ["pushup", "squat", "burpee", "plank"];
-                  const i = order.indexOf(ft.exercise);
+                  const order = ["pushup", "squat", "burpee", "plank"] as const;
+                  const i = order.indexOf((ft as any)?.exercise);
                   const n =
                     i >= 0 && i < order.length - 1 ? order[i + 1] : undefined;
-                  return n ? DISPLAY_EX[n] : undefined;
+                  return n
+                    ? DISPLAY_EX[n as keyof typeof DISPLAY_EX]
+                    : undefined;
                 })()
               : (() => {
                   const nextStep = stepsRef.current[currentStepIndex + 1];
@@ -3615,7 +3626,7 @@ const Home = () => {
       )}
 
       {/* {isFitnessTest && phase === "summary" && (
-        <SummaryOverlay total={ft.total} level={ft.level} />
+        <SummaryOverlay total={Number((ft as any)?.total ?? 0)} level={String((ft as any)?.level ?? "")} />
       )} */}
 
       {isFitnessTest && phase === "summary" && (
