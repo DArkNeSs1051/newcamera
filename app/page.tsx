@@ -306,7 +306,7 @@ const Home = () => {
           steps.push({
             exercise: "side plank_left", // ชื่อท่าสำหรับข้างซ้าย
             stepNumber: steps.length + 1, // ใช้ length ของ steps เพื่อให้เลข step ต่อเนื่องกัน
-            setNumber: i,
+            setNumber: i + 1,
             reps: timePerSide,
             restTime: `0:05 นาที`, // พัก 0 นาทีระหว่างเปลี่ยนข้าง
           });
@@ -315,7 +315,7 @@ const Home = () => {
           steps.push({
             exercise: "side plank_right", // ชื่อท่าสำหรับข้างขวา
             stepNumber: steps.length + 1,
-            setNumber: i,
+            setNumber: i + 1,
             reps: timePerSide,
             restTime: `${item.rest} นาที`,
           });
@@ -325,7 +325,7 @@ const Home = () => {
           steps.push({
             exercise: item.exercise,
             stepNumber: index + 1,
-            setNumber: i,
+            setNumber: i + 1,
             reps: timeStringToSeconds(item.reps ?? "0"), // แปลงนาทีเป็นวินาที
             restTime: `${item.rest} นาที`,
           });
@@ -335,7 +335,7 @@ const Home = () => {
           steps.push({
             exercise: item.exercise,
             stepNumber: index + 1,
-            setNumber: i,
+            setNumber: i + 1,
             reps: parseRepsNumber(item.reps), // แปลง reps เป็นตัวเลข
             restTime: `${item.rest} นาที`,
           });
@@ -449,14 +449,8 @@ const Home = () => {
           setCurrentStepIndex((i) => {
             const nextIndex = i + 1;
             const nextStep = stepsRef.current[nextIndex];
-            if (nextStep) {
-              speak(`เตรียมตัวสำหรับท่าถัดไป, ${nextStep.exercise}`);
-              return nextIndex;
-            } else {
-              // ไม่มีสเต็ปถัดไปแล้ว -> จบโปรแกรม
-              setIsFinished(true);
-              return i; // คง index เดิมไว้เพื่อกัน out-of-range
-            }
+            speak(`เตรียมตัวสำหรับท่าถัดไป, ${nextStep.exercise}`);
+            return nextIndex;
           });
 
           setReps(0);
@@ -1827,9 +1821,7 @@ const Home = () => {
     };
 
     // --- ตรวจสอบเงื่อนไขหลัก ---
-    const expectedSide = (currentStep?.exercise || "")
-      .toLowerCase()
-      .includes("left")
+    const expectedSide = currentStep.exercise.includes("left")
       ? "left"
       : "right";
 
@@ -3542,15 +3534,33 @@ const Home = () => {
         </div>
       )} */}
       {(isResting || (isFitnessTest && ft.phase === "rest")) && (
-        // <RestOverlay seconds={isFitnessTest ? ft.restLeft : restTime} />
         <RestOverlay
           seconds={isFitnessTest ? ft.restLeft : restTime}
-          nextExercise={(function () {
-            const order = ["pushup", "squat", "burpee", "plank"];
-            const i = order.indexOf(ft.exercise);
-            const n = i >= 0 && i < order.length - 1 ? order[i + 1] : undefined;
-            return n ? DISPLAY_EX[n] : undefined; // ถ้าไม่มีแล้ว (หลัง plank) จะไม่ขึ้น
-          })()}
+          nextExercise={
+            isFitnessTest
+              ? (() => {
+                  const order = ["pushup", "squat", "burpee", "plank"];
+                  const i = order.indexOf(ft.exercise);
+                  const n =
+                    i >= 0 && i < order.length - 1 ? order[i + 1] : undefined;
+                  return n ? DISPLAY_EX[n] : undefined;
+                })()
+              : (() => {
+                  const nextStep = stepsRef.current[currentStepIndex + 1];
+                  if (!nextStep) return undefined;
+                  const ex = (nextStep.exercise || "").toLowerCase();
+                  if (ex.startsWith("side plank")) {
+                    return ex.includes("left")
+                      ? "Side Plank (ซ้าย)"
+                      : "Side Plank (ขวา)";
+                  }
+                  if (ex === "plank") return "Plank";
+                  return (
+                    nextStep.exercise?.charAt(0).toUpperCase() +
+                      nextStep.exercise?.slice(1) || undefined
+                  );
+                })()
+          }
           label="พักสักครู่"
         />
       )}
