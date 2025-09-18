@@ -467,7 +467,11 @@ const Home = () => {
           setCurrentStepIndex((i) => {
             const nextIndex = i + 1;
             const nextStep = stepsRef.current[nextIndex];
-            speak(`เตรียมตัวสำหรับท่าถัดไป, ${nextStep.exercise}`);
+            if (nextStep) {
+              speak(`เตรียมตัวสำหรับท่าถัดไป, ${nextStep.exercise}`);
+            } else {
+              setIsFinished(true);
+            }
             return nextIndex;
           });
 
