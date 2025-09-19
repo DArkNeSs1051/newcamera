@@ -3695,7 +3695,7 @@ export default Home;
   type CameraPermissionState = "granted" | "prompt" | "denied" | "unsupported";
 
   const isSecure = () =>
-    window.isSecureContext === true || location.protocol === "https:";
+    (window.isSecureContext === true) || location.protocol === "https:";
 
   async function queryCameraPermission(): Promise<{
     state: CameraPermissionState;
@@ -3703,61 +3703,35 @@ export default Home;
     reason?: string;
   }> {
     if (!("mediaDevices" in navigator)) {
-      return {
-        state: "unsupported",
-        secure: isSecure(),
-        reason: "navigator.mediaDevices ไม่มีในบริบทนี้",
-      };
+      return { state: "unsupported", secure: isSecure(), reason: "navigator.mediaDevices ไม่มีในบริบทนี้" };
     }
     if (!isSecure()) {
-      return {
-        state: "denied",
-        secure: false,
-        reason: "ไม่ใช่ secure context (ต้องเป็น https หรือ WebView ที่อนุญาต)",
-      };
+      return { state: "denied", secure: false, reason: "ไม่ใช่ secure context (ต้องเป็น https หรือ WebView ที่อนุญาต)" };
     }
     const navAny = navigator as any;
     if (navAny.permissions?.query) {
       try {
-        const status = await navAny.permissions.query({
-          name: "camera" as PermissionName,
-        });
+        const status = await navAny.permissions.query({ name: "camera" as PermissionName });
         return { state: status.state as CameraPermissionState, secure: true };
       } catch {}
     }
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
       const hasCam = devices.some((d) => d.kind === "videoinput");
-      const anyLabeled = devices.some(
-        (d) => d.kind === "videoinput" && !!d.label
-      );
-      if (!hasCam)
-        return { state: "denied", secure: true, reason: "ไม่พบอุปกรณ์กล้อง" };
+      const anyLabeled = devices.some((d) => d.kind === "videoinput" && !!d.label);
+      if (!hasCam) return { state: "denied", secure: true, reason: "ไม่พบอุปกรณ์กล้อง" };
       return { state: anyLabeled ? "granted" : "prompt", secure: true };
     } catch {
-      return {
-        state: "prompt",
-        secure: true,
-        reason: "enumerateDevices ล้มเหลว (อาจต้องเรียกขอสิทธิ์ก่อน)",
-      };
+      return { state: "prompt", secure: true, reason: "enumerateDevices ล้มเหลว (อาจต้องเรียกขอสิทธิ์ก่อน)" };
     }
   }
 
-  async function requestCameraOnce(
-    constraints: MediaStreamConstraints = {
-      video: { facingMode: "user" },
-      audio: false,
-    }
-  ) {
+  async function requestCameraOnce(constraints: MediaStreamConstraints = { video: { facingMode: "user" }, audio: false }) {
     if (!("mediaDevices" in navigator)) {
       return { ok: false, error: "ไม่รองรับ mediaDevices" };
     }
     if (!isSecure()) {
-      return {
-        ok: false,
-        code: "SECURE_CONTEXT",
-        error: "ต้องใช้งานผ่าน https หรือ context ที่ปลอดภัย",
-      };
+      return { ok: false, code: "SECURE_CONTEXT", error: "ต้องใช้งานผ่าน https หรือ context ที่ปลอดภัย" };
     }
     try {
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -3766,8 +3740,7 @@ export default Home;
     } catch (err: any) {
       const code = err?.name || "ERROR";
       const map: Record<string, string> = {
-        NotAllowedError:
-          "ผู้ใช้ปฏิเสธสิทธิ์ หรือ WebView ไม่อนุมัติสิทธิ์ให้หน้าเว็บ",
+        NotAllowedError: "ผู้ใช้ปฏิเสธสิทธิ์ หรือ WebView ไม่อนุมัติสิทธิ์ให้หน้าเว็บ",
         SecurityError: "บริบทไม่ปลอดภัย (ต้องเป็น https)",
         NotFoundError: "ไม่มีกล้องในอุปกรณ์",
         NotReadableError: "กล้องถูกใช้งานโดยแอปอื่น/ระบบไม่ให้ใช้",
@@ -3775,11 +3748,7 @@ export default Home;
         AbortError: "ระบบยกเลิกคำขอ",
         TypeError: "constraints ไม่ถูกต้อง หรือเบราว์เซอร์ไม่รองรับ",
       };
-      return {
-        ok: false,
-        code,
-        error: map[code] ?? err?.message ?? "ไม่ทราบสาเหตุ",
-      };
+      return { ok: false, code, error: map[code] ?? err?.message ?? "ไม่ทราบสาเหตุ" };
     }
   }
 
@@ -3798,8 +3767,7 @@ export default Home;
   root.style.right = "12px";
   root.style.bottom = "12px";
   root.style.zIndex = "2147483647";
-  root.style.fontFamily =
-    "system-ui, -apple-system, Segoe UI, Roboto, sans-serif";
+  root.style.fontFamily = "system-ui, -apple-system, Segoe UI, Roboto, sans-serif";
   root.style.userSelect = "none";
   root.style.pointerEvents = "auto";
 
@@ -3827,22 +3795,15 @@ export default Home;
   const btnClose = document.getElementById("cam-perm-close")!;
 
   function postToRN(payload: any) {
-    try {
-      (window as any).ReactNativeWebView?.postMessage(
-        JSON.stringify({ type: "camera-permission", ...payload })
-      );
-    } catch {}
+    try { (window as any).ReactNativeWebView?.postMessage(JSON.stringify({ type: "camera-permission", ...payload })); } catch {}
   }
 
   async function doCheck() {
     elMsg.textContent = "";
     elStatus.innerHTML = "สถานะ: <b>กำลังตรวจสอบ...</b>";
     const res = await queryCameraPermission();
-    elStatus.innerHTML = `สถานะ: <b>${res.state}</b> ${
-      res.secure ? "" : "(not secure)"
-    }`;
-    if (res.reason) elMsg.textContent = res.reason;
-    else elMsg.textContent = "";
+    elStatus.innerHTML = `สถานะ: <b>${res.state}</b> ${res.secure ? "" : "(not secure)"}`;
+    if (res.reason) elMsg.textContent = res.reason; else elMsg.textContent = "";
     postToRN({ event: "query", res });
   }
 
@@ -3872,9 +3833,7 @@ export default Home;
     const navAny = navigator as any;
     if (navAny.permissions?.query) {
       try {
-        const perm = await navAny.permissions.query({
-          name: "camera" as PermissionName,
-        });
+        const perm = await navAny.permissions.query({ name: "camera" as PermissionName });
         perm.onchange = () => doCheck();
       } catch {}
     }
