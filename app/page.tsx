@@ -34,19 +34,6 @@ const Home = () => {
   const requestRef = useRef<number | null>(null);
   const edgesRef = useRef<Record<string, string>>({});
 
-  // ---- minimal helpers for Android camera + backend fallback ----
-  const ensureBackendWebGL = async () => {
-    try {
-      if (tf.getBackend() !== "webgl") await tf.setBackend("webgl");
-      await tf.ready();
-    } catch {
-      try {
-        await tf.setBackend("cpu");
-        await tf.ready();
-      } catch {}
-    }
-  };
-
   // ตัวแปรสำหรับการตรวจจับท่า Push Up
   const elbowAngleRef = useRef<number>(999);
   const backAngleRef = useRef<number>(0);
@@ -179,6 +166,7 @@ const Home = () => {
     sex,
     kneePushupOffset: sex === "female" ? 7 : 0,
   });
+  const phase = String((ft as any)?.phase ?? "");
 
   useEffect(() => {
     repsRef.current = reps;
@@ -269,11 +257,11 @@ const Home = () => {
         );
       }
     }
-    if (ft.phase === "summary") {
+    if (phase === "summary") {
       if (typeof window !== "undefined" && (window as any).ReactNativeWebView) {
         (window as any).ReactNativeWebView.postMessage(
           JSON.stringify({
-            level: ft.level,
+            level: String((ft as any)?.level ?? ""),
           })
         );
       }
@@ -339,7 +327,7 @@ const Home = () => {
             exercise: item.exercise,
             stepNumber: index + 1,
             setNumber: i,
-            reps: item.reps ? parseInt(item.reps, 10) * 60 : 0, // แปลงนาทีเป็นวินาที
+            reps: timeStringToSeconds(item.reps ?? "0"), // แปลงนาทีเป็นวินาที
             restTime: `${item.rest} นาที`,
           });
         }
@@ -349,7 +337,7 @@ const Home = () => {
             exercise: item.exercise,
             stepNumber: index + 1,
             setNumber: i,
-            reps: item.reps ? +item.reps : 0, // แปลง reps เป็นตัวเลข
+            reps: parseRepsNumber(item.reps), // แปลง reps เป็นตัวเลข
             restTime: `${item.rest} นาที`,
           });
         }
@@ -366,7 +354,7 @@ const Home = () => {
   const [restTime, setRestTime] = useState(0);
   const restTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const steps = getExerciseSteps(a);
+  const steps = useMemo(() => getExerciseSteps(a), [a]);
   const currentStep = steps[currentStepIndex];
 
   // --- เพิ่ม 2 บรรทัดนี้เข้าไป ---
@@ -378,6 +366,28 @@ const Home = () => {
   useEffect(() => {
     currentStepRef.current = currentStep;
   }, [currentStep]);
+  // Reset counters/timers only when the step index changes
+  useEffect(() => {
+    const step = stepsRef.current[currentStepIndex];
+    if (!step) return;
+    exerciseTypeRef.current = String(step.exercise).toLowerCase();
+    repsRef.current = 0;
+    setReps(0);
+    plankTimeRef.current = 0;
+    setPlankTime(0);
+    sidePlankTimeRef.current = 0;
+    setSidePlankTime(0);
+    plankStartedRef.current = false;
+    sidePlankStartedRef.current = false;
+    if (plankTimerRef.current) {
+      clearInterval(plankTimerRef.current);
+      plankTimerRef.current = null;
+    }
+    if (sidePlankTimerRef.current) {
+      clearInterval(sidePlankTimerRef.current);
+      sidePlankTimerRef.current = null;
+    }
+  }, [currentStepIndex]);
 
   const parseTimeToSeconds = (input: string) => {
     const cleanInput = input.trim().replace(/[^0-9:.]/g, ""); // ลบพวก " นาที", "วิ" ออก
@@ -402,7 +412,31 @@ const Home = () => {
     return Math.round(minutes * 60);
   };
 
+  function parseRepsNumber(input: any): number {
+    if (input === null || input === undefined) return 0;
+    const s = String(input);
+    const m = s.match(/\d+(?:\.\d+)?/);
+    return m ? Number(m[0]) : 0;
+  }
+
   const [isFinished, setIsFinished] = useState(false); // เพิ่ม state ใหม่
+
+  // เมื่อจบทั้งหมด: หยุด animation/timers เพื่อลดโอกาส state เปลี่ยนระหว่าง render
+  useEffect(() => {
+    if (!isFinished) return;
+    try {
+      if (requestRef.current) cancelAnimationFrame(requestRef.current);
+      if (plankTimerRef.current) {
+        clearInterval(plankTimerRef.current as any);
+        plankTimerRef.current = null;
+      }
+      if (sidePlankTimerRef.current) {
+        clearInterval(sidePlankTimerRef.current as any);
+        sidePlankTimerRef.current = null;
+      }
+      setIsResting(false);
+    } catch {}
+  }, [isFinished]);
 
   // ฟังก์ชันสำหรับเริ่มการพักโดยเฉพาะ
   const startRestPeriod = () => {
@@ -433,7 +467,11 @@ const Home = () => {
           setCurrentStepIndex((i) => {
             const nextIndex = i + 1;
             const nextStep = stepsRef.current[nextIndex];
-            speak(`เตรียมตัวสำหรับท่าถัดไป, ${nextStep.exercise}`);
+            if (nextStep) {
+              speak(`เตรียมตัวสำหรับท่าถัดไป, ${nextStep.exercise}`);
+            } else {
+              setIsFinished(true);
+            }
             return nextIndex;
           });
 
@@ -453,11 +491,11 @@ const Home = () => {
 
   useEffect(() => {
     ftPhaseRef.current = ft.phase;
-  }, [ft.phase]);
+  }, [phase]);
 
   useEffect(() => {
-    ftExerciseRef.current = ft.exercise;
-  }, [ft.exercise]);
+    ftExerciseRef.current = (ft as any)?.exercise;
+  }, [(ft as any)?.exercise]);
 
   useEffect(() => {
     ftOnRepRef.current = ft.onRep;
@@ -471,7 +509,7 @@ const Home = () => {
 
   useEffect(() => {
     ftPhaseRef.current = ft.phase;
-  }, [ft.phase]);
+  }, [phase]);
 
   // ...
 
@@ -630,19 +668,20 @@ const Home = () => {
 
   // ฟังก์ชันสำหรับการเริ่มต้นตัวตรวจจับท่าทาง
   const initDetector = async () => {
-    await ensureBackendWebGL();
-
     try {
       const detectorConfig = {
         modelType: poseDetection.movenet.modelType.SINGLEPOSE_THUNDER,
       };
+      console.log("detectorConfig:", detectorConfig);
 
       const detector = await poseDetection.createDetector(
         poseDetection.SupportedModels.MoveNet,
         detectorConfig
       );
+      console.log("detector:", detector);
 
       detectorRef.current = detector;
+      console.log("detectorRef:", detectorRef);
 
       edgesRef.current = {
         "5,7": "m",
@@ -660,6 +699,7 @@ const Home = () => {
       };
 
       setLoading(false);
+      console.log("first");
     } catch (error) {
       console.error("ไม่สามารถโหลดโมเดลได้:", error);
       setMessage("เกิดข้อผิดพลาดในการโหลดโมเดล กรุณาลองใหม่อีกครั้ง");
@@ -668,25 +708,15 @@ const Home = () => {
 
   // ฟังก์ชันสำหรับการประมาณท่าทาง
   const getPoses = async () => {
-    const v = videoRef.current as HTMLVideoElement | null;
-    if (!detectorRef.current || !v) return;
-
-    if (v.readyState < 3 || v.videoWidth === 0 || v.videoHeight === 0) {
-      requestRef.current = requestAnimationFrame(getPoses);
-      return;
-    }
+    if (!detectorRef.current || !videoRef.current) return;
 
     try {
-      posesRef.current = await detectorRef.current.estimatePoses(v);
-    } catch (error: any) {
-      const msg = String(error?.message || error);
-      console.error("เกิดข้อผิดพลาดในการประมาณท่าทาง:", error);
-      if (/importExternalTexture|GPUDevice|fromPixels|0x0/i.test(msg)) {
-        await ensureBackendWebGL();
-        await initDetector();
-      }
-    } finally {
+      posesRef.current = await detectorRef.current.estimatePoses(
+        videoRef.current
+      );
       requestRef.current = requestAnimationFrame(getPoses);
+    } catch (error) {
+      console.error("เกิดข้อผิดพลาดในการประมาณท่าทาง:", error);
     }
   };
 
@@ -1022,46 +1052,103 @@ const Home = () => {
   };
 
   // ฟังก์ชันสำหรับการตรวจสอบท่า Squat
+  // ✅ ตรวจสควอทจาก "สองขา" (รองรับ MoveNet Thunder / TFJS)
   const detectSquat = () => {
     if (isResting) return;
+    const pose = posesRef.current?.[0];
+    if (!pose) return;
 
-    if (!posesRef.current || posesRef.current.length === 0) return;
+    const kps = pose.keypoints;
+    const MIN_SCORE = 0.2;
+    const KNEE_TOE_OFFSET_PX = 50; // ระยะที่ถือว่า "เลยปลายเท้า"
+    const LHIP = 11,
+      RHIP = 12,
+      LKNEE = 13,
+      RKNEE = 14,
+      LANK = 15,
+      RANK = 16;
 
-    updateKneeAngle();
+    const get = (i: number) => kps?.[i];
 
-    // ตรวจสอบว่าอยู่ในท่า Squat ลง (ย่อตัว)
+    // คำนวณมุมที่หัวเข่า (องศา)
+    const kneeAngle = (hip: any, knee: any, ankle: any) => {
+      if (!hip?.score || !knee?.score || !ankle?.score)
+        return Number.POSITIVE_INFINITY;
+      if (
+        hip.score < MIN_SCORE ||
+        knee.score < MIN_SCORE ||
+        ankle.score < MIN_SCORE
+      )
+        return Number.POSITIVE_INFINITY;
+
+      const v1x = hip.x - knee.x,
+        v1y = hip.y - knee.y;
+      const v2x = ankle.x - knee.x,
+        v2y = ankle.y - knee.y;
+      const dot = v1x * v2x + v1y * v2y;
+      const m1 = Math.hypot(v1x, v1y),
+        m2 = Math.hypot(v2x, v2y);
+      if (m1 === 0 || m2 === 0) return Number.POSITIVE_INFINITY;
+
+      let cos = dot / (m1 * m2);
+      cos = Math.max(-1, Math.min(1, cos));
+      return Math.acos(cos) * (180 / Math.PI); // องศา
+    };
+
+    // มุมหัวเข่าซ้าย/ขวา
+    const leftAngle = kneeAngle(get(LHIP), get(LKNEE), get(LANK));
+    const rightAngle = kneeAngle(get(RHIP), get(RKNEE), get(RANK));
+
+    const threshold = kneeAngleThresholdRef.current ?? 120; // ปรับได้ตามต้องการ
+
+    // ---- Detect down (ต้อง "ทั้งสองขา" ต่ำกว่า threshold) ----
     if (
-      kneeAngleRef.current < kneeAngleThresholdRef.current &&
+      leftAngle < threshold &&
+      rightAngle < threshold &&
       squatUpPositionRef.current
     ) {
       squatDownPositionRef.current = true;
       squatUpPositionRef.current = false;
-      showFeedback("ย่อตัวลงแล้ว ดันสะโพกไปด้านหลังพร้อมงอเข่า");
+      showFeedback("ย่อตัวลงแล้ว ดันสะโพกไปด้านหลังพร้อมงอเข่าทั้งสองขา");
     }
-    // ตรวจสอบว่ากลับมายืนตรง
-    else if (kneeAngleRef.current > 160 && squatDownPositionRef.current) {
+    // ---- Detect up (ต้อง "ทั้งสองขา" > 160°) ----
+    else if (
+      leftAngle > 160 &&
+      rightAngle > 160 &&
+      squatDownPositionRef.current
+    ) {
       squatUpPositionRef.current = true;
       squatDownPositionRef.current = false;
-      // setReps((prev) => prev + 1);
       handleDoOneRep(currentStepRef.current);
       showFeedback("ดีมาก! ทำครบ 1 ครั้ง");
     }
 
-    // ตรวจสอบว่าเข่าไม่เลยปลายเท้ามากเกินไป
+    // ---- เข่าเลยปลายเท้า (เช็คทั้งสองด้านตอนกำลังลง) ----
     if (squatDownPositionRef.current) {
-      const leftKnee = posesRef.current[0].keypoints[13];
-      const leftAnkle = posesRef.current[0].keypoints[15];
+      const lk = get(LKNEE),
+        la = get(LANK);
+      const rk = get(RKNEE),
+        ra = get(RANK);
 
+      // ด้านซ้าย: เข่าขวาไปทางขวามือของข้อเท้ามาก ๆ
       if (
-        leftKnee.score &&
-        leftAnkle.score &&
-        leftKnee.score > 0.2 &&
-        leftAnkle.score > 0.2
+        lk &&
+        (lk.score ?? 0) > MIN_SCORE &&
+        la &&
+        (la.score ?? 0) > MIN_SCORE &&
+        lk.x - la.x > KNEE_TOE_OFFSET_PX
       ) {
-        if (leftKnee.x > leftAnkle.x + 50) {
-          // เข่าเลยปลายเท้ามากเกินไป
-          showFeedback("ระวัง! เข่าไม่ควรเลยปลายเท้ามากเกินไป");
-        }
+        showFeedback("ซ้าย: ระวัง! เข่าไม่ควรเลยปลายเท้ามากเกินไป");
+      }
+      // ด้านขวา: เข่าไปทางซ้ายมือของข้อเท้ามาก ๆ
+      if (
+        rk &&
+        (rk.score ?? 0) > MIN_SCORE &&
+        ra &&
+        (ra.score ?? 0) > MIN_SCORE &&
+        rk.x - ra.x < -KNEE_TOE_OFFSET_PX
+      ) {
+        showFeedback("ขวา: ระวัง! เข่าไม่ควรเลยปลายเท้ามากเกินไป");
       }
     }
   };
@@ -1159,21 +1246,21 @@ const Home = () => {
 
     if (
       !leftWrist?.score ||
-      leftWrist.score < 0.3 ||
+      leftWrist.score < 0.2 ||
       !rightWrist?.score ||
-      rightWrist.score < 0.3 ||
+      rightWrist.score < 0.2 ||
       !leftShoulder?.score ||
-      leftShoulder.score < 0.3 ||
+      leftShoulder.score < 0.2 ||
       !rightShoulder?.score ||
-      rightShoulder.score < 0.3 ||
+      rightShoulder.score < 0.2 ||
       !leftHip?.score ||
-      leftHip.score < 0.3 ||
+      leftHip.score < 0.2 ||
       !rightHip?.score ||
-      rightHip.score < 0.3 ||
+      rightHip.score < 0.2 ||
       !leftKnee?.score ||
-      leftKnee.score < 0.3 ||
+      leftKnee.score < 0.2 ||
       !rightKnee?.score ||
-      rightKnee.score < 0.3
+      rightKnee.score < 0.2
     ) {
       return;
     }
@@ -1188,10 +1275,12 @@ const Home = () => {
       x: leftKnee.x,
       y: leftKnee.y + 100,
     });
+    console.log("leftKneeAngle:", leftKneeAngle);
     const rightKneeAngle = calculateAngle(rightHip, rightKnee, {
       x: rightKnee.x,
       y: rightKnee.y + 100,
     });
+    console.log("rightKneeAngle:", rightKneeAngle);
     const avgKneeAngle = (leftKneeAngle + rightKneeAngle) / 2;
 
     const feetOffGround = hipMidY > kneeMidY + 100;
@@ -1209,6 +1298,7 @@ const Home = () => {
     }
 
     const torsoAngle = calculateAngle(leftHip, leftShoulder, rightHip);
+    console.log("torsoAngle:", torsoAngle);
     const backLeanProper = torsoAngle > 0 && torsoAngle < 35;
     if (!backLeanProper) {
       showFeedback("เอนไปข้างหลังประมาณ 45°");
@@ -1346,9 +1436,9 @@ const Home = () => {
       legRaiseHipAngleRef.current = (hipAngleLeft + hipAngleRight) / 2;
     }
 
-    const leftLegStraight = calculateAngle(leftHip, leftKnee, leftAnkle) > 140;
+    const leftLegStraight = calculateAngle(leftHip, leftKnee, leftAnkle) > 120;
     const rightLegStraight =
-      calculateAngle(rightHip, rightKnee, rightAnkle) > 140;
+      calculateAngle(rightHip, rightKnee, rightAnkle) > 120;
     const bothLegsStright = leftLegStraight && rightLegStraight;
 
     if (!bothLegsStright && !legRaiseMomentumWarningRef.current) {
@@ -1753,7 +1843,9 @@ const Home = () => {
     };
 
     // --- ตรวจสอบเงื่อนไขหลัก ---
-    const expectedSide = currentStep.exercise.includes("left")
+    const expectedSide = (currentStep?.exercise || "")
+      .toLowerCase()
+      .includes("left")
       ? "left"
       : "right";
 
@@ -2904,76 +2996,102 @@ const Home = () => {
     requestAnimationFrame(draw);
   };
 
-  // ฟังก์ชันสำหรับการเริ่มต้นกล้อง
+  // ฟังก์ชันสำหรับการเริ่มต้นกล้อง (ฉบับแก้ไข)
   const setupCamera = async () => {
-    const v = videoRef.current as HTMLVideoElement | null;
-    if (!v) return;
+    const video = videoRef.current;
+    if (!video) return;
 
-    // stop old tracks if any
     try {
-      const old = v.srcObject as MediaStream | null;
-      if (old) old.getTracks().forEach((t) => t.stop());
-    } catch {}
-
-    v.setAttribute("playsinline", "true");
-    v.muted = true;
-
-    const candidates: MediaStreamConstraints[] = [
-      {
+      // 1) กำหนด constraints ตามอุปกรณ์
+      const constraints: MediaStreamConstraints = {
         video: {
-          facingMode: { ideal: "user" },
+          facingMode: { ideal: "user" }, // ถ้ากล้องหน้าไม่มี เดี๋ยวเราจะ fallback ด้านล่าง
           width: { ideal: isMobile ? 720 : 1280 },
           height: { ideal: isMobile ? 1280 : 720 },
         },
         audio: false,
-      },
-      { video: { facingMode: "user" }, audio: false },
-      { video: { facingMode: { ideal: "environment" } }, audio: false },
-      { video: true, audio: false } as any,
-    ];
+      };
 
-    let stream: MediaStream | null = null;
-    let lastError: any = null;
-    for (const c of candidates) {
+      // 2) ขอสิทธิ์กล้อง
+      let stream: MediaStream;
       try {
-        stream = await navigator.mediaDevices.getUserMedia(c);
-        if (stream) break;
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
       } catch (e) {
-        lastError = e;
-        continue;
+        // Fallback: บางเครื่องเลือกกล้องหน้าไม่ได้
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: false,
+        });
       }
-    }
-    if (!stream) {
-      console.error("getUserMedia failed with all fallbacks:", lastError);
-      setMessage(
-        "ไม่สามารถเข้าถึงกล้องได้ กรุณาอนุญาตการใช้งานกล้อง และลองเปิดด้วย Chrome/HTTPS"
-      );
-      throw lastError || new Error("getUserMedia failed");
-    }
 
-    v.srcObject = stream;
+      // 3) ตั้งค่าก่อนเล่น (กัน autoplay policy)
+      video.srcObject = stream;
+      video.setAttribute("playsinline", "true");
+      video.muted = true;
 
-    await new Promise<void>((resolve) => {
-      v.onloadedmetadata = () => resolve();
-    });
+      // 4) รอให้ video “เล่นจริง” และมีมิติ (กัน 0x0)
+      await new Promise<void>((resolve) => {
+        let resolved = false;
 
-    try {
-      await v.play();
-    } catch {}
+        const done = () => {
+          if (resolved) return;
+          resolved = true;
+          video.removeEventListener("playing", onPlaying);
+          video.removeEventListener("loadedmetadata", onLoaded);
+          resolve();
+        };
 
-    // wait until frame exists
-    let guard = 0;
-    while (
-      (v.readyState < 3 || v.videoWidth === 0 || v.videoHeight === 0) &&
-      guard < 120
-    ) {
-      await new Promise((r) => setTimeout(r, 50));
-      guard++;
-    }
+        const onPlaying = () => {
+          // playing แล้วยังเช็คซ้ำว่ามีขนาดจริงหรือยัง
+          if (video.videoWidth > 0 && video.videoHeight > 0) done();
+        };
 
-    if (canvasRef.current && v.videoWidth > 0 && v.videoHeight > 0) {
-      canvasRef.current.width = v.videoWidth;
-      canvasRef.current.height = v.videoHeight;
+        const onLoaded = () => {
+          if (video.readyState >= 2) {
+            // เผื่อบางเบราว์เซอร์ loadedmetadata มาก่อน playing
+            if (video.videoWidth > 0 && video.videoHeight > 0) done();
+          }
+        };
+
+        video.addEventListener("playing", onPlaying);
+        video.addEventListener("loadedmetadata", onLoaded);
+
+        // ขอให้เล่นทันที (บางเครื่องต้องเรียกเอง)
+        const tryPlay = async () => {
+          try {
+            await video.play();
+          } catch {}
+        };
+        tryPlay();
+
+        // วนเช็คทุก 50ms จนกว่าจะมีมิติจริง (กันบางเคส event ไม่ยิง)
+        const tick = () => {
+          if (resolved) return;
+          if (video.videoWidth > 0 && video.videoHeight > 0) return done();
+          setTimeout(tick, 50);
+        };
+        tick();
+
+        // safety timeout 5s กันค้าง
+        setTimeout(() => {
+          if (!resolved) {
+            console.warn("video size still 0x0 after timeout");
+            done();
+          }
+        }, 5000);
+      });
+
+      // 5) ถึงตรงนี้ video มีขนาดจริงแล้ว (ถ้าใช้ canvas ให้ตั้งขนาดตามนี้)
+      // if (canvasRef.current) {
+      //   const c = canvasRef.current;
+      //   if (c.width !== video.videoWidth || c.height !== video.videoHeight) {
+      //     c.width = video.videoWidth;
+      //     c.height = video.videoHeight;
+      //   }
+      // }
+    } catch (error) {
+      console.error("ไม่สามารถเข้าถึงกล้องได้:", error);
+      setMessage("ไม่สามารถเข้าถึงกล้องได้ กรุณาอนุญาตการใช้งานกล้อง");
     }
   };
 
@@ -2993,34 +3111,41 @@ const Home = () => {
 
   const [started, setStarted] = useState(false);
 
-  // ใช้ useEffect สำหรับการเริ่มต้นแอปพลิเคชัน
+  // ใช้ useEffect สำหรับการเริ่มต้นแอปพลิเคชัน (ฉบับแก้ไขสมบูรณ์)
   useEffect(() => {
-    checkIfMobile();
-    window.addEventListener("resize", handleResize);
+    // 💡 1. เพิ่มเงื่อนไขให้โค้ดทั้งหมดทำงาน "ต่อเมื่อ" started เป็น true เท่านั้น
+    if (started) {
+      const init = async () => {
+        // เพิ่มการแจ้งเตือนเสียงเมื่อเริ่มต้น
+        setTimeout(() => {
+          speak("ระบบเสียงพร้อมใช้งาน");
+        }, 2000); // รอ 2 วินาทีหลังจากโหลดเสร็จ
 
-    const init = async () => {
-      // เพิ่มการแจ้งเตือนเสียงเมื่อเริ่มต้น
-      setTimeout(() => {
-        speak("ระบบเสียงพร้อมใช้งาน");
-      }, 2000); // รอ 2 วินาทีหลังจากโหลดเสร็จ
+        // เริ่มต้น TensorFlow.js
+        await tf.ready();
+        console.log("tf.ready():", tf.ready());
 
-      // เริ่มต้น TensorFlow.js
-      await tf.ready();
+        // ตั้งค่ากล้อง
+        await setupCamera();
+        console.log("check");
 
-      // ตั้งค่ากล้อง
-      await setupCamera();
+        if (videoRef.current) {
+          videoRef.current.play();
+          console.log("asd");
+        }
 
-      // เริ่มต้นตัวตรวจจับท่าทาง
-      await initDetector();
+        // เริ่มต้นตัวตรวจจับท่าทาง
+        await initDetector();
 
-      // เริ่มการประมาณท่าทาง
-      getPoses();
+        // เริ่มการประมาณท่าทาง
+        getPoses();
 
-      // เริ่มการวาดภาพ
-      draw();
-    };
+        // เริ่มการวาดภาพ
+        draw();
+      };
 
-    init();
+      init();
+    }
 
     // ทำความสะอาดเมื่อคอมโพเนนต์ถูกทำลาย
     return () => {
@@ -3047,7 +3172,9 @@ const Home = () => {
         tracks.forEach((track) => track.stop());
       }
     };
-  }, []);
+    // 💡 2. เพิ่ม started เข้าไปใน dependency array
+    // เพื่อให้ useEffect นี้ทำงานใหม่ทุกครั้งที่ค่า started เปลี่ยน
+  }, [started]);
 
   useEffect(() => {
     exerciseTypeRef.current = exerciseType;
@@ -3074,12 +3201,30 @@ const Home = () => {
       plank: "plank",
     };
 
-    const nextName = map[ft.exercise];
+    const nextName =
+      map[
+        String((ft as any)?.exercise ?? "").toLowerCase() as keyof typeof map
+      ];
     setExerciseType(nextName);
     exerciseTypeRef.current = nextName;
-  }, [isFitnessTest, ft.exercise]);
-
+  }, [isFitnessTest, (ft as any)?.exercise]);
   const breakdown = useMemo(() => deriveBreakdown(ft, true), [ft]);
+  const totalScore = useMemo(() => {
+    const b = breakdown || ({} as any);
+    return (
+      Number(b.pushup ?? 0) +
+      Number(b.squat ?? 0) +
+      Number(b.burpee ?? 0) +
+      Number(b.plankSeconds ?? 0)
+    );
+  }, [breakdown]);
+
+  const levelLabel = useMemo(() => {
+    const t = totalScore;
+    if (t >= 300) return "Advanced";
+    if (t >= 150) return "Intermediate";
+    return "Beginner";
+  }, [totalScore]);
 
   const DISPLAY_EX: Record<string, string> = {
     pushup: "Push-up",
@@ -3087,6 +3232,19 @@ const Home = () => {
     burpee: "Burpee",
     plank: "Plank",
   };
+
+  // ถ้าจบทั้งหมดแล้ว แสดงหน้าเสร็จสิ้นอย่างเดียว เพื่อตัดการ render ส่วนอื่นที่อาจอ้าง currentStep/((ft as any)?.exercise)
+  if (isFinished || phase === "summary") {
+    return (
+      <div className="relative flex flex-col items-center justify-center p-6 bg-gray-900 text-white w-full min-h-screen">
+        <SummaryOverlay
+          total={totalScore}
+          level={levelLabel}
+          breakdown={breakdown}
+        />
+      </div>
+    );
+  }
 
   if (!started) {
     return (
@@ -3119,7 +3277,13 @@ const Home = () => {
 
       {/* ส่วนวิดีโอและ Canvas */}
       <div className="relative w-full max-w-lg shadow-2xl rounded-xl">
-        <video ref={videoRef} className="hidden" autoPlay playsInline muted />
+        <video
+          ref={videoRef}
+          className="absolute -top-[9999px] -left-[9999px]" // 💡 ลองเปลี่ยนมาใช้ค่านี้
+          autoPlay
+          playsInline
+          muted
+        />
         <canvas
           ref={canvasRef}
           className="w-full h-auto border-2 border-gray-700 rounded-xl"
@@ -3174,9 +3338,7 @@ const Home = () => {
           </div>
         )} */}
         {(currentStep ||
-          (isFitnessTest &&
-            ft.phase !== "countdown" &&
-            ft.phase !== "summary")) && (
+          (isFitnessTest && phase !== "countdown" && phase !== "summary")) && (
           <>
             {!isFitnessTest && currentStep && (
               <HudOverlay
@@ -3191,7 +3353,7 @@ const Home = () => {
                     ? sidePlankTime
                     : reps
                 }
-                total={currentStep.reps}
+                total={Number(currentStep?.reps ?? 0)}
                 isTime={
                   currentStep.exercise?.toLowerCase?.() === "plank" ||
                   currentStep.exercise?.toLowerCase?.().includes("side plank")
@@ -3199,33 +3361,31 @@ const Home = () => {
               />
             )}
 
-            {isFitnessTest &&
-              ft.phase !== "countdown" &&
-              ft.phase !== "summary" && (
-                <HudOverlay
-                  exercise={ft.exercise}
-                  // ถ้ามี set/รอบใน state ของคุณ ให้ส่งเข้ามาแทน 1 นี้
-                  setNumber={(ft as any).setNumber ?? 1}
-                  current={
-                    ft.exercise === "plank"
-                      ? ft.plankSec
-                      : ft.exercise === "pushup"
-                      ? ft.counts.pushup
-                      : ft.exercise === "squat"
-                      ? ft.counts.squat
-                      : ft.exercise === "burpee"
-                      ? ft.counts.burpee
-                      : 0
-                  }
-                  // ถ้ามีเป้าหมายใน state (เช่น ft.targetPlankSec / ft.targetReps) ให้ใส่; ถ้าไม่มีก็ปล่อย undefined เพื่อซ่อน "/"
-                  total={
-                    ft.exercise === "plank"
-                      ? (ft as any).targetPlankSec ?? undefined
-                      : (ft as any).targetReps ?? undefined
-                  }
-                  isTime={ft.exercise === "plank"}
-                />
-              )}
+            {isFitnessTest && phase !== "countdown" && phase !== "summary" && (
+              <HudOverlay
+                exercise={(ft as any)?.exercise}
+                // ถ้ามี set/รอบใน state ของคุณ ให้ส่งเข้ามาแทน 1 นี้
+                setNumber={(ft as any).setNumber ?? 1}
+                current={
+                  (ft as any)?.exercise === "plank"
+                    ? (ft as any)?.plankSec ?? 0
+                    : (ft as any)?.exercise === "pushup"
+                    ? (ft as any)?.counts?.pushup ?? 0
+                    : (ft as any)?.exercise === "squat"
+                    ? (ft as any)?.counts?.squat ?? 0
+                    : (ft as any)?.exercise === "burpee"
+                    ? (ft as any)?.counts?.burpee ?? 0
+                    : 0
+                }
+                // ถ้ามีเป้าหมายใน state (เช่น ft.targetPlankSec / ft.targetReps) ให้ใส่; ถ้าไม่มีก็ปล่อย undefined เพื่อซ่อน "/"
+                total={
+                  (ft as any)?.exercise === "plank"
+                    ? (ft as any).targetPlankSec ?? undefined
+                    : (ft as any).targetReps ?? undefined
+                }
+                isTime={(ft as any)?.exercise === "plank"}
+              />
+            )}
           </>
         )}
 
@@ -3272,52 +3432,62 @@ const Home = () => {
           ) : (
             <div className="space-y-2">
               {/* VVV เพิ่ม UI สำหรับ Countdown VVV */}
-              {ft.phase === "countdown" && (
+              {phase === "countdown" && (
                 // <div className="text-center py-4">
                 //   <div className="text-xl font-medium text-gray-400">
                 //     เตรียมตัว
                 //   </div>
                 //   <div className="text-7xl font-bold tabular-nums text-white animate-ping-once">
-                //     {ft.countdownLeft}
+                //     {((ft as any)?.countdownLeft ?? 0)}
                 //   </div>
                 //   <div className="text-lg text-gray-300 mt-2">
                 //     ท่าแรก:{" "}
                 //     <span className="capitalize font-semibold">
-                //       {ft.exercise}
+                //       {((ft as any)?.exercise)}
                 //     </span>
                 //   </div>
                 // </div>
                 <RestOverlay
-                  seconds={ft.countdownLeft}
-                  nextExercise={DISPLAY_EX[ft.exercise] || ft.exercise}
+                  seconds={(ft as any)?.countdownLeft ?? 0}
+                  nextExercise={(() => {
+                    const key = String(
+                      (ft as any)?.exercise ?? ""
+                    ).toLowerCase() as keyof typeof DISPLAY_EX;
+                    return (
+                      DISPLAY_EX[key] ?? String((ft as any)?.exercise ?? "")
+                    );
+                  })()}
                   label="เตรียมตัว"
                 />
               )}
 
-              {ft.phase !== "countdown" && (
+              {phase !== "countdown" && (
                 <>
                   <div className="flex items-center justify-between">
                     <div className="font-medium capitalize">
                       กำลังทำ: {exerciseTypeRef.current}
                     </div>
-                    {ft.exercise !== "plank" ? (
+                    {(ft as any)?.exercise !== "plank" ? (
                       <div className="text-2xl tabular-nums">
                         {ft.timeLeft}s
                       </div>
                     ) : (
                       <div className="text-2xl tabular-nums">
-                        {ft.plankSec}s
+                        {(ft as any)?.plankSec ?? 0}s
                       </div>
                     )}
                   </div>
 
-                  {ft.exercise !== "plank" ? (
+                  {(ft as any)?.exercise !== "plank" ? (
                     <div className="flex items-center justify-between text-sm">
                       <span>นับได้</span>
                       <span className="text-xl">
-                        {ft.exercise === "pushup" && ft.counts.pushup}
-                        {ft.exercise === "squat" && ft.counts.squat}
-                        {ft.exercise === "burpee" && ft.counts.burpee}
+                        {(ft as any)?.exercise === "pushup" &&
+                          ((ft as any)?.counts?.pushup ?? 0)}
+                        {(ft as any)?.exercise === "squat" &&
+                          ((ft as any)?.counts?.squat ?? 0)}
+                        {(ft as any)?.exercise === "burpee" &&
+                          ((ft as any)?.counts?.burpee ?? 0)}
                       </span>
                     </div>
                   ) : (
@@ -3333,35 +3503,36 @@ const Home = () => {
                     </div>
                   )}
 
-                  {ft.phase === "rest" && (
+                  {phase === "rest" && (
                     <div className="text-center">
                       พัก {ft.restLeft}s แล้วจะไปท่าถัดไปอัตโนมัติ
                     </div>
                   )}
 
-                  {ft.phase === "summary" && (
+                  {phase === "summary" && (
                     <div className="pt-2 border-t border-gray-700">
                       <div className="font-semibold mb-1">สรุปผล</div>
                       <ul className="text-sm space-y-1">
                         <li>
-                          Push-up: {ft.counts.pushup} →{" "}
+                          Push-up: {(ft as any)?.counts?.pushup ?? 0} →{" "}
                           {ft.scorePerExercise.pushup} คะแนน
                         </li>
                         <li>
-                          Squat: {ft.counts.squat} → {ft.scorePerExercise.squat}{" "}
-                          คะแนน
+                          Squat: {(ft as any)?.counts?.squat ?? 0} →{" "}
+                          {ft.scorePerExercise.squat} คะแนน
                         </li>
                         <li>
-                          Burpee: {ft.counts.burpee} →{" "}
+                          Burpee: {(ft as any)?.counts?.burpee ?? 0} →{" "}
                           {ft.scorePerExercise.burpee} คะแนน
                         </li>
                         <li>
-                          Plank: {ft.plankSec}s → {ft.scorePerExercise.plank}{" "}
-                          คะแนน
+                          Plank: {(ft as any)?.plankSec ?? 0}s →{" "}
+                          {ft.scorePerExercise.plank} คะแนน
                         </li>
                       </ul>
                       <div className="mt-2">
-                        รวม: <b>{ft.total}</b> คะแนน → ระดับ <b>{ft.level}</b>
+                        รวม: <b>{Number((ft as any)?.total ?? 0)}</b> คะแนน →
+                        ระดับ <b>{String((ft as any)?.level ?? "")}</b>
                       </div>
 
                       <div className="mt-3 flex gap-2">
@@ -3383,11 +3554,11 @@ const Home = () => {
                     </div>
                   )}
 
-                  {ft.phase !== "summary" && (
+                  {phase !== "summary" && (
                     <div className="flex gap-2">
-                      {ft.exercise === "plank" && (
+                      {(ft as any)?.exercise === "plank" && (
                         <button
-                          onClick={() => ft.finishPlank()}
+                          onClick={() => (ft as any)?.finishPlank?.()}
                           className="px-3 py-2 rounded-lg bg-gray-700"
                         >
                           จบ Plank
@@ -3395,7 +3566,7 @@ const Home = () => {
                       )}
                       <button
                         onClick={() => {
-                          ft.stop();
+                          (ft as any)?.stop?.();
                         }}
                         className="px-3 py-2 rounded-lg bg-gray-700"
                       >
@@ -3424,28 +3595,48 @@ const Home = () => {
           </p>
         </div>
       )} */}
-      {(isResting || (isFitnessTest && ft.phase === "rest")) && (
-        // <RestOverlay seconds={isFitnessTest ? ft.restLeft : restTime} />
+      {(isResting || (isFitnessTest && phase === "rest")) && (
         <RestOverlay
           seconds={isFitnessTest ? ft.restLeft : restTime}
-          nextExercise={(function () {
-            const order = ["pushup", "squat", "burpee", "plank"];
-            const i = order.indexOf(ft.exercise);
-            const n = i >= 0 && i < order.length - 1 ? order[i + 1] : undefined;
-            return n ? DISPLAY_EX[n] : undefined; // ถ้าไม่มีแล้ว (หลัง plank) จะไม่ขึ้น
-          })()}
+          nextExercise={
+            isFitnessTest
+              ? (() => {
+                  const order = ["pushup", "squat", "burpee", "plank"] as const;
+                  const i = order.indexOf((ft as any)?.exercise);
+                  const n =
+                    i >= 0 && i < order.length - 1 ? order[i + 1] : undefined;
+                  return n
+                    ? DISPLAY_EX[n as keyof typeof DISPLAY_EX]
+                    : undefined;
+                })()
+              : (() => {
+                  const nextStep = stepsRef.current[currentStepIndex + 1];
+                  if (!nextStep) return undefined;
+                  const ex = (nextStep.exercise || "").toLowerCase();
+                  if (ex.startsWith("side plank")) {
+                    return ex.includes("left")
+                      ? "Side Plank (ซ้าย)"
+                      : "Side Plank (ขวา)";
+                  }
+                  if (ex === "plank") return "Plank";
+                  return (
+                    nextStep.exercise?.charAt(0).toUpperCase() +
+                      nextStep.exercise?.slice(1) || undefined
+                  );
+                })()
+          }
           label="พักสักครู่"
         />
       )}
 
-      {/* {isFitnessTest && ft.phase === "summary" && (
-        <SummaryOverlay total={ft.total} level={ft.level} />
+      {/* {isFitnessTest && phase === "summary" && (
+        <SummaryOverlay total={Number((ft as any)?.total ?? 0)} level={String((ft as any)?.level ?? "")} />
       )} */}
 
-      {isFitnessTest && ft.phase === "summary" && (
+      {isFitnessTest && phase === "summary" && (
         <SummaryOverlay
-          total={ft.total}
-          level={ft.level}
+          total={Number((ft as any).total ?? totalScore)}
+          level={String((ft as any).level ?? levelLabel)}
           breakdown={breakdown}
         />
       )}
