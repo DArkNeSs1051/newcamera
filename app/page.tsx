@@ -3,6 +3,7 @@
 import * as poseDetection from "@tensorflow-models/pose-detection";
 import * as tf from "@tensorflow/tfjs";
 import "@tensorflow/tfjs-backend-webgl";
+import "@tensorflow/tfjs-backend-webgpu";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useFitnessTestMachine } from "@/components/fitness-test";
 import {
@@ -669,16 +670,32 @@ const Home = () => {
   // ฟังก์ชันสำหรับการเริ่มต้นตัวตรวจจับท่าทาง
   const initDetector = async () => {
     try {
-      const detectorConfig = {
+      // ป้องกันโหลดซ้ำ
+      if (detectorRef.current) return;
+      const detectorConfig: poseDetection.MoveNetModelConfig = {
         modelType: poseDetection.movenet.modelType.SINGLEPOSE_THUNDER,
-        runtime: "tfjs",
       };
       console.log("detectorConfig:", detectorConfig);
 
-      const detector = await poseDetection.createDetector(
-        poseDetection.SupportedModels.MoveNet,
-        detectorConfig
-      );
+      let detector: poseDetection.PoseDetector | null = null;
+      try {
+        detector = await poseDetection.createDetector(
+          poseDetection.SupportedModels.MoveNet,
+          detectorConfig
+        );
+      } catch (err) {
+        console.warn(
+          "โหลดจาก TFHub ล้มเหลว ลอง fallback เป็น local /public:",
+          err
+        );
+        detector = await poseDetection.createDetector(
+          poseDetection.SupportedModels.MoveNet,
+          {
+            ...detectorConfig,
+            modelUrl: "/models/movenet/singlepose-thunder/model.json",
+          } as any
+        );
+      }
       console.log("detector:", detector);
 
       detectorRef.current = detector;
@@ -3123,7 +3140,13 @@ const Home = () => {
         }, 2000); // รอ 2 วินาทีหลังจากโหลดเสร็จ
 
         // เริ่มต้น TensorFlow.js
+        try {
+          await tf.setBackend("webgpu");
+        } catch (e) {
+          await tf.setBackend("webgl");
+        }
         await tf.ready();
+        console.log("Backend selected:", tf.getBackend());
         console.log("tf.ready():", tf.ready());
 
         // ตั้งค่ากล้อง
