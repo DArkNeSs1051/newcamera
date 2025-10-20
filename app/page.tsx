@@ -671,6 +671,7 @@ const Home = () => {
     try {
       const detectorConfig = {
         modelType: poseDetection.movenet.modelType.SINGLEPOSE_THUNDER,
+        runtime: "tfjs",
       };
       console.log("detectorConfig:", detectorConfig);
 
