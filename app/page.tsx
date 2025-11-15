@@ -161,6 +161,8 @@ const Home = () => {
   const [isFitnessTest, setIsFitnessTest] = useState(false);
   const isFitnessTestRef = useRef<boolean>(false);
   const [sex, setSex] = useState<"male" | "female">("male");
+  const [age, setAge] = useState("0");
+  console.log("age:", age);
 
   // แนะนำ knee offset สำหรับผู้หญิงที่ทำ knee push-up (5–10 ครั้ง)
   const ft = useFitnessTestMachine({
@@ -221,6 +223,7 @@ const Home = () => {
         if (data?.type === "FROM_TEST") {
           setC(true);
           setSex(data.gender);
+          setAge(data.age);
         }
       } catch (e) {
         console.error("❌ รับข้อมูลพัง:", e);
