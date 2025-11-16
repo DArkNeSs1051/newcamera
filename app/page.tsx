@@ -162,11 +162,16 @@ const Home = () => {
   const isFitnessTestRef = useRef<boolean>(false);
   const [sex, setSex] = useState<"male" | "female">("male");
   const [age, setAge] = useState("0");
-  console.log("age:", age);
+
+  const ageNumber = useMemo(() => {
+    const n = parseInt(age, 10);
+    return Number.isFinite(n) && n > 0 ? n : undefined;
+  }, [age]);
 
   // แนะนำ knee offset สำหรับผู้หญิงที่ทำ knee push-up (5–10 ครั้ง)
   const ft = useFitnessTestMachine({
     sex,
+    age: ageNumber,
     kneePushupOffset: sex === "female" ? 7 : 0,
   });
   const phase = String((ft as any)?.phase ?? "");
@@ -223,7 +228,7 @@ const Home = () => {
         if (data?.type === "FROM_TEST") {
           setC(true);
           setSex(data.gender);
-          setAge(data.age);
+          setAge(String(data.age ?? "0"));
         }
       } catch (e) {
         console.error("❌ รับข้อมูลพัง:", e);
@@ -239,18 +244,14 @@ const Home = () => {
       if (typeof window !== "undefined" && (window as any).ReactNativeWebView) {
         (window as any).ReactNativeWebView.postMessage(
           JSON.stringify({
-            message: `Count ${repsRef.current} นะรู้ไหมตัวเอง`,
+            message: `Count ${repsRef.current}`,
             success: false,
           })
         );
       }
     } else if (isResting) {
       if (typeof window !== "undefined" && (window as any).ReactNativeWebView) {
-        (window as any).ReactNativeWebView.postMessage(
-          JSON.stringify({
-            message: `ชิบหายหมดแล้วรู้ไหม มึงก็นะขยันหาเทส ท่าแปลกๆ ขยันหาให้แก้จริงๆเลยนะ ไอ่สัสเอ้ย`,
-          })
-        );
+        (window as any).ReactNativeWebView.postMessage();
       }
     } else if (isFinished) {
       if (typeof window !== "undefined" && (window as any).ReactNativeWebView) {
@@ -3236,21 +3237,30 @@ const Home = () => {
     exerciseTypeRef.current = nextName;
   }, [isFitnessTest, (ft as any)?.exercise]);
   const breakdown = useMemo(() => deriveBreakdown(ft, true), [ft]);
+
   const totalScore = useMemo(() => {
     const b = breakdown || ({} as any);
+
+    // ตอนนี้สมมติว่าแต่ละท่าให้คะแนน 1–7 แล้วเก็บใน breakdown เป็น
+    // b.pushup, b.squat, b.burpee, b.plank (หรือ plankScore)
     return (
       Number(b.pushup ?? 0) +
       Number(b.squat ?? 0) +
       Number(b.burpee ?? 0) +
-      Number(b.plankSeconds ?? 0)
+      Number(b.plankSeconds ?? 0) // ถ้าใน breakdown ใช้ชื่ออื่น เช่น plankScore ให้เปลี่ยนตรงนี้
     );
   }, [breakdown]);
 
   const levelLabel = useMemo(() => {
-    const t = totalScore;
-    if (t >= 300) return "Advanced";
-    if (t >= 150) return "Intermediate";
-    return "Beginner";
+    const t = totalScore; // 0–28
+
+    if (t >= 25) return "Excellent";
+    if (t >= 22) return "Good";
+    if (t >= 19) return "Above average";
+    if (t >= 16) return "Average";
+    if (t >= 13) return "Below Average";
+    if (t >= 10) return "Poor";
+    return "Very Poor";
   }, [totalScore]);
 
   const DISPLAY_EX: Record<string, string> = {
@@ -3711,200 +3721,3 @@ const Home = () => {
 };
 
 export default Home;
-
-/* === Camera Permission Helper (non-invasive) === */
-/* This block adds a floating widget and window helpers without touching existing logic */
-(() => {
-  if (typeof window === "undefined") return;
-  if ((window as any).__cameraPermHelperMounted) return;
-  (window as any).__cameraPermHelperMounted = true;
-
-  type CameraPermissionState = "granted" | "prompt" | "denied" | "unsupported";
-
-  const isSecure = () =>
-    window.isSecureContext === true || location.protocol === "https:";
-
-  async function queryCameraPermission(): Promise<{
-    state: CameraPermissionState;
-    secure: boolean;
-    reason?: string;
-  }> {
-    if (!("mediaDevices" in navigator)) {
-      return {
-        state: "unsupported",
-        secure: isSecure(),
-        reason: "navigator.mediaDevices ไม่มีในบริบทนี้",
-      };
-    }
-    if (!isSecure()) {
-      return {
-        state: "denied",
-        secure: false,
-        reason: "ไม่ใช่ secure context (ต้องเป็น https หรือ WebView ที่อนุญาต)",
-      };
-    }
-    const navAny = navigator as any;
-    if (navAny.permissions?.query) {
-      try {
-        const status = await navAny.permissions.query({
-          name: "camera" as PermissionName,
-        });
-        return { state: status.state as CameraPermissionState, secure: true };
-      } catch {}
-    }
-    try {
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const hasCam = devices.some((d) => d.kind === "videoinput");
-      const anyLabeled = devices.some(
-        (d) => d.kind === "videoinput" && !!d.label
-      );
-      if (!hasCam)
-        return { state: "denied", secure: true, reason: "ไม่พบอุปกรณ์กล้อง" };
-      return { state: anyLabeled ? "granted" : "prompt", secure: true };
-    } catch {
-      return {
-        state: "prompt",
-        secure: true,
-        reason: "enumerateDevices ล้มเหลว (อาจต้องเรียกขอสิทธิ์ก่อน)",
-      };
-    }
-  }
-
-  async function requestCameraOnce(
-    constraints: MediaStreamConstraints = {
-      video: { facingMode: "user" },
-      audio: false,
-    }
-  ) {
-    if (!("mediaDevices" in navigator)) {
-      return { ok: false, error: "ไม่รองรับ mediaDevices" };
-    }
-    if (!isSecure()) {
-      return {
-        ok: false,
-        code: "SECURE_CONTEXT",
-        error: "ต้องใช้งานผ่าน https หรือ context ที่ปลอดภัย",
-      };
-    }
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      stream.getTracks().forEach((t) => t.stop());
-      return { ok: true };
-    } catch (err: any) {
-      const code = err?.name || "ERROR";
-      const map: Record<string, string> = {
-        NotAllowedError:
-          "ผู้ใช้ปฏิเสธสิทธิ์ หรือ WebView ไม่อนุมัติสิทธิ์ให้หน้าเว็บ",
-        SecurityError: "บริบทไม่ปลอดภัย (ต้องเป็น https)",
-        NotFoundError: "ไม่มีกล้องในอุปกรณ์",
-        NotReadableError: "กล้องถูกใช้งานโดยแอปอื่น/ระบบไม่ให้ใช้",
-        OverconstrainedError: "ข้อกำหนดกล้องไม่รองรับ (เช่น facingMode)",
-        AbortError: "ระบบยกเลิกคำขอ",
-        TypeError: "constraints ไม่ถูกต้อง หรือเบราว์เซอร์ไม่รองรับ",
-      };
-      return {
-        ok: false,
-        code,
-        error: map[code] ?? err?.message ?? "ไม่ทราบสาเหตุ",
-      };
-    }
-  }
-
-  // Expose helpers to window so RN WebView or other scripts can call
-  (window as any).CameraPermissionHelper = {
-    query: queryCameraPermission,
-    request: requestCameraOnce,
-  };
-
-  // Floating UI
-  const rootId = "camera-perm-helper-root";
-  if (document.getElementById(rootId)) return;
-  const root = document.createElement("div");
-  root.id = rootId;
-  root.style.position = "fixed";
-  root.style.right = "12px";
-  root.style.bottom = "12px";
-  root.style.zIndex = "2147483647";
-  root.style.fontFamily =
-    "system-ui, -apple-system, Segoe UI, Roboto, sans-serif";
-  root.style.userSelect = "none";
-  root.style.pointerEvents = "auto";
-
-  root.innerHTML = `
-    <div style="background:#0f172a; color:#fff; padding:10px 12px; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,.25); min-width: 240px; display:flex; flex-direction:column; gap:8px">
-      <div style="display:flex; justify-content:space-between; align-items:center; gap:8px">
-        <strong style="font-size:14px">Camera Permission</strong>
-        <button id="cam-perm-close" style="background:transparent;border:0;color:#94a3b8;cursor:pointer;font-size:14px;line-height:1">✕</button>
-      </div>
-      <div id="cam-perm-status" style="font-size:13px">สถานะ: <b>ตรวจสอบ...</b></div>
-      <div id="cam-perm-msg" style="font-size:12px;color:#cbd5e1"></div>
-      <div style="display:flex; gap:8px">
-        <button id="cam-perm-check" style="flex:1;border:0;border-radius:10px;padding:8px 10px;cursor:pointer;background:#1f2937;color:#fff">ตรวจสอบ</button>
-        <button id="cam-perm-req" style="flex:1;border:0;border-radius:10px;padding:8px 10px;cursor:pointer;background:#22c55e;color:#052e12">ขอสิทธิ์</button>
-      </div>
-    </div>
-  `;
-
-  document.body.appendChild(root);
-
-  const elStatus = document.getElementById("cam-perm-status")!;
-  const elMsg = document.getElementById("cam-perm-msg")!;
-  const btnCheck = document.getElementById("cam-perm-check")!;
-  const btnReq = document.getElementById("cam-perm-req")!;
-  const btnClose = document.getElementById("cam-perm-close")!;
-
-  function postToRN(payload: any) {
-    try {
-      (window as any).ReactNativeWebView?.postMessage(
-        JSON.stringify({ type: "camera-permission", ...payload })
-      );
-    } catch {}
-  }
-
-  async function doCheck() {
-    elMsg.textContent = "";
-    elStatus.innerHTML = "สถานะ: <b>กำลังตรวจสอบ...</b>";
-    const res = await queryCameraPermission();
-    elStatus.innerHTML = `สถานะ: <b>${res.state}</b> ${
-      res.secure ? "" : "(not secure)"
-    }`;
-    if (res.reason) elMsg.textContent = res.reason;
-    else elMsg.textContent = "";
-    postToRN({ event: "query", res });
-  }
-
-  async function doRequest() {
-    elMsg.textContent = "กำลังร้องขอสิทธิ์...";
-    const res = await requestCameraOnce();
-    if (res.ok) {
-      elMsg.textContent = "อนุญาตแล้ว พร้อมใช้งาน";
-    } else {
-      elMsg.textContent = res.error || res.code || "ขอสิทธิ์ไม่สำเร็จ";
-    }
-    postToRN({ event: "request", res });
-    await doCheck();
-  }
-
-  btnCheck.addEventListener("click", doCheck);
-  btnReq.addEventListener("click", doRequest);
-  btnClose.addEventListener("click", () => {
-    root.remove();
-  });
-
-  // auto-check once
-  doCheck();
-
-  // Listen to permissions change (if supported)
-  (async () => {
-    const navAny = navigator as any;
-    if (navAny.permissions?.query) {
-      try {
-        const perm = await navAny.permissions.query({
-          name: "camera" as PermissionName,
-        });
-        perm.onchange = () => doCheck();
-      } catch {}
-    }
-  })();
-})();
-/* === End Camera Permission Helper === */

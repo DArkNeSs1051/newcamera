@@ -14,10 +14,20 @@ const SEQUENCE: Exercise[] = ["pushup", "squat", "burpee", "plank"];
 const WORK_SEC = 60;
 const REST_SEC = 15;
 
-type Band = { min: number; max: number; score: 1 | 2 | 3 | 4 | 5 };
+type Band = { min: number; max: number; score: 1 | 2 | 3 | 4 | 5 | 6 | 7 };
 
-// ตารางคะแนนตามไฟล์แนบ
-const TABLE: Record<Sex, Record<Exercise, Band[]>> = {
+// plank ใช้ร่วมกันทั้งชาย-หญิง ทุกอายุ (หน่วย: วินาที)
+const PLANK_TABLE: Band[] = [
+  { min: 361, max: Infinity, score: 7 }, // Excellent  > 6 นาที
+  { min: 240, max: 360, score: 6 }, // Very Good 4–6 นาที
+  { min: 120, max: 239, score: 5 }, // Above average 2–4 นาที
+  { min: 60, max: 119, score: 4 }, // Average 1–2 นาที
+  { min: 30, max: 59, score: 3 }, // Below average 30–60 วิ
+  { min: 15, max: 29, score: 2 }, // Poor 15–30 วิ
+  { min: 0, max: 14, score: 1 }, // Very poor < 15 วิ
+];
+
+const BASE_TABLE: Record<Sex, Record<Exercise, Band[]>> = {
   male: {
     pushup: [
       { min: 35, max: Infinity, score: 5 },
@@ -40,13 +50,7 @@ const TABLE: Record<Sex, Record<Exercise, Band[]>> = {
       { min: 8, max: 11, score: 2 },
       { min: 0, max: 7, score: 1 },
     ],
-    plank: [
-      { min: 120, max: Infinity, score: 5 },
-      { min: 90, max: 119, score: 4 },
-      { min: 60, max: 89, score: 3 },
-      { min: 30, max: 59, score: 2 },
-      { min: 0, max: 29, score: 1 },
-    ],
+    plank: PLANK_TABLE,
   },
   female: {
     pushup: [
@@ -70,26 +74,255 @@ const TABLE: Record<Sex, Record<Exercise, Band[]>> = {
       { min: 7, max: 9, score: 2 },
       { min: 0, max: 6, score: 1 },
     ],
-    plank: [
-      { min: 120, max: Infinity, score: 5 }, // ใช้เกณฑ์เดียวกับผู้ชาย
-      { min: 90, max: 119, score: 4 },
-      { min: 60, max: 89, score: 3 },
-      { min: 30, max: 59, score: 2 },
-      { min: 0, max: 29, score: 1 },
-    ],
+    plank: PLANK_TABLE,
   },
 };
 
-const levelFromTotal = (sum: number) =>
-  sum >= 17 ? "advance" : sum >= 13 ? "intermediate" : "beginner";
+const SQUAT_MALE_18_29: Band[] = [
+  { min: 35, max: Infinity, score: 7 }, // Excellent
+  { min: 33, max: 34, score: 6 }, // Good
+  { min: 30, max: 32, score: 5 }, // Above average
+  { min: 27, max: 29, score: 4 }, // Average
+  { min: 24, max: 26, score: 3 }, // Below average
+  { min: 21, max: 23, score: 2 }, // Poor
+  { min: 0, max: 20, score: 1 }, // Very poor
+];
+
+const SQUAT_MALE_30_39: Band[] = [
+  { min: 33, max: Infinity, score: 7 },
+  { min: 30, max: 32, score: 6 },
+  { min: 27, max: 29, score: 5 },
+  { min: 24, max: 26, score: 4 },
+  { min: 21, max: 23, score: 3 },
+  { min: 18, max: 20, score: 2 },
+  { min: 0, max: 17, score: 1 },
+];
+
+const SQUAT_FEMALE_18_29: Band[] = [
+  { min: 30, max: Infinity, score: 7 },
+  { min: 27, max: 29, score: 6 },
+  { min: 24, max: 26, score: 5 },
+  { min: 21, max: 23, score: 4 },
+  { min: 18, max: 20, score: 3 },
+  { min: 15, max: 17, score: 2 },
+  { min: 0, max: 14, score: 1 },
+];
+
+const SQUAT_FEMALE_30_39: Band[] = [
+  { min: 27, max: Infinity, score: 7 },
+  { min: 24, max: 26, score: 6 },
+  { min: 21, max: 23, score: 5 },
+  { min: 18, max: 20, score: 4 },
+  { min: 15, max: 17, score: 3 },
+  { min: 12, max: 14, score: 2 },
+  { min: 0, max: 11, score: 1 },
+];
+
+const PUSHUP_MALE_18_29: Band[] = [
+  { min: 48, max: Infinity, score: 7 }, // Excellent  > 47
+  { min: 40, max: 47, score: 6 }, // Good
+  { min: 30, max: 39, score: 5 }, // Above average
+  { min: 17, max: 29, score: 4 }, // Average
+  { min: 11, max: 16, score: 3 }, // Below average
+  { min: 4, max: 10, score: 2 }, // Poor
+  { min: 0, max: 3, score: 1 }, // Very poor
+];
+
+const PUSHUP_MALE_30_39: Band[] = [
+  { min: 42, max: Infinity, score: 7 }, // Excellent > 41
+  { min: 34, max: 41, score: 6 }, // Good
+  { min: 25, max: 33, score: 5 }, // Above average
+  { min: 13, max: 24, score: 4 }, // Average
+  { min: 8, max: 12, score: 3 }, // Below average
+  { min: 2, max: 7, score: 2 }, // Poor
+  { min: 0, max: 1, score: 1 }, // Very poor
+];
+
+const PUSHUP_FEMALE_18_29: Band[] = [
+  { min: 33, max: Infinity, score: 7 }, // Excellent > 32
+  { min: 24, max: 32, score: 6 }, // Good
+  { min: 14, max: 23, score: 5 }, // Above average
+  { min: 9, max: 13, score: 4 }, // Average
+  { min: 5, max: 8, score: 3 }, // Below average
+  { min: 1, max: 4, score: 2 }, // Poor
+  { min: 0, max: 0, score: 1 }, // Very poor
+];
+
+const PUSHUP_FEMALE_30_39: Band[] = [
+  { min: 29, max: Infinity, score: 7 }, // Excellent > 28
+  { min: 21, max: 28, score: 6 }, // Good
+  { min: 13, max: 20, score: 5 }, // Above average
+  { min: 7, max: 12, score: 4 }, // Average
+  { min: 3, max: 6, score: 3 }, // Below average
+  { min: 1, max: 2, score: 2 }, // Poor
+  { min: 0, max: 0, score: 1 }, // Very poor
+];
+
+type AgeBandKey = "18_29" | "30_39";
+
+type AgeBand = {
+  key: AgeBandKey;
+  min: number;
+  max: number;
+};
+
+const AGE_BANDS: AgeBand[] = [
+  { key: "18_29", min: 18, max: 29 },
+  { key: "30_39", min: 30, max: 39 },
+];
+
+const resolveAgeBandKey = (age?: number | null): AgeBandKey => {
+  if (!age || Number.isNaN(age)) return "18_29";
+  const band = AGE_BANDS.find((b) => age >= b.min && age <= b.max);
+  return band?.key ?? "18_29";
+};
+
+// ตารางหลักใช้สำหรับ push-up / squat / burpee (แบบ base) + plank
+const TABLE: Record<Sex, Record<AgeBandKey, Record<Exercise, Band[]>>> = {
+  male: {
+    "18_29": {
+      ...BASE_TABLE.male,
+      squat: SQUAT_MALE_18_29,
+      pushup: PUSHUP_MALE_18_29,
+    },
+    "30_39": {
+      ...BASE_TABLE.male,
+      squat: SQUAT_MALE_30_39,
+      pushup: PUSHUP_MALE_30_39,
+    },
+  },
+  female: {
+    "18_29": {
+      ...BASE_TABLE.female,
+      squat: SQUAT_FEMALE_18_29,
+      pushup: PUSHUP_FEMALE_18_29,
+    },
+    "30_39": {
+      ...BASE_TABLE.female,
+      squat: SQUAT_FEMALE_30_39,
+      pushup: PUSHUP_FEMALE_30_39,
+    },
+  },
+};
+
+// ---------- Burpee แยกช่วงอายุ 18–24 / 25–30 / 31–35 ----------
+
+type BurpeeAgeBandKey = "18_24" | "25_30" | "31_35";
+
+type BurpeeAgeBand = {
+  key: BurpeeAgeBandKey;
+  min: number;
+  max: number;
+};
+
+const BURPEE_AGE_BANDS: BurpeeAgeBand[] = [
+  { key: "18_24", min: 18, max: 24 },
+  { key: "25_30", min: 25, max: 30 },
+  { key: "31_35", min: 31, max: 35 },
+];
+
+const resolveBurpeeAgeBandKey = (age?: number | null): BurpeeAgeBandKey => {
+  if (!age || Number.isNaN(age)) return "18_24";
+  const band = BURPEE_AGE_BANDS.find((b) => age >= b.min && age <= b.max);
+  return band?.key ?? "18_24";
+};
+
+// ชาย
+const BURPEE_MALE_18_24: Band[] = [
+  { min: 27, max: Infinity, score: 7 }, // Excellent ≥27
+  { min: 23, max: 26, score: 6 }, // Good 23–26
+  { min: 20, max: 22, score: 5 }, // Above Average
+  { min: 16, max: 19, score: 4 }, // Average
+  { min: 12, max: 15, score: 3 }, // Below Average
+  { min: 9, max: 11, score: 2 }, // Poor
+  { min: 0, max: 8, score: 1 }, // Very Poor ≤8
+];
+
+const BURPEE_MALE_25_30: Band[] = [
+  { min: 25, max: Infinity, score: 7 }, // ≥25
+  { min: 21, max: 24, score: 6 }, // 21–24
+  { min: 18, max: 20, score: 5 }, // 18–20
+  { min: 15, max: 17, score: 4 }, // 15–17
+  { min: 11, max: 14, score: 3 }, // 11–14
+  { min: 8, max: 10, score: 2 }, // 8–10
+  { min: 0, max: 7, score: 1 }, // ≤7
+];
+
+const BURPEE_MALE_31_35: Band[] = [
+  { min: 24, max: Infinity, score: 7 }, // ≥24
+  { min: 20, max: 23, score: 6 }, // 20–23
+  { min: 17, max: 19, score: 5 }, // 17–19
+  { min: 14, max: 16, score: 4 }, // 14–16
+  { min: 10, max: 13, score: 3 }, // 10–13
+  { min: 7, max: 9, score: 2 }, // 7–9
+  { min: 0, max: 6, score: 1 }, // ≤6
+];
+
+// หญิง
+const BURPEE_FEMALE_18_24: Band[] = [
+  { min: 23, max: Infinity, score: 7 }, // ≥23
+  { min: 20, max: 22, score: 6 }, // 20–22
+  { min: 17, max: 19, score: 5 }, // 17–19
+  { min: 13, max: 16, score: 4 }, // 13–16
+  { min: 9, max: 12, score: 3 }, // 9–12
+  { min: 6, max: 8, score: 2 }, // 6–8
+  { min: 0, max: 5, score: 1 }, // ≤5
+];
+
+const BURPEE_FEMALE_25_30: Band[] = [
+  { min: 21, max: Infinity, score: 7 }, // ≥21
+  { min: 18, max: 20, score: 6 }, // 18–20
+  { min: 15, max: 17, score: 5 }, // 15–17
+  { min: 12, max: 14, score: 4 }, // 12–14
+  { min: 8, max: 11, score: 3 }, // 8–11
+  { min: 5, max: 7, score: 2 }, // 5–7
+  { min: 0, max: 4, score: 1 }, // ≤4
+];
+
+const BURPEE_FEMALE_31_35: Band[] = [
+  { min: 20, max: Infinity, score: 7 }, // ≥20
+  { min: 17, max: 19, score: 6 }, // 17–19
+  { min: 14, max: 16, score: 5 }, // 14–16
+  { min: 11, max: 13, score: 4 }, // 11–13
+  { min: 7, max: 10, score: 3 }, // 7–10
+  { min: 4, max: 6, score: 2 }, // 4–6
+  { min: 0, max: 3, score: 1 }, // ≤3
+];
+
+const BURPEE_TABLE: Record<Sex, Record<BurpeeAgeBandKey, Band[]>> = {
+  male: {
+    "18_24": BURPEE_MALE_18_24,
+    "25_30": BURPEE_MALE_25_30,
+    "31_35": BURPEE_MALE_31_35,
+  },
+  female: {
+    "18_24": BURPEE_FEMALE_18_24,
+    "25_30": BURPEE_FEMALE_25_30,
+    "31_35": BURPEE_FEMALE_31_35,
+  },
+};
+
+const levelFromTotal = (sum: number) => {
+  if (sum >= 25) return "Excellent";
+  if (sum >= 22) return "Good";
+  if (sum >= 19) return "Above average";
+  if (sum >= 16) return "Average";
+  if (sum >= 13) return "Below Average";
+  if (sum >= 10) return "Poor";
+  return "Very Poor";
+};
 
 type Phase = "idle" | "countdown" | "active" | "rest" | "summary";
 
 export function useFitnessTestMachine(opts: {
   sex: Sex;
-  kneePushupOffset?: number; // ผู้หญิงที่ทำ knee push-up (แนะนำ 5–10)
+  age?: number;
+  kneePushupOffset?: number; // ผู้หญิงทำ knee push-up
 }) {
-  const { sex, kneePushupOffset = 0 } = opts;
+  const { sex, age, kneePushupOffset = 0 } = opts;
+
+  const ageBandKey = useMemo(() => resolveAgeBandKey(age), [age]);
+  const burpeeAgeBandKey = useMemo(() => resolveBurpeeAgeBandKey(age), [age]);
 
   const [phase, setPhase] = useState<Phase>("idle");
   const [idx, setIdx] = useState(0);
@@ -97,7 +330,7 @@ export function useFitnessTestMachine(opts: {
 
   const [timeLeft, setTimeLeft] = useState(WORK_SEC);
   const [restLeft, setRestLeft] = useState(REST_SEC);
-  const [countdownLeft, setCountdownLeft] = useState(5); // <<< 2. เพิ่ม state สำหรับนับถอยหลัง
+  const [countdownLeft, setCountdownLeft] = useState(5);
 
   const [counts, setCounts] = useState<{
     pushup: number;
@@ -112,10 +345,8 @@ export function useFitnessTestMachine(opts: {
   const [plankSec, setPlankSec] = useState(0);
 
   const timerRef = useRef<number | null>(null);
-  // timeout เมื่อผู้ใช้หยุดทำ plank จนครบระยะเวลาที่กำหนด
   const plankStopTimeoutRef = useRef<number | null>(null);
 
-  // ตัวช่วยจัดการ interval และ timeout ที่เกี่ยวข้องกับ plank
   const clearPlankStopTimeout = () => {
     if (plankStopTimeoutRef.current) {
       window.clearTimeout(plankStopTimeoutRef.current);
@@ -123,7 +354,6 @@ export function useFitnessTestMachine(opts: {
     }
   };
 
-  // ตัวช่วยจัดการ interval
   const clearTimer = () => {
     if (timerRef.current) {
       window.clearInterval(timerRef.current);
@@ -131,7 +361,6 @@ export function useFitnessTestMachine(opts: {
     }
   };
 
-  // เริ่มการทำงานของเฟส active/rest ตามประเภทท่า
   useEffect(() => {
     clearTimer();
     if (phase === "countdown") {
@@ -139,7 +368,7 @@ export function useFitnessTestMachine(opts: {
         setCountdownLeft((t) => {
           if (t <= 1) {
             clearTimer();
-            setPhase("active"); // เมื่อนับถอยหลังเสร็จ ให้เริ่ม phase active
+            setPhase("active");
             return 0;
           }
           return t - 1;
@@ -147,7 +376,6 @@ export function useFitnessTestMachine(opts: {
       }, 1000);
     } else if (phase === "active") {
       if (ex === "plank") {
-        // นับเวลาที่ฟอร์มถูกต้อง
         timerRef.current = window.setInterval(() => {
           setPlankSec((s) => (plankHold ? s + 1 : s));
         }, 1000);
@@ -156,7 +384,6 @@ export function useFitnessTestMachine(opts: {
         timerRef.current = window.setInterval(() => {
           setTimeLeft((t) => {
             if (t <= 1) {
-              // จบชุด ทำ rest หรือ summary
               clearTimer();
               if (idx < SEQUENCE.length - 1) {
                 setPhase("rest");
@@ -175,7 +402,6 @@ export function useFitnessTestMachine(opts: {
         setRestLeft((t) => {
           if (t <= 1) {
             clearTimer();
-            // ไปท่าถัดไป
             setIdx((i) => i + 1);
             setPhase("active");
             return 0;
@@ -190,9 +416,8 @@ export function useFitnessTestMachine(opts: {
   }, [phase, idx, ex, plankHold]);
 
   const start = useCallback(() => {
-    // reset ทุกอย่าง
-    setPhase("countdown"); // <<< เปลี่ยนจาก "active" เป็น "countdown"
-    setCountdownLeft(5); // <<< ตั้งค่าเวลานับถอยหลัง
+    setPhase("countdown");
+    setCountdownLeft(5);
     setIdx(0);
     setCounts({ pushup: 0, squat: 0, burpee: 0 });
     setPlankSec(0);
@@ -206,10 +431,9 @@ export function useFitnessTestMachine(opts: {
   }, []);
 
   const skip = useCallback(() => {
-    // ข้ามไปท่าถัดไปทันที (ใช้ตอนเทส/ดีบัก)
     if (idx < SEQUENCE.length - 1) {
       setPhase("rest");
-      setRestLeft(1); // rest แบบสั้น ๆ
+      setRestLeft(1);
     } else {
       setPhase("summary");
     }
@@ -228,15 +452,22 @@ export function useFitnessTestMachine(opts: {
     if (ex !== "plank" || phase !== "active") return;
     clearTimer();
     clearPlankStopTimeout();
-    // จบ plank แล้วไป summary
     setPhase("summary");
   }, [ex, phase]);
 
-  // คะแนนต่อท่า
   const scorePerExercise = useMemo(() => {
     const toScore = (exercise: Exercise, raw: number) => {
-      const value = exercise === "pushup" ? raw + kneePushupOffset : raw; // ชดเชย knee push-up หากตั้งค่าไว้
-      const bands = TABLE[sex][exercise];
+      const value = exercise === "pushup" ? raw + kneePushupOffset : raw;
+
+      let bands: Band[];
+
+      if (exercise === "burpee") {
+        // ใช้ตาราง burpee ตามเพศ + อายุ 18–24/25–30/31–35
+        bands = BURPEE_TABLE[sex][burpeeAgeBandKey];
+      } else {
+        bands = TABLE[sex][ageBandKey][exercise];
+      }
+
       const band = bands.find((b) => value >= b.min && value <= b.max);
       return band ? band.score : 1;
     };
@@ -247,7 +478,7 @@ export function useFitnessTestMachine(opts: {
       burpee: toScore("burpee", counts.burpee),
       plank: toScore("plank", plankSec),
     };
-  }, [sex, counts, plankSec, kneePushupOffset]);
+  }, [sex, ageBandKey, burpeeAgeBandKey, counts, plankSec, kneePushupOffset]);
 
   const total =
     scorePerExercise.pushup +
@@ -256,49 +487,42 @@ export function useFitnessTestMachine(opts: {
     scorePerExercise.plank;
   const level = levelFromTotal(total);
 
-  // เมื่ออยู่ท่า plank: หากฟอร์ม "หลุด" ต่อเนื่อง 5 วินาที ให้จบและไปสรุปผลอัตโนมัติ
   useEffect(() => {
     if (ex !== "plank" || phase !== "active") {
       clearPlankStopTimeout();
       return;
     }
     if (!plankHold) {
-      // เริ่ม/รีสตาร์ท timeout 5 วิ
       clearPlankStopTimeout();
       plankStopTimeoutRef.current = window.setTimeout(() => {
-        // ป้องกันไม่ให้ค้าง interval อื่น ๆ
         clearTimer();
         setPhase("summary");
       }, 5000);
     } else {
-      // กลับมาถือท่าได้ => ยกเลิกการจบอัตโนมัติ
       clearPlankStopTimeout();
     }
-    // ล้าง timeout เมื่อ unmount หรือเปลี่ยน phase/exercise
     return () => clearPlankStopTimeout();
   }, [ex, phase, plankHold]);
 
   return {
-    // state
     phase,
     exercise: ex,
     index: idx,
     timeLeft,
     restLeft,
-    countdownLeft, // <<< 5. ส่ง countdownLeft ออกไปให้ UI ใช้
+    countdownLeft,
     counts,
     plankSec,
     plankHold,
     scorePerExercise,
     total,
     level,
-    // actions
     start,
     stop,
     skip,
-    onRep, // เรียกจาก Pose Detection เมื่อจับท่าได้ 1 ครั้ง
-    setPlankHold, // true เมื่อฟอร์ม plank ถูกต้อง, false เมื่อหลุด
-    finishPlank, // เรียกจบ plank (เช่น ผู้ใช้ยอมแพ้/พัก)
+    onRep,
+    setPlankHold,
+    finishPlank,
   };
 }
 
@@ -312,14 +536,6 @@ export default function FitnessTest({
   kneePushupOffset?: number;
 }) {
   const ft = useFitnessTestMachine({ sex, kneePushupOffset });
-
-  // ตัวอย่างการผูกกับตัวตรวจจับเดิม (pseudo)
-  // useEffect(() => {
-  //   pose.on("rep:pushup", () => ft.onRep("pushup"));
-  //   pose.on("rep:squat", () => ft.onRep("squat"));
-  //   pose.on("rep:burpee", () => ft.onRep("burpee"));
-  //   pose.on("plank:hold", (ok: boolean) => ft.setPlankHold(ok));
-  // }, [ft]);
 
   return (
     <div className="max-w-md mx-auto p-4 rounded-xl bg-white shadow">
