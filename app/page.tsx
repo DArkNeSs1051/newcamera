@@ -229,6 +229,7 @@ const Home = () => {
           setC(true);
           setSex(data.gender);
           setAge(String(data.age ?? "0"));
+          setB(data.video);
         }
       } catch (e) {
         console.error("❌ รับข้อมูลพัง:", e);
