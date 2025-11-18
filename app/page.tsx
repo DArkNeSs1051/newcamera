@@ -3291,7 +3291,7 @@ const Home = () => {
         onStart={() => {
           setStarted(true); // อ่านไกด์แล้วกดเริ่ม ถึงจะแสดงกล้อง
         }}
-        isFitnessTest={isFitnessTest}
+        isFitnessTest={isFitnessTestRef.current}
       />
     );
   }
