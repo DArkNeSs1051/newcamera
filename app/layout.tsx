@@ -25,7 +25,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <head>
+      {/* <head>
         <Script
           src="https://unpkg.com/vconsole@latest/dist/vconsole.min.js"
           strategy="beforeInteractive"
@@ -33,7 +33,7 @@ export default function RootLayout({
         <Script id="vconsole-init" strategy="beforeInteractive">
           {`new window.VConsole();`}
         </Script>
-      </head>
+      </head> */}
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
