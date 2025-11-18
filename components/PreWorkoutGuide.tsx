@@ -250,11 +250,13 @@ export default function PreWorkoutGuide({
   subtitle = "Please read the instruction before start",
   exercises = DEFAULT_GUIDES,
   onStart,
+  isFitnessTest,
 }: {
   title?: string;
   subtitle?: string;
   exercises?: ExerciseGuide[];
   onStart?: () => void;
+  isFitnessTest?: boolean;
 }) {
   const [ack, setAck] = useState(false);
   const [dontShow, setDontShow] = useState(false);
@@ -414,28 +416,3 @@ export default function PreWorkoutGuide({
     </div>
   );
 }
-
-/* ================================
-การใช้งาน (Next.js App Router)
----------------------------------
-1) วางไฟล์นี้ไว้ที่ `components/PreWorkoutGuide.tsx`
-2) สร้างเพจเช่น `app/fitness/guide/page.tsx` แล้วใช้งานแบบนี้:
-
-  'use client'
-  import PreWorkoutGuide, { DEFAULT_GUIDES } from '@/components/PreWorkoutGuide'
-  import { useRouter } from 'next/navigation'
-
-  export default function Page() {
-    const router = useRouter()
-    return (
-      <PreWorkoutGuide
-        exercises={DEFAULT_GUIDES}
-        onStart={() => router.push('/fitness/start')}
-      />
-    )
-  }
-
-3) หากต้องการซ่อนเพจนี้ถ้าผู้ใช้กด "ไม่ต้องแสดงหน้านี้อีก" ให้ใน layout เช็ค localStorage('skipPreWorkoutGuide') แล้ว redirect ได้ตามต้องการ
-
-4) ปรับแก้รายการท่า/คำแนะนำได้ผ่าน props `exercises`
-=============================== */

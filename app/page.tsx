@@ -3216,6 +3216,7 @@ const Home = () => {
       setVideoUrl(target.videoUrl);
     }
   }, [b]);
+  console.log("b:", b);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -3289,6 +3290,7 @@ const Home = () => {
         onStart={() => {
           setStarted(true); // อ่านไกด์แล้วกดเริ่ม ถึงจะแสดงกล้อง
         }}
+        isFitnessTest={isFitnessTest}
       />
     );
   }
