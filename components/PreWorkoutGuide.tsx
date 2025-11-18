@@ -258,6 +258,7 @@ export default function PreWorkoutGuide({
   onStart?: () => void;
   isFitnessTest?: boolean;
 }) {
+  console.log("isFitnessTest:", isFitnessTest);
   const [ack, setAck] = useState(false);
   const [dontShow, setDontShow] = useState(false);
 
@@ -305,6 +306,7 @@ export default function PreWorkoutGuide({
       ].includes(ex.key)
     );
   }, [isFitnessTest, exercises]);
+  console.log("filteredExercises:", filteredExercises);
 
   const total = filteredExercises.length;
 
