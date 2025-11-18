@@ -214,6 +214,14 @@ export const DEFAULT_GUIDES: ExerciseGuide[] = [
   },
 ];
 
+const EXERCISE_VIDEO_NAME_MAP: Record<string, string> = {
+  // bodyweight
+  pushup: "Push Up",
+  burpee_no_pushup: "Burpee No Push Up",
+  // เผื่อใช้ในอนาคต (ถ้าตั้งชื่อใน video ตามนี้)
+  squat: "Squat",
+};
+
 // ================================
 // Helper UI
 // ================================
@@ -281,15 +289,25 @@ export default function PreWorkoutGuide({
 
   const openPreview = (key: string, name: string) => {
     if (!video) return;
+
+    // ใช้ชื่อจาก mapping ก่อน ถ้าไม่มีค่อย fallback เป็นชื่อจาก ex.nameTh
+    const targetName = EXERCISE_VIDEO_NAME_MAP[key] ?? name;
+
     const found = video.find((v) => {
-      // match ด้วย id หรือชื่อ (รองรับหลายเคส)
-      return (
-        v.id.toLowerCase().includes(key.replace("_", "")) ||
-        v.name.toLowerCase().includes(name.toLowerCase())
-      );
+      const videoName = v.name.toLowerCase();
+      const target = targetName.toLowerCase();
+
+      // 1) ลองเทียบแบบเท่ากันเป๊ะก่อน
+      if (videoName === target) return true;
+
+      // 2) fallback ให้ includes เผื่อเผลอตั้งชื่อไม่ตรงนิดหน่อย
+      return videoName.includes(target) || target.includes(videoName);
     });
+
     if (found) {
-      setPreview({ name, url: found.videoUrl });
+      setPreview({ name: found.name || name, url: found.videoUrl });
+    } else {
+      console.warn("No video matched for", key, targetName);
     }
   };
 
