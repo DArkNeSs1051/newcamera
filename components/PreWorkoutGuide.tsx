@@ -291,7 +291,22 @@ export default function PreWorkoutGuide({
     }
   }, [dontShow, onStart]);
 
-  const total = exercises.length;
+  // ถ้าเป็น Fitness Test ให้ filter เฉพาะท่าที่ต้องการ
+  const filteredExercises = useMemo(() => {
+    if (!isFitnessTest) return exercises;
+
+    return exercises.filter((ex) =>
+      [
+        "squat",
+        "pushup",
+        "plank",
+        "burpee_pushup",
+        "burpee_no_pushup",
+      ].includes(ex.key)
+    );
+  }, [isFitnessTest, exercises]);
+
+  const total = filteredExercises.length;
 
   const headerIcon = useMemo(() => <Activity className="h-6 w-6" />, []);
 
@@ -331,9 +346,36 @@ export default function PreWorkoutGuide({
           </div>
         </div>
 
+        {/* Dumbbell Weight */}
+        <div className="mb-6 rounded-2xl border border-[#79BAEC]/60 bg-[#79BAEC]/20 p-4 text-blue-900">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="mt-0.5 h-5 w-5 text-[#79BAEC]" />
+            <div className="space-y-1 text-sm">
+              <p className="font-medium">Dumbbell Weight</p>
+              <ul className="list-disc space-y-1 pl-5">
+                <li>
+                  Choose a weight that feels challenging but still lets you
+                  maintain good form.
+                </li>
+                <li>
+                  You should finish your last rep feeling like you could do 1–3
+                  more.
+                </li>
+                <li>
+                  If you can easily do more than 20 reps, increase weight.
+                </li>
+                <li>
+                  If your form breaks before you reach the target reps, decrease
+                  weight.
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
         {/* List */}
         <div className="space-y-4">
-          {exercises.map((ex, idx) => (
+          {filteredExercises.map((ex, idx) => (
             <div
               key={ex.key}
               className="group rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md md:p-5"
