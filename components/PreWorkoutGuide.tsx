@@ -14,8 +14,6 @@ import {
 // ================================
 // Types
 // ================================
-// export type Orientation = "front" | "left" | "right" | "back";
-
 export type ExerciseGuide = {
   key: string;
   nameTh: string;
@@ -150,7 +148,6 @@ export const DEFAULT_GUIDES: ExerciseGuide[] = [
       "Hinge at hips, flat back; row by driving elbows toward hips.",
       "Avoid shrugging; keep neck neutral.",
     ],
-    // important: "If it doesn't count please turn left a little bit more",
   },
   {
     key: "db_shoulder_press",
@@ -218,20 +215,13 @@ const EXERCISE_VIDEO_NAME_MAP: Record<string, string> = {
   // bodyweight
   pushup: "Push Up",
   burpee_no_pushup: "Burpee No Push Up",
-  // เผื่อใช้ในอนาคต (ถ้าตั้งชื่อใน video ตามนี้)
+  burpee_pushup: "Burpee With Push Up",
   squat: "Squat",
 };
 
 // ================================
 // Helper UI
 // ================================
-// const ORI_LABEL: Record<Orientation, string> = {
-//   front: "หันหน้าเข้าหากล้อง",
-//   left: "หันด้านซ้ายให้กล้อง",
-//   right: "หันด้านขวาให้กล้อง",
-//   back: "หันหลังให้กล้อง",
-// };
-
 type TB = {
   id: string;
   name: string;
@@ -287,22 +277,22 @@ export default function PreWorkoutGuide({
     null
   );
 
+  // helper normalize ชื่อให้เทียบง่ายขึ้น
+  const normalize = (s: string) =>
+    s
+      .toLowerCase()
+      .replace(/\s+/g, "")
+      .replace(/[\(\)\-]/g, "");
+
   const openPreview = (key: string, name: string) => {
     if (!video) return;
 
     // ใช้ชื่อจาก mapping ก่อน ถ้าไม่มีค่อย fallback เป็นชื่อจาก ex.nameTh
     const targetName = EXERCISE_VIDEO_NAME_MAP[key] ?? name;
+    const target = normalize(targetName);
 
-    const found = video.find((v) => {
-      const videoName = v.name.toLowerCase();
-      const target = targetName.toLowerCase();
-
-      // 1) ลองเทียบแบบเท่ากันเป๊ะก่อน
-      if (videoName === target) return true;
-
-      // 2) fallback ให้ includes เผื่อเผลอตั้งชื่อไม่ตรงนิดหน่อย
-      return videoName.includes(target) || target.includes(videoName);
-    });
+    // ---- จุดสำคัญ: ใช้ "เท่ากันเป๊ะหลัง normalize" เท่านั้น ----
+    const found = video.find((v) => normalize(v.name) === target);
 
     if (found) {
       setPreview({ name: found.name || name, url: found.videoUrl });
@@ -312,6 +302,7 @@ export default function PreWorkoutGuide({
   };
 
   console.log("video:", video);
+
   // เคยเลือกว่าไม่ต้องแสดงอีก
   useEffect(() => {
     const saved =
@@ -329,12 +320,8 @@ export default function PreWorkoutGuide({
       return;
     }
 
-    // Fallback: ถ้าไม่ส่ง onStart มา ลองเปลี่ยนเส้นทาง (Next.js App Router)
     try {
-      // lazy import เพื่อหลีกเลี่ยง SSR ปัญหา
-      import("next/navigation").then(({ useRouter }) => {
-        // useRouter ต้องใช้ในคอมโพเนนต์ แต่ที่นี่เราจะ fallback อย่างสุภาพ
-        // จึงใช้ window.location เป็นทางเลือกแทน
+      import("next/navigation").then(() => {
         window.location.href = "/fitness/start";
       });
     } catch {
@@ -378,6 +365,7 @@ export default function PreWorkoutGuide({
           </div>
         </div>
       )}
+
       <div className="min-h-svh w-full bg-gradient-to-b from-slate-50 to-slate-100">
         <div className="mx-auto max-w-3xl px-4 py-8 md:py-12">
           {/* Header */}
@@ -459,17 +447,19 @@ export default function PreWorkoutGuide({
                     </div>
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="text-base font-semibold text-slate-900 md:text-lg">
-                          {ex.nameTh}
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="text-base font-semibold text-slate-900 md:text-lg">
+                            {ex.nameTh}
+                          </h3>
                           {isFitnessTest && video ? (
                             <button
                               onClick={() => openPreview(ex.key, ex.nameTh)}
-                              className="ml-1 mt-1 rounded-lg bg-blue-500/10 px-3 py-1 text-xs font-medium text-blue-600 hover:bg-blue-500/20"
+                              className="rounded-lg bg-blue-500/10 px-3 py-1 text-xs font-medium text-blue-600 hover:bg-blue-500/20"
                             >
                               Preview Video
                             </button>
                           ) : null}
-                        </h3>
+                        </div>
                         <OrientationPill o={ex.orientation} />
                         {ex.durationSec ? (
                           <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
