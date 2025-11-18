@@ -224,6 +224,19 @@ export const DEFAULT_GUIDES: ExerciseGuide[] = [
 //   back: "หันหลังให้กล้อง",
 // };
 
+type TB = {
+  id: string;
+  name: string;
+  category: string;
+  equipment: string;
+  difficulty: string;
+  muscleGroups?: string[];
+  videoUrl: string;
+  image: string;
+  instruction?: string[];
+  description?: string;
+};
+
 function OrientationPill({ o }: any) {
   return (
     <div className="inline-flex items-center gap-2 rounded-full border border-slate-300/70 bg-white/60 px-3 py-1 text-sm text-slate-700 shadow-sm backdrop-blur">
@@ -251,17 +264,19 @@ export default function PreWorkoutGuide({
   exercises = DEFAULT_GUIDES,
   onStart,
   isFitnessTest,
+  video,
 }: {
   title?: string;
   subtitle?: string;
   exercises?: ExerciseGuide[];
   onStart?: () => void;
   isFitnessTest?: boolean;
+  video?: TB[];
 }) {
-  console.log("isFitnessTest:", isFitnessTest);
   const [ack, setAck] = useState(false);
   const [dontShow, setDontShow] = useState(false);
 
+  console.log("video:", video);
   // เคยเลือกว่าไม่ต้องแสดงอีก
   useEffect(() => {
     const saved =
@@ -297,13 +312,7 @@ export default function PreWorkoutGuide({
     if (!isFitnessTest) return exercises;
 
     return exercises.filter((ex) =>
-      [
-        "squat",
-        "pushup",
-        "plank",
-        "burpee_pushup",
-        "burpee_no_pushup",
-      ].includes(ex.key)
+      ["squat", "pushup", "plank", "burpee_no_pushup"].includes(ex.key)
     );
   }, [isFitnessTest, exercises]);
   console.log("filteredExercises:", filteredExercises);

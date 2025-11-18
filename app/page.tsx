@@ -3280,6 +3280,7 @@ const Home = () => {
           setStarted(true); // อ่านไกด์แล้วกดเริ่ม ถึงจะแสดงกล้อง
         }}
         isFitnessTest={c}
+        video={b}
       />
     );
   }
