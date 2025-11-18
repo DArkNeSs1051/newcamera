@@ -680,7 +680,6 @@ const Home = () => {
       const detectorConfig: poseDetection.MoveNetModelConfig = {
         modelType: poseDetection.movenet.modelType.SINGLEPOSE_THUNDER,
       };
-      console.log("detectorConfig:", detectorConfig);
 
       let detector: poseDetection.PoseDetector | null = null;
       try {
@@ -701,10 +700,8 @@ const Home = () => {
           } as any
         );
       }
-      console.log("detector:", detector);
 
       detectorRef.current = detector;
-      console.log("detectorRef:", detectorRef);
 
       edgesRef.current = {
         "5,7": "m",
@@ -722,7 +719,6 @@ const Home = () => {
       };
 
       setLoading(false);
-      console.log("first");
     } catch (error) {
       console.error("ไม่สามารถโหลดโมเดลได้:", error);
       setMessage("เกิดข้อผิดพลาดในการโหลดโมเดล กรุณาลองใหม่อีกครั้ง");
@@ -1298,12 +1294,10 @@ const Home = () => {
       x: leftKnee.x,
       y: leftKnee.y + 100,
     });
-    console.log("leftKneeAngle:", leftKneeAngle);
     const rightKneeAngle = calculateAngle(rightHip, rightKnee, {
       x: rightKnee.x,
       y: rightKnee.y + 100,
     });
-    console.log("rightKneeAngle:", rightKneeAngle);
     const avgKneeAngle = (leftKneeAngle + rightKneeAngle) / 2;
 
     const feetOffGround = hipMidY > kneeMidY + 100;
@@ -1321,7 +1315,6 @@ const Home = () => {
     }
 
     const torsoAngle = calculateAngle(leftHip, leftShoulder, rightHip);
-    console.log("torsoAngle:", torsoAngle);
     const backLeanProper = torsoAngle > 0 && torsoAngle < 35;
     if (!backLeanProper) {
       showFeedback("เอนไปข้างหลังประมาณ 45°");
@@ -3151,16 +3144,12 @@ const Home = () => {
           await tf.setBackend("webgl");
         }
         await tf.ready();
-        console.log("Backend selected:", tf.getBackend());
-        console.log("tf.ready():", tf.ready());
 
         // ตั้งค่ากล้อง
         await setupCamera();
-        console.log("check");
 
         if (videoRef.current) {
           videoRef.current.play();
-          console.log("asd");
         }
 
         // เริ่มต้นตัวตรวจจับท่าทาง
@@ -3217,7 +3206,6 @@ const Home = () => {
       setVideoUrl(target.videoUrl);
     }
   }, [b]);
-  console.log("b:", b);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -3291,7 +3279,7 @@ const Home = () => {
         onStart={() => {
           setStarted(true); // อ่านไกด์แล้วกดเริ่ม ถึงจะแสดงกล้อง
         }}
-        isFitnessTest={isFitnessTestRef.current}
+        isFitnessTest={c}
       />
     );
   }
@@ -3450,14 +3438,14 @@ const Home = () => {
             <div className="flex items-center justify-between gap-3">
               <div className="text-lg font-semibold">Fitness Test</div>
               <div className="flex items-center gap-2">
-                <select
+                {/* <select
                   value={sex}
                   onChange={(e) => setSex(e.target.value as "male" | "female")}
                   className="bg-gray-800 border border-gray-700 rounded-lg px-2 py-1"
                 >
                   <option value="male">ชาย</option>
                   <option value="female">หญิง</option>
-                </select>
+                </select> */}
                 <button
                   onClick={() => {
                     setIsFitnessTest(true);
