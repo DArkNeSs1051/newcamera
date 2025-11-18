@@ -275,6 +275,23 @@ export default function PreWorkoutGuide({
 }) {
   const [ack, setAck] = useState(false);
   const [dontShow, setDontShow] = useState(false);
+  const [preview, setPreview] = useState<null | { name: string; url: string }>(
+    null
+  );
+
+  const openPreview = (key: string, name: string) => {
+    if (!video) return;
+    const found = video.find((v) => {
+      // match ด้วย id หรือชื่อ (รองรับหลายเคส)
+      return (
+        v.id.toLowerCase().includes(key.replace("_", "")) ||
+        v.name.toLowerCase().includes(name.toLowerCase())
+      );
+    });
+    if (found) {
+      setPreview({ name, url: found.videoUrl });
+    }
+  };
 
   console.log("video:", video);
   // เคยเลือกว่าไม่ต้องแสดงอีก
@@ -322,150 +339,182 @@ export default function PreWorkoutGuide({
   const headerIcon = useMemo(() => <Activity className="h-6 w-6" />, []);
 
   return (
-    <div className="min-h-svh w-full bg-gradient-to-b from-slate-50 to-slate-100">
-      <div className="mx-auto max-w-3xl px-4 py-8 md:py-12">
-        {/* Header */}
-        <div className="mb-6 flex items-start gap-3">
-          <div className="rounded-2xl bg-white p-3 shadow-sm">{headerIcon}</div>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 md:text-3xl">
-              {title}
-            </h1>
-            <p className="mt-1 text-slate-600">{subtitle}</p>
-            <div className="mt-3 flex items-center gap-2 text-xs text-slate-500">
-              <Info className="h-4 w-4" />
-              <span>
-                Tip: clear the space for 2–3 meter place camera at clear sight
-                and bright
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Safety notice */}
-        <div className="mb-6 rounded-2xl border border-amber-300/60 bg-amber-50 p-4 text-amber-900">
-          <div className="flex items-start gap-2">
-            <AlertTriangle className="mt-0.5 h-5 w-5" />
-            <div className="space-y-1 text-sm">
-              <p className="font-medium">Safety first</p>
-              <ul className="list-disc space-y-1 pl-5">
-                <li>Warm up 3–5 minute and drink enough water</li>
-                <li>If you have dizzle and pian please stop immediately</li>
-                <li>Wear shoes and avoid slippery floor</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        {/* Dumbbell Weight */}
-        <div className="mb-6 rounded-2xl border border-[#79BAEC]/60 bg-[#79BAEC]/20 p-4 text-blue-900">
-          <div className="flex items-start gap-2">
-            <AlertTriangle className="mt-0.5 h-5 w-5 text-[#79BAEC]" />
-            <div className="space-y-1 text-sm">
-              <p className="font-medium">Dumbbell Weight</p>
-              <ul className="list-disc space-y-1 pl-5">
-                <li>
-                  Choose a weight that feels challenging but still lets you
-                  maintain good form.
-                </li>
-                <li>
-                  You should finish your last rep feeling like you could do 1–3
-                  more.
-                </li>
-                <li>
-                  If you can easily do more than 20 reps, increase weight.
-                </li>
-                <li>
-                  If your form breaks before you reach the target reps, decrease
-                  weight.
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        {/* List */}
-        <div className="space-y-4">
-          {filteredExercises.map((ex, idx) => (
-            <div
-              key={ex.key}
-              className="group rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md md:p-5"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-start gap-3">
-                  <div className="relative mt-0.5 flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-50">
-                    <Footprints className="h-5 w-5" />
-                    <span className="absolute -right-1 -top-1 rounded-full bg-slate-900 px-1.5 text-[10px] font-semibold text-white">
-                      {idx + 1}
-                    </span>
-                  </div>
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="text-base font-semibold text-slate-900 md:text-lg">
-                        {ex.nameTh}
-                      </h3>
-                      <OrientationPill o={ex.orientation} />
-                      {ex.durationSec ? (
-                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
-                          ~{ex.durationSec}s
-                        </span>
-                      ) : null}
-                    </div>
-                    <ul className="mt-2 space-y-1.5">
-                      {ex.cues.map((c, i) => (
-                        <CueItem key={i} text={c} />
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-                <ArrowRight className="mt-1 h-5 w-5 text-slate-300 group-hover:text-slate-400" />
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Footer actions */}
-        <div className="sticky bottom-0 mt-6 rounded-2xl border border-slate-200 bg-white/90 p-4 backdrop-blur supports-[backdrop-filter]:bg-white/60">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-3">
-              <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-slate-700">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-500"
-                  checked={ack}
-                  onChange={(e) => setAck(e.target.checked)}
-                />
-                I've read it and I'm ready
-              </label>
-              <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-slate-500">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-500"
-                  checked={dontShow}
-                  onChange={(e) => setDontShow(e.target.checked)}
-                />
-                Don't show it again
-              </label>
-            </div>
-
+    <>
+      {preview && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/70 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-4 shadow-xl">
+            <h2 className="mb-3 text-lg font-semibold text-slate-900">
+              {preview.name}
+            </h2>
+            <video
+              src={preview.url}
+              controls
+              className="w-full rounded-lg bg-black"
+            />
             <button
-              type="button"
-              disabled={!ack}
-              onClick={handleStart}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-sm transition disabled:cursor-not-allowed disabled:bg-slate-300 md:text-base"
+              onClick={() => setPreview(null)}
+              className="mt-4 w-full rounded-xl bg-slate-900 py-2 text-white"
             >
-              Start session
-              <ArrowRight className="h-4 w-4" />
+              Close
             </button>
           </div>
         </div>
+      )}
+      <div className="min-h-svh w-full bg-gradient-to-b from-slate-50 to-slate-100">
+        <div className="mx-auto max-w-3xl px-4 py-8 md:py-12">
+          {/* Header */}
+          <div className="mb-6 flex items-start gap-3">
+            <div className="rounded-2xl bg-white p-3 shadow-sm">
+              {headerIcon}
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900 md:text-3xl">
+                {title}
+              </h1>
+              <p className="mt-1 text-slate-600">{subtitle}</p>
+              <div className="mt-3 flex items-center gap-2 text-xs text-slate-500">
+                <Info className="h-4 w-4" />
+                <span>
+                  Tip: clear the space for 2–3 meter place camera at clear sight
+                  and bright
+                </span>
+              </div>
+            </div>
+          </div>
 
-        {/* Progress hint */}
-        <p className="mt-3 text-center text-xs text-slate-500">
-          total {total} exercises • please check the form before start for
-          better form check
-        </p>
+          {/* Safety notice */}
+          <div className="mb-6 rounded-2xl border border-amber-300/60 bg-amber-50 p-4 text-amber-900">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="mt-0.5 h-5 w-5" />
+              <div className="space-y-1 text-sm">
+                <p className="font-medium">Safety first</p>
+                <ul className="list-disc space-y-1 pl-5">
+                  <li>Warm up 3–5 minute and drink enough water</li>
+                  <li>If you have dizzle and pian please stop immediately</li>
+                  <li>Wear shoes and avoid slippery floor</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {/* Dumbbell Weight */}
+          <div className="mb-6 rounded-2xl border border-[#79BAEC]/60 bg-[#79BAEC]/20 p-4 text-blue-900">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="mt-0.5 h-5 w-5 text-[#79BAEC]" />
+              <div className="space-y-1 text-sm">
+                <p className="font-medium">Dumbbell Weight</p>
+                <ul className="list-disc space-y-1 pl-5">
+                  <li>
+                    Choose a weight that feels challenging but still lets you
+                    maintain good form.
+                  </li>
+                  <li>
+                    You should finish your last rep feeling like you could do
+                    1–3 more.
+                  </li>
+                  <li>
+                    If you can easily do more than 20 reps, increase weight.
+                  </li>
+                  <li>
+                    If your form breaks before you reach the target reps,
+                    decrease weight.
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {/* List */}
+          <div className="space-y-4">
+            {filteredExercises.map((ex, idx) => (
+              <div
+                key={ex.key}
+                className="group rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md md:p-5"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="relative mt-0.5 flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-50">
+                      <Footprints className="h-5 w-5" />
+                      <span className="absolute -right-1 -top-1 rounded-full bg-slate-900 px-1.5 text-[10px] font-semibold text-white">
+                        {idx + 1}
+                      </span>
+                    </div>
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="text-base font-semibold text-slate-900 md:text-lg">
+                          {ex.nameTh}
+                          {isFitnessTest && video ? (
+                            <button
+                              onClick={() => openPreview(ex.key, ex.nameTh)}
+                              className="ml-1 mt-1 rounded-lg bg-blue-500/10 px-3 py-1 text-xs font-medium text-blue-600 hover:bg-blue-500/20"
+                            >
+                              Preview Video
+                            </button>
+                          ) : null}
+                        </h3>
+                        <OrientationPill o={ex.orientation} />
+                        {ex.durationSec ? (
+                          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
+                            ~{ex.durationSec}s
+                          </span>
+                        ) : null}
+                      </div>
+                      <ul className="mt-2 space-y-1.5">
+                        {ex.cues.map((c, i) => (
+                          <CueItem key={i} text={c} />
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                  <ArrowRight className="mt-1 h-5 w-5 text-slate-300 group-hover:text-slate-400" />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Footer actions */}
+          <div className="sticky bottom-0 mt-6 rounded-2xl border border-slate-200 bg-white/90 p-4 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="flex items-center gap-3">
+                <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-500"
+                    checked={ack}
+                    onChange={(e) => setAck(e.target.checked)}
+                  />
+                  I've read it and I'm ready
+                </label>
+                <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-slate-500">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-500"
+                    checked={dontShow}
+                    onChange={(e) => setDontShow(e.target.checked)}
+                  />
+                  Don't show it again
+                </label>
+              </div>
+
+              <button
+                type="button"
+                disabled={!ack}
+                onClick={handleStart}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-sm transition disabled:cursor-not-allowed disabled:bg-slate-300 md:text-base"
+              >
+                Start session
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Progress hint */}
+          <p className="mt-3 text-center text-xs text-slate-500">
+            total {total} exercises • please check the form before start for
+            better form check
+          </p>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
