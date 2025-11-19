@@ -3102,7 +3102,7 @@ const Home = () => {
 
         getPoses();
 
-        draw();
+        // draw();
       };
 
       init();
