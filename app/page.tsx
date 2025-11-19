@@ -250,7 +250,11 @@ const Home = () => {
       }
     } else if (isResting) {
       if (typeof window !== "undefined" && (window as any).ReactNativeWebView) {
-        (window as any).ReactNativeWebView.postMessage();
+        (window as any).ReactNativeWebView.postMessage(
+          JSON.stringify({
+            message: `Rest Time`,
+          })
+        );
       }
     } else if (isFinished) {
       if (typeof window !== "undefined" && (window as any).ReactNativeWebView) {
