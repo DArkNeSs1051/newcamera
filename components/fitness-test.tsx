@@ -16,15 +16,14 @@ const REST_SEC = 60;
 
 type Band = { min: number; max: number; score: 1 | 2 | 3 | 4 | 5 | 6 | 7 };
 
-// plank ใช้ร่วมกันทั้งชาย-หญิง ทุกอายุ (หน่วย: วินาที)
 const PLANK_TABLE: Band[] = [
-  { min: 361, max: Infinity, score: 7 }, // Excellent  > 6 นาที
-  { min: 240, max: 360, score: 6 }, // Very Good 4–6 นาที
-  { min: 120, max: 239, score: 5 }, // Above average 2–4 นาที
-  { min: 60, max: 119, score: 4 }, // Average 1–2 นาที
-  { min: 30, max: 59, score: 3 }, // Below average 30–60 วิ
-  { min: 15, max: 29, score: 2 }, // Poor 15–30 วิ
-  { min: 0, max: 14, score: 1 }, // Very poor < 15 วิ
+  { min: 361, max: Infinity, score: 7 },
+  { min: 240, max: 360, score: 6 },
+  { min: 120, max: 239, score: 5 },
+  { min: 60, max: 119, score: 4 },
+  { min: 30, max: 59, score: 3 },
+  { min: 15, max: 29, score: 2 },
+  { min: 0, max: 14, score: 1 },
 ];
 
 const BASE_TABLE: Record<Sex, Record<Exercise, Band[]>> = {
@@ -79,13 +78,13 @@ const BASE_TABLE: Record<Sex, Record<Exercise, Band[]>> = {
 };
 
 const SQUAT_MALE_18_29: Band[] = [
-  { min: 35, max: Infinity, score: 7 }, // Excellent
-  { min: 33, max: 34, score: 6 }, // Good
-  { min: 30, max: 32, score: 5 }, // Above average
-  { min: 27, max: 29, score: 4 }, // Average
-  { min: 24, max: 26, score: 3 }, // Below average
-  { min: 21, max: 23, score: 2 }, // Poor
-  { min: 0, max: 20, score: 1 }, // Very poor
+  { min: 35, max: Infinity, score: 7 },
+  { min: 33, max: 34, score: 6 },
+  { min: 30, max: 32, score: 5 },
+  { min: 27, max: 29, score: 4 },
+  { min: 24, max: 26, score: 3 },
+  { min: 21, max: 23, score: 2 },
+  { min: 0, max: 20, score: 1 },
 ];
 
 const SQUAT_MALE_30_39: Band[] = [
@@ -119,43 +118,43 @@ const SQUAT_FEMALE_30_39: Band[] = [
 ];
 
 const PUSHUP_MALE_18_29: Band[] = [
-  { min: 48, max: Infinity, score: 7 }, // Excellent  > 47
-  { min: 40, max: 47, score: 6 }, // Good
-  { min: 30, max: 39, score: 5 }, // Above average
-  { min: 17, max: 29, score: 4 }, // Average
-  { min: 11, max: 16, score: 3 }, // Below average
-  { min: 4, max: 10, score: 2 }, // Poor
-  { min: 0, max: 3, score: 1 }, // Very poor
+  { min: 48, max: Infinity, score: 7 },
+  { min: 40, max: 47, score: 6 },
+  { min: 30, max: 39, score: 5 },
+  { min: 17, max: 29, score: 4 },
+  { min: 11, max: 16, score: 3 },
+  { min: 4, max: 10, score: 2 },
+  { min: 0, max: 3, score: 1 },
 ];
 
 const PUSHUP_MALE_30_39: Band[] = [
-  { min: 42, max: Infinity, score: 7 }, // Excellent > 41
-  { min: 34, max: 41, score: 6 }, // Good
-  { min: 25, max: 33, score: 5 }, // Above average
-  { min: 13, max: 24, score: 4 }, // Average
-  { min: 8, max: 12, score: 3 }, // Below average
-  { min: 2, max: 7, score: 2 }, // Poor
-  { min: 0, max: 1, score: 1 }, // Very poor
+  { min: 42, max: Infinity, score: 7 },
+  { min: 34, max: 41, score: 6 },
+  { min: 25, max: 33, score: 5 },
+  { min: 13, max: 24, score: 4 },
+  { min: 8, max: 12, score: 3 },
+  { min: 2, max: 7, score: 2 },
+  { min: 0, max: 1, score: 1 },
 ];
 
 const PUSHUP_FEMALE_18_29: Band[] = [
-  { min: 33, max: Infinity, score: 7 }, // Excellent > 32
-  { min: 24, max: 32, score: 6 }, // Good
-  { min: 14, max: 23, score: 5 }, // Above average
-  { min: 9, max: 13, score: 4 }, // Average
-  { min: 5, max: 8, score: 3 }, // Below average
-  { min: 1, max: 4, score: 2 }, // Poor
-  { min: 0, max: 0, score: 1 }, // Very poor
+  { min: 33, max: Infinity, score: 7 },
+  { min: 24, max: 32, score: 6 },
+  { min: 14, max: 23, score: 5 },
+  { min: 9, max: 13, score: 4 },
+  { min: 5, max: 8, score: 3 },
+  { min: 1, max: 4, score: 2 },
+  { min: 0, max: 0, score: 1 },
 ];
 
 const PUSHUP_FEMALE_30_39: Band[] = [
-  { min: 29, max: Infinity, score: 7 }, // Excellent > 28
-  { min: 21, max: 28, score: 6 }, // Good
-  { min: 13, max: 20, score: 5 }, // Above average
-  { min: 7, max: 12, score: 4 }, // Average
-  { min: 3, max: 6, score: 3 }, // Below average
-  { min: 1, max: 2, score: 2 }, // Poor
-  { min: 0, max: 0, score: 1 }, // Very poor
+  { min: 29, max: Infinity, score: 7 },
+  { min: 21, max: 28, score: 6 },
+  { min: 13, max: 20, score: 5 },
+  { min: 7, max: 12, score: 4 },
+  { min: 3, max: 6, score: 3 },
+  { min: 1, max: 2, score: 2 },
+  { min: 0, max: 0, score: 1 },
 ];
 
 type AgeBandKey = "18_29" | "30_39";
@@ -177,7 +176,6 @@ const resolveAgeBandKey = (age?: number | null): AgeBandKey => {
   return band?.key ?? "18_29";
 };
 
-// ตารางหลักใช้สำหรับ push-up / squat / burpee (แบบ base) + plank
 const TABLE: Record<Sex, Record<AgeBandKey, Record<Exercise, Band[]>>> = {
   male: {
     "18_29": {
@@ -205,8 +203,6 @@ const TABLE: Record<Sex, Record<AgeBandKey, Record<Exercise, Band[]>>> = {
   },
 };
 
-// ---------- Burpee แยกช่วงอายุ 18–24 / 25–30 / 31–35 ----------
-
 type BurpeeAgeBandKey = "18_24" | "25_30" | "31_35";
 
 type BurpeeAgeBand = {
@@ -227,66 +223,64 @@ const resolveBurpeeAgeBandKey = (age?: number | null): BurpeeAgeBandKey => {
   return band?.key ?? "18_24";
 };
 
-// ชาย
 const BURPEE_MALE_18_24: Band[] = [
-  { min: 27, max: Infinity, score: 7 }, // Excellent ≥27
-  { min: 23, max: 26, score: 6 }, // Good 23–26
-  { min: 20, max: 22, score: 5 }, // Above Average
-  { min: 16, max: 19, score: 4 }, // Average
-  { min: 12, max: 15, score: 3 }, // Below Average
-  { min: 9, max: 11, score: 2 }, // Poor
-  { min: 0, max: 8, score: 1 }, // Very Poor ≤8
+  { min: 27, max: Infinity, score: 7 },
+  { min: 23, max: 26, score: 6 },
+  { min: 20, max: 22, score: 5 },
+  { min: 16, max: 19, score: 4 },
+  { min: 12, max: 15, score: 3 },
+  { min: 9, max: 11, score: 2 },
+  { min: 0, max: 8, score: 1 },
 ];
 
 const BURPEE_MALE_25_30: Band[] = [
-  { min: 25, max: Infinity, score: 7 }, // ≥25
-  { min: 21, max: 24, score: 6 }, // 21–24
-  { min: 18, max: 20, score: 5 }, // 18–20
-  { min: 15, max: 17, score: 4 }, // 15–17
-  { min: 11, max: 14, score: 3 }, // 11–14
-  { min: 8, max: 10, score: 2 }, // 8–10
-  { min: 0, max: 7, score: 1 }, // ≤7
+  { min: 25, max: Infinity, score: 7 },
+  { min: 21, max: 24, score: 6 },
+  { min: 18, max: 20, score: 5 },
+  { min: 15, max: 17, score: 4 },
+  { min: 11, max: 14, score: 3 },
+  { min: 8, max: 10, score: 2 },
+  { min: 0, max: 7, score: 1 },
 ];
 
 const BURPEE_MALE_31_35: Band[] = [
-  { min: 24, max: Infinity, score: 7 }, // ≥24
-  { min: 20, max: 23, score: 6 }, // 20–23
-  { min: 17, max: 19, score: 5 }, // 17–19
-  { min: 14, max: 16, score: 4 }, // 14–16
-  { min: 10, max: 13, score: 3 }, // 10–13
-  { min: 7, max: 9, score: 2 }, // 7–9
-  { min: 0, max: 6, score: 1 }, // ≤6
+  { min: 24, max: Infinity, score: 7 },
+  { min: 20, max: 23, score: 6 },
+  { min: 17, max: 19, score: 5 },
+  { min: 14, max: 16, score: 4 },
+  { min: 10, max: 13, score: 3 },
+  { min: 7, max: 9, score: 2 },
+  { min: 0, max: 6, score: 1 },
 ];
 
-// หญิง
 const BURPEE_FEMALE_18_24: Band[] = [
-  { min: 23, max: Infinity, score: 7 }, // ≥23
-  { min: 20, max: 22, score: 6 }, // 20–22
-  { min: 17, max: 19, score: 5 }, // 17–19
-  { min: 13, max: 16, score: 4 }, // 13–16
-  { min: 9, max: 12, score: 3 }, // 9–12
-  { min: 6, max: 8, score: 2 }, // 6–8
-  { min: 0, max: 5, score: 1 }, // ≤5
+  { min: 23, max: Infinity, score: 7 },
+  { min: 20, max: 22, score: 6 },
+  { min: 17, max: 19, score: 5 },
+  { min: 13, max: 16, score: 4 },
+  { min: 9, max: 12, score: 3 },
+  { min: 6, max: 8, score: 2 },
+  { min: 0, max: 5, score: 1 },
 ];
 
 const BURPEE_FEMALE_25_30: Band[] = [
-  { min: 21, max: Infinity, score: 7 }, // ≥21
-  { min: 18, max: 20, score: 6 }, // 18–20
-  { min: 15, max: 17, score: 5 }, // 15–17
-  { min: 12, max: 14, score: 4 }, // 12–14
-  { min: 8, max: 11, score: 3 }, // 8–11
-  { min: 5, max: 7, score: 2 }, // 5–7
-  { min: 0, max: 4, score: 1 }, // ≤4
+  { min: 21, max: Infinity, score: 7 },
+  { min: 18, max: 20, score: 6 },
+  { min: 15, max: 17, score: 5 },
+  { min: 12, max: 14, score: 4 },
+  { min: 8, max: 11, score: 3 },
+  { min: 5, max: 7, score: 2 },
+  { min: 0, max: 4, score: 1 },
 ];
 
 const BURPEE_FEMALE_31_35: Band[] = [
-  { min: 20, max: Infinity, score: 7 }, // ≥20
-  { min: 17, max: 19, score: 6 }, // 17–19
-  { min: 14, max: 16, score: 5 }, // 14–16
-  { min: 11, max: 13, score: 4 }, // 11–13
-  { min: 7, max: 10, score: 3 }, // 7–10
-  { min: 4, max: 6, score: 2 }, // 4–6
-  { min: 0, max: 3, score: 1 }, // ≤3
+  { min: 20, max: Infinity, score: 7 },
+  { min: 17, max: 19, score: 6 },
+  { min: 14, max: 16, score: 5 },
+  { min: 11, max: 13, score: 4 },
+  { min: 7, max: 10, score: 3 },
+  { min: 4, max: 6, score: 2 },
+  { min: 0, max: 3, score: 1 },
 ];
 
 const BURPEE_TABLE: Record<Sex, Record<BurpeeAgeBandKey, Band[]>> = {
@@ -317,7 +311,7 @@ type Phase = "idle" | "countdown" | "active" | "rest" | "summary";
 export function useFitnessTestMachine(opts: {
   sex: Sex;
   age?: number;
-  kneePushupOffset?: number; // ผู้หญิงทำ knee push-up
+  kneePushupOffset?: number;
 }) {
   const { sex, age, kneePushupOffset = 0 } = opts;
 
@@ -412,7 +406,6 @@ export function useFitnessTestMachine(opts: {
     }
 
     return clearTimer;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, idx, ex, plankHold]);
 
   const start = useCallback(() => {
@@ -462,7 +455,6 @@ export function useFitnessTestMachine(opts: {
       let bands: Band[];
 
       if (exercise === "burpee") {
-        // ใช้ตาราง burpee ตามเพศ + อายุ 18–24/25–30/31–35
         bands = BURPEE_TABLE[sex][burpeeAgeBandKey];
       } else {
         bands = TABLE[sex][ageBandKey][exercise];
@@ -525,8 +517,6 @@ export function useFitnessTestMachine(opts: {
     finishPlank,
   };
 }
-
-// ============ ตัวอย่าง UI ใช้งาน Hook ============
 
 export default function FitnessTest({
   sex = "male",

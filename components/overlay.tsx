@@ -117,17 +117,14 @@ export const SummaryOverlay = ({
             สรุปผล
           </h2>
 
-          {/* คะแนนรวม */}
           <div className="text-5xl md:text-6xl font-extrabold leading-none">
             {total}
           </div>
 
-          {/* ระดับ (ใหญ่กว่ารายการย่อย) */}
           <div className="text-lg md:text-xl font-semibold text-green-400">
             ระดับ: {level}
           </div>
 
-          {/* รายการสรุปแต่ละท่า (ตัวอักษรเล็กกว่า level) */}
           {items.length > 0 && (
             <div className="mt-4 text-sm md:text-base text-gray-200/90">
               <ul className="space-y-1">
@@ -153,7 +150,6 @@ export const SummaryOverlay = ({
   );
 };
 
-// ==== helpers: ดึงค่าจากหลาย path ที่เป็นไปได้ ====
 const pick = (obj: any, path: (string | number)[]) => {
   let cur = obj;
   for (const k of path) {
@@ -174,16 +170,13 @@ const firstDefined = (obj: any, paths: (string | number)[][]) => {
 const toNum = (v: any) =>
   typeof v === "number" && !Number.isNaN(v) ? v : undefined;
 
-// NOTE: ปรับค่า defaultZero เป็น true ถ้าอยากให้แสดง 0 แทนที่จะซ่อนแถว
-// overlay.tsx
-
 export function deriveBreakdown(ft: any, defaultZero = true) {
   const pushup = toNum(
     firstDefined(ft, [
       ["summary", "byExercise", "pushup"],
       ["results", "pushup", "reps"],
       ["reps", "pushup"],
-      ["counts", "pushup"], // <-- แก้จาก counters เป็น counts
+      ["counts", "pushup"],
       ["totals", "pushup"],
     ])
   );
@@ -193,7 +186,7 @@ export function deriveBreakdown(ft: any, defaultZero = true) {
       ["summary", "byExercise", "squat"],
       ["results", "squat", "reps"],
       ["reps", "squat"],
-      ["counts", "squat"], // <-- แก้
+      ["counts", "squat"],
       ["totals", "squat"],
     ])
   );
@@ -203,12 +196,11 @@ export function deriveBreakdown(ft: any, defaultZero = true) {
       ["summary", "byExercise", "burpee"],
       ["results", "burpee", "reps"],
       ["reps", "burpee"],
-      ["counts", "burpee"], // <-- แก้
+      ["counts", "burpee"],
       ["totals", "burpee"],
     ])
   );
 
-  // plankSeconds: รองรับหลายที่มา รวมทั้ง plankSec ปัจจุบัน
   let plankSeconds = toNum(
     firstDefined(ft, [
       ["summary", "byExercise", "plankSeconds"],

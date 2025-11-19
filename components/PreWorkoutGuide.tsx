@@ -11,9 +11,6 @@ import {
   Activity,
 } from "lucide-react";
 
-// ================================
-// Types
-// ================================
 export type ExerciseGuide = {
   key: string;
   nameTh: string;
@@ -22,9 +19,6 @@ export type ExerciseGuide = {
   durationSec?: number;
 };
 
-// ================================
-// Defaults (ตัวอย่างข้อมูล)
-// ================================
 export const DEFAULT_GUIDES: ExerciseGuide[] = [
   // -------- Bodyweight --------
   {
@@ -212,16 +206,12 @@ export const DEFAULT_GUIDES: ExerciseGuide[] = [
 ];
 
 const EXERCISE_VIDEO_NAME_MAP: Record<string, string> = {
-  // bodyweight
   pushup: "Push Up",
   burpee_no_pushup: "Burpee No Push Up",
   burpee_pushup: "Burpee With Push Up",
   squat: "Squat",
 };
 
-// ================================
-// Helper UI
-// ================================
 type TB = {
   id: string;
   name: string;
@@ -253,9 +243,6 @@ function CueItem({ text }: { text: string }) {
   );
 }
 
-// ================================
-// Component
-// ================================
 export default function PreWorkoutGuide({
   title = "Instruction",
   subtitle = "Please read the instruction before start",
@@ -277,7 +264,6 @@ export default function PreWorkoutGuide({
     null
   );
 
-  // helper normalize ชื่อให้เทียบง่ายขึ้น
   const normalize = (s: string) =>
     s
       .toLowerCase()
@@ -287,11 +273,9 @@ export default function PreWorkoutGuide({
   const openPreview = (key: string, name: string) => {
     if (!video) return;
 
-    // ใช้ชื่อจาก mapping ก่อน ถ้าไม่มีค่อย fallback เป็นชื่อจาก ex.nameTh
     const targetName = EXERCISE_VIDEO_NAME_MAP[key] ?? name;
     const target = normalize(targetName);
 
-    // ---- จุดสำคัญ: ใช้ "เท่ากันเป๊ะหลัง normalize" เท่านั้น ----
     const found = video.find((v) => normalize(v.name) === target);
 
     if (found) {
@@ -301,9 +285,6 @@ export default function PreWorkoutGuide({
     }
   };
 
-  console.log("video:", video);
-
-  // เคยเลือกว่าไม่ต้องแสดงอีก
   useEffect(() => {
     const saved =
       typeof window !== "undefined"
@@ -329,7 +310,6 @@ export default function PreWorkoutGuide({
     }
   }, [dontShow, onStart]);
 
-  // ถ้าเป็น Fitness Test ให้ filter เฉพาะท่าที่ต้องการ
   const filteredExercises = useMemo(() => {
     if (!isFitnessTest) return exercises;
 
@@ -337,7 +317,6 @@ export default function PreWorkoutGuide({
       ["squat", "pushup", "plank", "burpee_no_pushup"].includes(ex.key)
     );
   }, [isFitnessTest, exercises]);
-  console.log("filteredExercises:", filteredExercises);
 
   const total = filteredExercises.length;
 

@@ -15,7 +15,6 @@ import {
 import PreWorkoutGuide from "@/components/PreWorkoutGuide";
 
 const Home = () => {
-  const version = "1.0.5"; // กำหนดเวอร์ชันของแอปพลิเคชัน
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [reps, setReps] = useState(0);
@@ -25,9 +24,9 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("กำลังโหลด กรุณารอสักครู่...");
   const [isMobile, setIsMobile] = useState(false);
-  const [feedbackMessage, setFeedbackMessage] = useState(""); // เพิ่มตัวแปรสำหรับข้อความแจ้งเตือน
-  const [soundEnabled, setSoundEnabled] = useState(true); // เปลี่ยนจาก false เป็น true เพื่อเปิดเสียงอัตโนมัติ
-  const feedbackTimeoutRef = useRef<NodeJS.Timeout | null>(null); // เพิ่มตัวแปรสำหรับจัดการเวลาแสดงข้อความ
+  const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const feedbackTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // สร้างตัวแปรสำหรับเก็บค่าต่างๆ
   const detectorRef = useRef<poseDetection.PoseDetector | null>(null);
@@ -63,7 +62,7 @@ const Home = () => {
   const lungeUpPositionRef = useRef<boolean>(true);
   const frontKneeAngleRef = useRef<number>(180);
   const kneeAlignmentWarningRef = useRef<boolean>(false);
-  const currentSideRef = useRef<"left" | "right">("left"); // ติดตามฝั่งที่กำลังทำ
+  const currentSideRef = useRef<"left" | "right">("left");
 
   // ตัวแปรสำหรับการตรวจจับท่า Russian Twist
   const russianTwistLeftRef = useRef(false);
@@ -75,7 +74,7 @@ const Home = () => {
   // เพิ่มตัวแปรสำหรับการจับเวลา Plank
   const [plankTime, setPlankTime] = useState(0);
   const plankTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const plankTimeRef = useRef(plankTime); // สร้าง ref เพื่อเก็บค่า plankTime
+  const plankTimeRef = useRef(plankTime);
   const plankStartedRef = useRef<boolean>(false);
   const plankProperFormRef = useRef<boolean>(false);
   const plankWarningGivenRef = useRef<boolean>(false);
@@ -83,7 +82,7 @@ const Home = () => {
   // เพิ่มตัวแปรสำหรับการจับเวลา Side Plank
   const [sidePlankTime, setSidePlankTime] = useState(0);
   const sidePlankTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const sidePlankTimeRef = useRef(plankTime); // สร้าง ref เพื่อเก็บค่า sidePlankTime
+  const sidePlankTimeRef = useRef(plankTime);
   const sidePlankStartedRef = useRef<boolean>(false);
   const sidePlankProperFormRef = useRef<boolean>(false);
   const sidePlankWarningGivenRef = useRef<boolean>(false);
@@ -168,7 +167,6 @@ const Home = () => {
     return Number.isFinite(n) && n > 0 ? n : undefined;
   }, [age]);
 
-  // แนะนำ knee offset สำหรับผู้หญิงที่ทำ knee push-up (5–10 ครั้ง)
   const ft = useFitnessTestMachine({
     sex,
     age: ageNumber,
@@ -355,7 +353,6 @@ const Home = () => {
 
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const currentStepRef = useRef<TExerciseStep | null>(null);
-  // เพิ่ม State เหล่านี้เข้าไป
   const [isResting, setIsResting] = useState(false);
   const [restTime, setRestTime] = useState(0);
   const restTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -363,12 +360,10 @@ const Home = () => {
   const steps = useMemo(() => getExerciseSteps(a), [a]);
   const currentStep = steps[currentStepIndex];
 
-  // --- เพิ่ม 2 บรรทัดนี้เข้าไป ---
   const stepsRef = useRef(steps);
   useEffect(() => {
     stepsRef.current = steps;
   }, [steps]);
-  // --------------------------------
   useEffect(() => {
     currentStepRef.current = currentStep;
   }, [currentStep]);
@@ -396,7 +391,7 @@ const Home = () => {
   }, [currentStepIndex]);
 
   const parseTimeToSeconds = (input: string) => {
-    const cleanInput = input.trim().replace(/[^0-9:.]/g, ""); // ลบพวก " นาที", "วิ" ออก
+    const cleanInput = input.trim().replace(/[^0-9:.]/g, "");
 
     if (cleanInput.includes(":")) {
       const parts = cleanInput
@@ -406,13 +401,12 @@ const Home = () => {
       let seconds = 0;
       for (let i = 0; i < parts.length; i++) {
         if (!isNaN(parts[i])) {
-          seconds += parts[i] * Math.pow(60, i); // วินาที + นาที + ชั่วโมง
+          seconds += parts[i] * Math.pow(60, i);
         }
       }
       return Math.round(seconds);
     }
 
-    // ถ้าไม่ใช่รูปแบบ hh:mm:ss ให้ลองหาเลขทศนิยม
     const match = input.match(/[\d.]+/);
     const minutes = match ? parseFloat(match[0]) : 1;
     return Math.round(minutes * 60);
@@ -425,9 +419,8 @@ const Home = () => {
     return m ? Number(m[0]) : 0;
   }
 
-  const [isFinished, setIsFinished] = useState(false); // เพิ่ม state ใหม่
+  const [isFinished, setIsFinished] = useState(false);
 
-  // เมื่อจบทั้งหมด: หยุด animation/timers เพื่อลดโอกาส state เปลี่ยนระหว่าง render
   useEffect(() => {
     if (!isFinished) return;
     try {
@@ -444,14 +437,12 @@ const Home = () => {
     } catch {}
   }, [isFinished]);
 
-  // ฟังก์ชันสำหรับเริ่มการพักโดยเฉพาะ
   const startRestPeriod = () => {
     const currentStep = currentStepRef.current;
     if (!currentStep) return;
 
     const isLastStep = currentStepIndex >= stepsRef.current.length - 1;
     if (isLastStep) {
-      // ✅ ถ้าเป็นท่าสุดท้าย ข้ามการพักและจบเลย
       speak("สุดยอดมาก คุณออกกำลังกายครบแล้ว");
       setIsFinished(true);
       return;
@@ -493,7 +484,7 @@ const Home = () => {
 
   const ftPhaseRef = useRef<any>(null);
   const ftExerciseRef = useRef<any>(null);
-  const ftOnRepRef = useRef(ft.onRep); // กัน onRep stale ด้วย
+  const ftOnRepRef = useRef(ft.onRep);
 
   useEffect(() => {
     ftPhaseRef.current = ft.phase;
@@ -507,9 +498,6 @@ const Home = () => {
     ftOnRepRef.current = ft.onRep;
   }, [ft.onRep]);
 
-  // ในคอมโพเนนต์ Home ของไฟล์ page.tsx
-
-  // ... ต่อจาก ref ของ ft ที่มีอยู่
   const ftSetPlankHoldRef = useRef(ft.setPlankHold);
   const ftFinishPlankRef = useRef(ft.finishPlank);
 
@@ -517,13 +505,10 @@ const Home = () => {
     ftPhaseRef.current = ft.phase;
   }, [phase]);
 
-  // ...
-
   useEffect(() => {
     ftOnRepRef.current = ft.onRep;
   }, [ft.onRep]);
 
-  // เพิ่ม useEffect สองอันนี้เข้าไป
   useEffect(() => {
     ftSetPlankHoldRef.current = ft.setPlankHold;
   }, [ft.setPlankHold]);
@@ -532,11 +517,7 @@ const Home = () => {
     ftFinishPlankRef.current = ft.finishPlank;
   }, [ft.finishPlank]);
 
-  // ...
-
-  // handleDoOneRep ที่ปรัปรุงใหม่
   const _handleDoOneRepBase = (currentStepRep: TExerciseStep | null) => {
-    // ป้องกันการทำงานซ้อนขณะพัก
     if (!currentStepRep || isResting) {
       return;
     }
@@ -553,13 +534,11 @@ const Home = () => {
 
       if (currentTime >= expectedTime) {
         isSetComplete = true;
-        // หยุด Timer ของท่าออกกำลังกาย
         if (isPlank) {
           if (plankTimerRef.current) clearInterval(plankTimerRef.current);
           plankTimerRef.current = null;
           plankStartedRef.current = false;
         } else {
-          // Side Plank
           if (sidePlankTimerRef.current)
             clearInterval(sidePlankTimerRef.current);
           sidePlankTimerRef.current = null;
@@ -567,19 +546,17 @@ const Home = () => {
         }
       }
     } else {
-      // สำหรับท่าที่นับจำนวนครั้ง (Reps)
       setReps((prevReps) => {
         const newReps = prevReps + 1;
         if (newReps >= currentStepRep.reps) {
-          isSetComplete = true; // ตั้งค่าสถานะว่าครบเซ็ต
-          startRestPeriod(); // เริ่มพัก
-          return 0; // รีเซ็ตจำนวนครั้ง
+          isSetComplete = true;
+          startRestPeriod();
+          return 0;
         }
         return newReps;
       });
     }
 
-    // ถ้าเป็น Plank หรือ Side Plank ที่ทำครบแล้ว ให้เริ่มพัก
     if (isSetComplete && (isPlank || isSidePlank)) {
       startRestPeriod();
     }
@@ -593,7 +570,7 @@ const Home = () => {
     if (isFitnessTestRef.current) {
       const name = (exerciseTypeRef.current || "").toLowerCase();
 
-      const toKey = name.includes("burpee no push up") // <--- ตรวจสอบอันนี้ก่อน
+      const toKey = name.includes("burpee no push up")
         ? "burpee"
         : name.includes("push up")
         ? "pushup"
@@ -619,7 +596,6 @@ const Home = () => {
         console.log("[FT] count rep for", toKey);
         ftOnRepRef.current?.(toKey as "pushup" | "squat" | "burpee");
       } else if (toKey === "plank") {
-        // แทนที่จะนับ rep ให้ยิงสัญญาณ hold ผ่านที่คุณเชื่อมไว้จาก Pose (แนะนำให้มี event แยก)
         console.log(
           "[FT] plank rep ignored (plank uses hold, not rep). Ensure pose emits 'plank:hold' events."
         );
@@ -641,7 +617,6 @@ const Home = () => {
     }
   }, [a, initialized]);
 
-  // ฟังก์ชันสำหรับการพูด
   const speak = (text: string) => {
     if (
       typeof window !== "undefined" &&
@@ -654,7 +629,6 @@ const Home = () => {
     }
   };
 
-  // ฟังก์ชันสำหรับแสดงข้อความแจ้งเตือน
   const showFeedback = (message: string) => {
     setFeedbackMessage(message);
     speak(message);
@@ -669,13 +643,10 @@ const Home = () => {
     }, 3000);
   };
 
-  // เพิ่มตัวแปรสำหรับตรวจจับการกระโดดพร้อมยกแขน
   const jumpWithArmsUpRef = useRef<boolean>(false);
 
-  // ฟังก์ชันสำหรับการเริ่มต้นตัวตรวจจับท่าทาง
   const initDetector = async () => {
     try {
-      // ป้องกันโหลดซ้ำ
       if (detectorRef.current) return;
       const detectorConfig: poseDetection.MoveNetModelConfig = {
         modelType: poseDetection.movenet.modelType.SINGLEPOSE_THUNDER,
@@ -725,7 +696,6 @@ const Home = () => {
     }
   };
 
-  // ฟังก์ชันสำหรับการประมาณท่าทาง
   const getPoses = async () => {
     if (!detectorRef.current || !videoRef.current) return;
 
@@ -738,8 +708,9 @@ const Home = () => {
       console.error("เกิดข้อผิดพลาดในการประมาณท่าทาง:", error);
     }
   };
+  console.log("posesRef.current:", posesRef.current);
+  console.log("detectorRef.current:", detectorRef.current);
 
-  // ฟังก์ชันสำหรับการวาดจุดสำคัญ
   const drawKeypoints = (ctx: CanvasRenderingContext2D) => {
     let count = 0;
     if (posesRef.current && posesRef.current.length > 0) {
@@ -760,7 +731,6 @@ const Home = () => {
       updateArmAngle();
       updateBackAngle();
 
-      // เลือกฟังก์ชันตรวจจับตามประเภทการออกกำลังกาย
       if (exerciseTypeRef.current === "push up") {
         inUpPosition();
         inDownPosition();
@@ -802,7 +772,6 @@ const Home = () => {
     }
   };
 
-  // ฟังก์ชันสำหรับการวาดโครงกระดูก
   const drawSkeleton = (ctx: CanvasRenderingContext2D) => {
     const confidence_threshold = 0.5;
 
@@ -810,7 +779,9 @@ const Home = () => {
       for (const [key, value] of Object.entries(edgesRef.current)) {
         const p = key.split(",");
         const p1 = parseInt(p[0]);
+        console.log("p1:", p1);
         const p2 = parseInt(p[1]);
+        console.log("p2:", p2);
 
         const y1 = posesRef.current[0].keypoints[p1].y;
         const x1 = posesRef.current[0].keypoints[p1].x;
@@ -872,7 +843,9 @@ const Home = () => {
       kneeAngleRef.current = Math.abs(angle);
     }
   };
+
   const hasJumpedInThisCycleRef = useRef(false);
+
   // ฟังก์ชันสำหรับการตรวจจับการกระโดด
   const detectJump = () => {
     if (!posesRef.current || posesRef.current.length === 0) return;
@@ -940,7 +913,7 @@ const Home = () => {
     }
   };
 
-  // ฟังก์ชันสำหรับการตรวจสอบท่า Burpee แบบผู้เริ่มต้น (ฉบับแก้ไข)
+  // ฟังก์ชันสำหรับการตรวจสอบท่า Burpee แบบผู้เริ่มต้น
   const detectBeginnerBurpee = () => {
     if (!posesRef.current || posesRef.current.length === 0) return;
 
@@ -1016,7 +989,6 @@ const Home = () => {
       jumpWithArmsUpRef.current = false;
       hasJumpedInThisCycleRef.current = false;
     }
-    // อัปเดตสถานะท่าทางต่าง ๆ
     detectJump();
     inUpPosition();
     inDownPosition();
@@ -1029,15 +1001,12 @@ const Home = () => {
     let isJumping = jumpDetectedRef.current;
     let isArmsUp = jumpWithArmsUpRef.current;
 
-    // ตรวจสอบว่าอยู่ในท่า Push Up หรือไม่
     pushupPositionRef.current = isPushup;
 
-    // เคลียร์ Timeout เดิมถ้ามี
     if (resetTimeoutRef.current) {
       clearTimeout(resetTimeoutRef.current);
     }
 
-    // ปรับลำดับการตรวจสอบ step ให้เหมือนกับ beginner
     if (burpeeStep.current === 0 && isStanding) {
       burpeeStep.current = 1;
       isJumping = false;
@@ -1061,7 +1030,6 @@ const Home = () => {
       showFeedback("สุดยอด! ทำครบ 1 ครั้งแล้ว");
     }
 
-    // รีเซ็ตถ้าไม่ขยับภายใน 3 วินาที
     resetTimeoutRef.current = setTimeout(() => {
       if (burpeeStep.current !== 0) {
         burpeeStep.current = 0;
@@ -1071,7 +1039,6 @@ const Home = () => {
   };
 
   // ฟังก์ชันสำหรับการตรวจสอบท่า Squat
-  // ✅ ตรวจสควอทจาก "สองขา" (รองรับ MoveNet Thunder / TFJS)
   const detectSquat = () => {
     if (isResting) return;
     const pose = posesRef.current?.[0];
@@ -1079,7 +1046,7 @@ const Home = () => {
 
     const kps = pose.keypoints;
     const MIN_SCORE = 0.2;
-    const KNEE_TOE_OFFSET_PX = 50; // ระยะที่ถือว่า "เลยปลายเท้า"
+    const KNEE_TOE_OFFSET_PX = 50;
     const LHIP = 11,
       RHIP = 12,
       LKNEE = 13,
@@ -1111,16 +1078,15 @@ const Home = () => {
 
       let cos = dot / (m1 * m2);
       cos = Math.max(-1, Math.min(1, cos));
-      return Math.acos(cos) * (180 / Math.PI); // องศา
+      return Math.acos(cos) * (180 / Math.PI);
     };
 
     // มุมหัวเข่าซ้าย/ขวา
     const leftAngle = kneeAngle(get(LHIP), get(LKNEE), get(LANK));
     const rightAngle = kneeAngle(get(RHIP), get(RKNEE), get(RANK));
 
-    const threshold = kneeAngleThresholdRef.current ?? 120; // ปรับได้ตามต้องการ
+    const threshold = kneeAngleThresholdRef.current ?? 120;
 
-    // ---- Detect down (ต้อง "ทั้งสองขา" ต่ำกว่า threshold) ----
     if (
       leftAngle < threshold &&
       rightAngle < threshold &&
