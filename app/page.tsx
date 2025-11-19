@@ -716,19 +716,19 @@ const Home = () => {
   const drawKeypoints = (ctx: CanvasRenderingContext2D) => {
     let count = 0;
     if (posesRef.current && posesRef.current.length > 0) {
-      // for (let kp of posesRef.current[0].keypoints) {
-      //   const { x, y, score } = kp;
-      //   if (score && score > 0.2) {
-      //     count = count + 1;
-      //     ctx.fillStyle = "white";
-      //     ctx.strokeStyle = "black";
-      //     ctx.lineWidth = 4;
-      //     ctx.beginPath();
-      //     ctx.arc(x, y, 8, 0, 2 * Math.PI);
-      //     ctx.fill();
-      //     ctx.stroke();
-      //   }
-      // }
+      for (let kp of posesRef.current[0].keypoints) {
+        const { x, y, score } = kp;
+        if (score && score > 0.2) {
+          count = count + 1;
+          ctx.fillStyle = "white";
+          ctx.strokeStyle = "black";
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.arc(x, y, 8, 0, 2 * Math.PI);
+          ctx.fill();
+          ctx.stroke();
+        }
+      }
 
       updateArmAngle();
       updateBackAngle();
@@ -2960,7 +2960,7 @@ const Home = () => {
     ctx.drawImage(videoRef.current, 0, 0);
 
     drawKeypoints(ctx);
-    // drawSkeleton(ctx);
+    drawSkeleton(ctx);
 
     ctx.restore();
 
