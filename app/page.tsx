@@ -708,8 +708,6 @@ const Home = () => {
       console.error("เกิดข้อผิดพลาดในการประมาณท่าทาง:", error);
     }
   };
-  console.log("posesRef.current:", posesRef.current);
-  console.log("detectorRef.current:", detectorRef.current);
 
   const drawKeypoints = (ctx: CanvasRenderingContext2D) => {
     let count = 0;
@@ -779,9 +777,7 @@ const Home = () => {
       for (const [key, value] of Object.entries(edgesRef.current)) {
         const p = key.split(",");
         const p1 = parseInt(p[0]);
-        console.log("p1:", p1);
         const p2 = parseInt(p[1]);
-        console.log("p2:", p2);
 
         const y1 = posesRef.current[0].keypoints[p1].y;
         const x1 = posesRef.current[0].keypoints[p1].x;
@@ -2943,33 +2939,27 @@ const Home = () => {
     }
   };
 
-  // ฟังก์ชันสำหรับการวาดภาพ
   const draw = () => {
     if (!canvasRef.current || !videoRef.current) return;
 
     const ctx = canvasRef.current.getContext("2d");
     if (!ctx) return;
 
-    // ตั้งค่าขนาดของ canvas ให้ตรงกับวิดีโอ
     canvasRef.current.width = videoRef.current.videoWidth;
     canvasRef.current.height = videoRef.current.videoHeight;
 
-    // ล้างพื้นหลัง
     ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
 
-    // กลับภาพเพื่อให้เหมือนกระจก
     ctx.save();
     ctx.translate(canvasRef.current.width, 0);
     ctx.scale(-1, 1);
     ctx.drawImage(videoRef.current, 0, 0);
 
-    // วาดจุดสำคัญและโครงกระดูก
     drawKeypoints(ctx);
     drawSkeleton(ctx);
 
     ctx.restore();
 
-    // เขียนข้อความ
     ctx.fillStyle = "white";
     ctx.strokeStyle = "black";
     ctx.lineWidth = 2;
@@ -3062,15 +3052,6 @@ const Home = () => {
           }
         }, 5000);
       });
-
-      // 5) ถึงตรงนี้ video มีขนาดจริงแล้ว (ถ้าใช้ canvas ให้ตั้งขนาดตามนี้)
-      // if (canvasRef.current) {
-      //   const c = canvasRef.current;
-      //   if (c.width !== video.videoWidth || c.height !== video.videoHeight) {
-      //     c.width = video.videoWidth;
-      //     c.height = video.videoHeight;
-      //   }
-      // }
     } catch (error) {
       console.error("ไม่สามารถเข้าถึงกล้องได้:", error);
       setMessage("ไม่สามารถเข้าถึงกล้องได้ กรุณาอนุญาตการใช้งานกล้อง");
@@ -3093,17 +3074,13 @@ const Home = () => {
 
   const [started, setStarted] = useState(false);
 
-  // ใช้ useEffect สำหรับการเริ่มต้นแอปพลิเคชัน (ฉบับแก้ไขสมบูรณ์)
   useEffect(() => {
-    // 💡 1. เพิ่มเงื่อนไขให้โค้ดทั้งหมดทำงาน "ต่อเมื่อ" started เป็น true เท่านั้น
     if (started) {
       const init = async () => {
-        // เพิ่มการแจ้งเตือนเสียงเมื่อเริ่มต้น
         setTimeout(() => {
           speak("ระบบเสียงพร้อมใช้งาน");
-        }, 2000); // รอ 2 วินาทีหลังจากโหลดเสร็จ
+        }, 2000);
 
-        // เริ่มต้น TensorFlow.js
         try {
           await tf.setBackend("webgpu");
         } catch (e) {
@@ -3111,27 +3088,22 @@ const Home = () => {
         }
         await tf.ready();
 
-        // ตั้งค่ากล้อง
         await setupCamera();
 
         if (videoRef.current) {
           videoRef.current.play();
         }
 
-        // เริ่มต้นตัวตรวจจับท่าทาง
         await initDetector();
 
-        // เริ่มการประมาณท่าทาง
         getPoses();
 
-        // เริ่มการวาดภาพ
         draw();
       };
 
       init();
     }
 
-    // ทำความสะอาดเมื่อคอมโพเนนต์ถูกทำลาย
     return () => {
       window.removeEventListener("resize", handleResize);
 
@@ -3139,25 +3111,20 @@ const Home = () => {
         cancelAnimationFrame(requestRef.current);
       }
 
-      // หยุดตัวจับเวลา Plank
       if (plankTimerRef.current) {
         clearInterval(plankTimerRef.current);
       }
 
-      // หยุดตัวจับเวลา Side Plank
       if (sidePlankTimerRef.current) {
         clearInterval(sidePlankTimerRef.current);
       }
 
-      // หยุดการสตรีมกล้อง
       if (videoRef.current && videoRef.current.srcObject) {
         const stream = videoRef.current.srcObject as MediaStream;
         const tracks = stream.getTracks();
         tracks.forEach((track) => track.stop());
       }
     };
-    // 💡 2. เพิ่ม started เข้าไปใน dependency array
-    // เพื่อให้ useEffect นี้ทำงานใหม่ทุกครั้งที่ค่า started เปลี่ยน
   }, [started]);
 
   useEffect(() => {
