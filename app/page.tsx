@@ -2972,7 +2972,7 @@ const Home = () => {
     requestAnimationFrame(draw);
   };
 
-  // ฟังก์ชันสำหรับการเริ่มต้นกล้อง (ฉบับแก้ไข)
+  // ฟังก์ชันสำหรับการเริ่มต้นกล้อง
   const setupCamera = async () => {
     const video = videoRef.current;
     if (!video) return;
@@ -2981,7 +2981,7 @@ const Home = () => {
       // 1) กำหนด constraints ตามอุปกรณ์
       const constraints: MediaStreamConstraints = {
         video: {
-          facingMode: { ideal: "user" }, // ถ้ากล้องหน้าไม่มี เดี๋ยวเราจะ fallback ด้านล่าง
+          facingMode: { ideal: "user" },
           width: { ideal: isMobile ? 720 : 1280 },
           height: { ideal: isMobile ? 1280 : 720 },
         },
@@ -2993,19 +2993,18 @@ const Home = () => {
       try {
         stream = await navigator.mediaDevices.getUserMedia(constraints);
       } catch (e) {
-        // Fallback: บางเครื่องเลือกกล้องหน้าไม่ได้
         stream = await navigator.mediaDevices.getUserMedia({
           video: true,
           audio: false,
         });
       }
 
-      // 3) ตั้งค่าก่อนเล่น (กัน autoplay policy)
+      // 3) ตั้งค่าก่อนเล่น
       video.srcObject = stream;
       video.setAttribute("playsinline", "true");
       video.muted = true;
 
-      // 4) รอให้ video “เล่นจริง” และมีมิติ (กัน 0x0)
+      // 4) รอให้ video “เล่นจริง” และมีมิติ
       await new Promise<void>((resolve) => {
         let resolved = false;
 
@@ -3032,7 +3031,7 @@ const Home = () => {
         video.addEventListener("playing", onPlaying);
         video.addEventListener("loadedmetadata", onLoaded);
 
-        // ขอให้เล่นทันที (บางเครื่องต้องเรียกเอง)
+        // ขอให้เล่นทันที
         const tryPlay = async () => {
           try {
             await video.play();
@@ -3040,7 +3039,7 @@ const Home = () => {
         };
         tryPlay();
 
-        // วนเช็คทุก 50ms จนกว่าจะมีมิติจริง (กันบางเคส event ไม่ยิง)
+        // วนเช็คทุก 50ms จนกว่าจะมีมิติจริง
         const tick = () => {
           if (resolved) return;
           if (video.videoWidth > 0 && video.videoHeight > 0) return done();
@@ -3214,7 +3213,7 @@ const Home = () => {
     return (
       <PreWorkoutGuide
         onStart={() => {
-          setStarted(true); // อ่านไกด์แล้วกดเริ่ม ถึงจะแสดงกล้อง
+          setStarted(true);
         }}
         isFitnessTest={c}
         video={b}

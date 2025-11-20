@@ -430,7 +430,7 @@ export default function PreWorkoutGuide({
                           <h3 className="text-base font-semibold text-slate-900 md:text-lg">
                             {ex.nameTh}
                           </h3>
-                          {isFitnessTest && video ? (
+                          {video ? (
                             <button
                               onClick={() => openPreview(ex.key, ex.nameTh)}
                               className="rounded-lg bg-blue-500/10 px-3 py-1 text-xs font-medium text-blue-600 hover:bg-blue-500/20"
