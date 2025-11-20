@@ -3227,7 +3227,7 @@ const Home = () => {
           ปุ่มสำหรับเปิดวิดีโอสาธิต
           ==============================================
       */}
-      <div className="w-full max-w-lg mt-4 flex justify-end">
+      {/* <div className="w-full max-w-lg mt-4 flex justify-end">
         {videoUrl ? (
           <button
             onClick={() => setIsModalOpen(true)}
@@ -3238,7 +3238,7 @@ const Home = () => {
         ) : (
           <div className="h-[40px]"></div> // จองพื้นที่ให้ layout ไม่กระโดด
         )}
-      </div>
+      </div> */}
 
       {/* ส่วนวิดีโอและ Canvas */}
       <div className="relative w-full max-w-lg shadow-2xl rounded-xl">
