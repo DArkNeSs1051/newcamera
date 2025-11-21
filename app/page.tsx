@@ -3262,46 +3262,6 @@ const Home = () => {
           </div>
         )}
 
-        {/* Dashboard Overlay */}
-        {/* {currentStep && (
-          <div className="absolute top-0 left-0 w-full p-3 bg-gray-900/60 backdrop-blur-sm rounded-t-xl border-b border-gray-700">
-            <div className="flex justify-between items-center">
-              <div>
-                <p className="text-xs text-green-400 uppercase">ท่าปัจจุบัน</p>
-                <h2 className="text-xl font-bold capitalize tracking-tight">
-                  {currentStep.exercise}
-                </h2>
-              </div>
-              <div className="flex items-center gap-4 text-right">
-                <div>
-                  <p className="text-xs text-gray-400 uppercase">เซ็ต</p>
-                  <p className="text-2xl font-bold">{currentStep.setNumber}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-400 uppercase">
-                    {currentStep.exercise.toLocaleLowerCase() === "plank" ||
-                    currentStep.exercise.toLocaleLowerCase() === "side plank"
-                      ? "จำนวนวินาที"
-                      : "จำนวนครั้ง"}
-                  </p>
-                  <p className="text-2xl font-bold">
-                    <span className="text-green-400">
-                      {currentStep.exercise.toLocaleLowerCase() === "plank"
-                        ? plankTime
-                        : currentStep.exercise
-                            .toLocaleLowerCase()
-                            .includes("side plank")
-                        ? sidePlankTime
-                        : reps}
-                    </span>
-                    <span className="text-gray-500 mx-1">/</span>
-                    <span>{currentStep.reps}</span>
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )} */}
         {(currentStep ||
           (isFitnessTest && phase !== "countdown" && phase !== "summary")) && (
           <>

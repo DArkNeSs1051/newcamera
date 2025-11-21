@@ -11,7 +11,7 @@ export const HudOverlay: React.FC<{
     exercise?.toLowerCase?.() === "side plank";
 
   return (
-    <div className="absolute top-0 left-0 w-full p-3 bg-gray-900/60 backdrop-blur-sm rounded-t-xl border-b border-gray-700">
+    <div className=" w-full p-3 bg-gray-900/60 backdrop-blur-sm rounded-t-xl border-b border-gray-700">
       <div className="flex justify-between items-center">
         <div>
           <p className="text-xs text-green-400 uppercase">ท่าปัจจุบัน</p>
