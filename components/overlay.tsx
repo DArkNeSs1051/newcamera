@@ -15,7 +15,7 @@ export const HudOverlay: React.FC<{
       <div className="flex justify-between items-center">
         <div>
           <p className="text-xs text-green-400 uppercase">ท่าปัจจุบัน</p>
-          <h2 className="text-xl font-bold capitalize tracking-tight">
+          <h2 className="text-2xl md:text-3xl font-bold capitalize tracking-tight">
             {exercise || "-"}
           </h2>
         </div>
@@ -23,14 +23,14 @@ export const HudOverlay: React.FC<{
           {setNumber !== undefined && (
             <div>
               <p className="text-xs text-gray-400 uppercase">เซ็ต</p>
-              <p className="text-2xl font-bold">{setNumber}</p>
+              <p className="text-3xl md:text-4xl font-bold">{setNumber}</p>
             </div>
           )}
           <div>
             <p className="text-xs text-gray-400 uppercase">
               {isPlankLike || isTime ? "จำนวนวินาที" : "จำนวนครั้ง"}
             </p>
-            <p className="text-2xl font-bold">
+            <p className="text-3xl md:text-4xl font-bold">
               <span className="text-green-400">{current ?? 0}</span>
               {total !== undefined && (
                 <>
@@ -54,18 +54,23 @@ export const RestOverlay: React.FC<{
 }> = ({ seconds, nextExercise, label = "พักสักครู่" }) => (
   <div className="absolute inset-0 z-40 flex flex-col items-center justify-center text-center bg-black/80 backdrop-blur-sm">
     {nextExercise && (
-      <p className="text-7xl font-medium tracking-wide text-gray-200 mb-1">
+      <p className="text-7xl md:text-8xl font-medium tracking-wide text-gray-200 mb-1">
         ท่าถัดไป:{" "}
         <span className="capitalize font-semibold text-white">
           {nextExercise}
         </span>
       </p>
     )}
-    <p className="text-sm md:text-base uppercase tracking-wider text-green-400">
+    <p className="text-base md:text-lg uppercase tracking-wider text-green-400">
       {label}
     </p>
-    <p className="text-8xl font-mono font-bold my-4 text-white">{seconds}</p>
-    <p className="text-xl uppercase tracking-wider text-gray-400">วินาที</p>
+    <p className="text-9xl md:text-[10rem] font-mono font-bold my-4 text-white">
+      {seconds}
+    </p>
+
+    <p className="text-2xl md:text-3xl uppercase tracking-wider text-gray-400">
+      วินาที
+    </p>
   </div>
 );
 
@@ -113,15 +118,15 @@ export const SummaryOverlay = ({
     <div className="fixed inset-0 z-[1000] bg-black/70 backdrop-blur-sm flex items-center justify-center">
       <div className="w-[min(92vw,560px)] rounded-2xl bg-gray-900/90 border border-white/10 p-6 text-white shadow-2xl">
         <div className="text-center space-y-4">
-          <h2 className="text-2xl md:text-3xl font-bold text-green-400">
+          <h2 className="text-3xl md:text-4xl font-bold text-green-400">
             สรุปผล
           </h2>
 
-          <div className="text-5xl md:text-6xl font-extrabold leading-none">
+          <div className="text-6xl md:text-7xl font-extrabold leading-none">
             {total}
           </div>
 
-          <div className="text-lg md:text-xl font-semibold text-green-400">
+          <div className="text-xl md:text-2xl font-semibold text-green-400">
             ระดับ: {level}
           </div>
 
@@ -131,17 +136,21 @@ export const SummaryOverlay = ({
                 {items.map((i) => (
                   <li
                     key={i.label}
-                    className="flex items-center justify-between border-b border-white/10 py-1"
+                    className="flex items-center justify-between border-b border-white/10 py-2"
                   >
-                    <span className="opacity-80">{i.label}</span>
-                    <span className="font-medium">{i.value}</span>
+                    <span className="opacity-80 text-base md:text-lg">
+                      {i.label}
+                    </span>
+                    <span className="font-medium text-lg md:text-xl">
+                      {i.value}
+                    </span>
                   </li>
                 ))}
               </ul>
             </div>
           )}
 
-          <p className="mt-6 text-sm md:text-base text-gray-300">
+          <p className="mt-6 text-base md:text-lg text-gray-300">
             ออกกำลังกายเสร็จแล้ว โปรดกลับมาใหม่ในวันพรุ่งนี้
           </p>
         </div>
