@@ -11,26 +11,32 @@ export const HudOverlay: React.FC<{
     exercise?.toLowerCase?.() === "side plank";
 
   return (
-    <div className=" w-full p-3 bg-gray-900/60 backdrop-blur-sm rounded-t-xl border-b border-gray-700">
+    <div className="w-full p-4 md:p-5 bg-gray-900/60 backdrop-blur-sm rounded-t-xl border-b border-gray-700">
       <div className="flex justify-between items-center">
         <div>
-          <p className="text-xs text-green-400 uppercase">ท่าปัจจุบัน</p>
-          <h2 className="text-2xl md:text-3xl font-bold capitalize tracking-tight">
+          <p className="text-sm md:text-base text-green-400 uppercase">
+            ท่าปัจจุบัน
+          </p>
+          <h2 className="text-3xl md:text-4xl font-bold capitalize tracking-tight">
             {exercise || "-"}
           </h2>
         </div>
-        <div className="flex items-center gap-4 text-right">
+
+        <div className="flex items-center gap-6 text-right">
           {setNumber !== undefined && (
             <div>
-              <p className="text-xs text-gray-400 uppercase">เซ็ต</p>
-              <p className="text-3xl md:text-4xl font-bold">{setNumber}</p>
+              <p className="text-sm md:text-base text-gray-400 uppercase">
+                เซ็ต
+              </p>
+              <p className="text-4xl md:text-5xl font-bold">{setNumber}</p>
             </div>
           )}
+
           <div>
-            <p className="text-xs text-gray-400 uppercase">
+            <p className="text-sm md:text-base text-gray-400 uppercase">
               {isPlankLike || isTime ? "จำนวนวินาที" : "จำนวนครั้ง"}
             </p>
-            <p className="text-3xl md:text-4xl font-bold">
+            <p className="text-4xl md:text-5xl font-bold">
               <span className="text-green-400">{current ?? 0}</span>
               {total !== undefined && (
                 <>

@@ -3240,6 +3240,56 @@ const Home = () => {
         )}
       </div> */}
 
+      {(currentStep ||
+        (isFitnessTest && phase !== "countdown" && phase !== "summary")) && (
+        <>
+          {!isFitnessTest && currentStep && (
+            <HudOverlay
+              exercise={currentStep.exercise}
+              setNumber={currentStep.setNumber}
+              current={
+                currentStep.exercise?.toLowerCase?.() === "plank"
+                  ? plankTime
+                  : currentStep.exercise?.toLowerCase?.().includes("side plank")
+                  ? sidePlankTime
+                  : reps
+              }
+              total={Number(currentStep?.reps ?? 0)}
+              isTime={
+                currentStep.exercise?.toLowerCase?.() === "plank" ||
+                currentStep.exercise?.toLowerCase?.().includes("side plank")
+              }
+            />
+          )}
+
+          {isFitnessTest && phase !== "countdown" && phase !== "summary" && (
+            <HudOverlay
+              exercise={(ft as any)?.exercise}
+              // ถ้ามี set/รอบใน state ของคุณ ให้ส่งเข้ามาแทน 1 นี้
+              setNumber={(ft as any).setNumber ?? 1}
+              current={
+                (ft as any)?.exercise === "plank"
+                  ? (ft as any)?.plankSec ?? 0
+                  : (ft as any)?.exercise === "pushup"
+                  ? (ft as any)?.counts?.pushup ?? 0
+                  : (ft as any)?.exercise === "squat"
+                  ? (ft as any)?.counts?.squat ?? 0
+                  : (ft as any)?.exercise === "burpee"
+                  ? (ft as any)?.counts?.burpee ?? 0
+                  : 0
+              }
+              // ถ้ามีเป้าหมายใน state (เช่น ft.targetPlankSec / ft.targetReps) ให้ใส่; ถ้าไม่มีก็ปล่อย undefined เพื่อซ่อน "/"
+              total={
+                (ft as any)?.exercise === "plank"
+                  ? (ft as any).targetPlankSec ?? undefined
+                  : (ft as any).targetReps ?? undefined
+              }
+              isTime={(ft as any)?.exercise === "plank"}
+            />
+          )}
+        </>
+      )}
+
       {/* ส่วนวิดีโอและ Canvas */}
       <div className="relative w-full max-w-lg shadow-2xl rounded-xl">
         <video
@@ -3260,58 +3310,6 @@ const Home = () => {
             <div className="w-12 h-12 border-4 border-t-green-500 border-gray-600 rounded-full animate-spin mb-4"></div>
             <p className="text-xl">กำลังโหลดโมเดล...</p>
           </div>
-        )}
-
-        {(currentStep ||
-          (isFitnessTest && phase !== "countdown" && phase !== "summary")) && (
-          <>
-            {!isFitnessTest && currentStep && (
-              <HudOverlay
-                exercise={currentStep.exercise}
-                setNumber={currentStep.setNumber}
-                current={
-                  currentStep.exercise?.toLowerCase?.() === "plank"
-                    ? plankTime
-                    : currentStep.exercise
-                        ?.toLowerCase?.()
-                        .includes("side plank")
-                    ? sidePlankTime
-                    : reps
-                }
-                total={Number(currentStep?.reps ?? 0)}
-                isTime={
-                  currentStep.exercise?.toLowerCase?.() === "plank" ||
-                  currentStep.exercise?.toLowerCase?.().includes("side plank")
-                }
-              />
-            )}
-
-            {isFitnessTest && phase !== "countdown" && phase !== "summary" && (
-              <HudOverlay
-                exercise={(ft as any)?.exercise}
-                // ถ้ามี set/รอบใน state ของคุณ ให้ส่งเข้ามาแทน 1 นี้
-                setNumber={(ft as any).setNumber ?? 1}
-                current={
-                  (ft as any)?.exercise === "plank"
-                    ? (ft as any)?.plankSec ?? 0
-                    : (ft as any)?.exercise === "pushup"
-                    ? (ft as any)?.counts?.pushup ?? 0
-                    : (ft as any)?.exercise === "squat"
-                    ? (ft as any)?.counts?.squat ?? 0
-                    : (ft as any)?.exercise === "burpee"
-                    ? (ft as any)?.counts?.burpee ?? 0
-                    : 0
-                }
-                // ถ้ามีเป้าหมายใน state (เช่น ft.targetPlankSec / ft.targetReps) ให้ใส่; ถ้าไม่มีก็ปล่อย undefined เพื่อซ่อน "/"
-                total={
-                  (ft as any)?.exercise === "plank"
-                    ? (ft as any).targetPlankSec ?? undefined
-                    : (ft as any).targetReps ?? undefined
-                }
-                isTime={(ft as any)?.exercise === "plank"}
-              />
-            )}
-          </>
         )}
 
         {isFinished && (
