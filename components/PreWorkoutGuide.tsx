@@ -206,10 +206,27 @@ export const DEFAULT_GUIDES: ExerciseGuide[] = [
 ];
 
 const EXERCISE_VIDEO_NAME_MAP: Record<string, string> = {
-  pushup: "Push Up",
-  burpee_no_pushup: "Burpee No Push Up",
-  burpee_pushup: "Burpee With Push Up",
+  // -------- Bodyweight --------
   squat: "Squat",
+  pushup: "Push Up",
+  lunge: "Leg Lunges",
+  plank: "Plank",
+  side_plank_left: "Side Plank",
+  side_plank_right: "Side Plank",
+  leg_raises: "Leg Raises",
+  russian_twists: "Russian Twists",
+  burpee_pushup: "Burpee With Push Up",
+  burpee_no_pushup: "Burpee No Push Up",
+
+  // -------- Dumbbell --------
+  db_bench_press: "Dumbbell Bench Press",
+  db_bent_over_row: "Dumbbell Bent Over Row",
+  db_shoulder_press: "Dumbbell Shoulder Press",
+  db_bicep_curl: "Dumbbell Bicep Curl",
+  db_goblet_squat: "Dumbbell Goblet Squat",
+  db_romanian_deadlift: "Dumbbell Romanian Deadlift",
+  db_oh_tricep_extension: "Dumbbell Overhead Tricep Extension",
+  db_side_lateral_raise: "Dumbbell Side Lateral Raise",
 };
 
 type TB = {
