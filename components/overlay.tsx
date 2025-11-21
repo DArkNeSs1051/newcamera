@@ -54,7 +54,7 @@ export const RestOverlay: React.FC<{
 }> = ({ seconds, nextExercise, label = "พักสักครู่" }) => (
   <div className="absolute inset-0 z-40 flex flex-col items-center justify-center text-center bg-black/80 backdrop-blur-sm">
     {nextExercise && (
-      <p className="text-base md:text-lg font-medium tracking-wide text-gray-200 mb-1">
+      <p className="text-7xl font-medium tracking-wide text-gray-200 mb-1">
         ท่าถัดไป:{" "}
         <span className="capitalize font-semibold text-white">
           {nextExercise}
